@@ -58,281 +58,155 @@
     letter-spacing: 0.02em;
   }
 
-  /* Botón flotante para abrir el catálogo */
-  .catalog-toggle {
+  /* -------- Sims-style bottom dock -------- */
+  .dock {
     position: fixed;
-    top: 86px;
-    left: 28px;
-    z-index: 11;
+    bottom: 0; left: 0; right: 0;
+    z-index: 12;
     background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 8px 14px;
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -14px 40px -16px rgba(50, 35, 10, 0.18);
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+  .dock-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 8px 18px 0;
+    border-bottom: 1px solid var(--line-soft);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dock-tabs::-webkit-scrollbar { display: none; }
+  .dock-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 10px 16px 11px;
     font-family: inherit;
     font-size: 13px;
     font-weight: 500;
-    color: var(--ink);
-    cursor: pointer;
-    box-shadow: 0 1px 0 rgba(60, 40, 10, 0.04);
-    transition: background 0.12s, transform 0.08s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .catalog-toggle:hover { background: #faf5ea; }
-  .catalog-toggle:active { transform: translateY(1px); }
-  .catalog-toggle .icon {
-    width: 14px; height: 14px;
-    display: inline-block;
-    position: relative;
-  }
-  .catalog-toggle .icon::before,
-  .catalog-toggle .icon::after {
-    content: '';
-    position: absolute;
-    background: var(--ink);
-    left: 0; right: 0;
-    height: 2px;
-    border-radius: 1px;
-  }
-  .catalog-toggle .icon::before { top: 2px; box-shadow: 0 5px 0 var(--ink); }
-  .catalog-toggle .icon::after  { bottom: 2px; }
-
-  /* Panel del catálogo */
-  .catalog {
-    position: fixed;
-    top: 0; left: 0;
-    height: 100vh;
-    width: 240px;
-    background: var(--panel);
-    border-right: 1px solid var(--line);
-    box-shadow: 6px 0 30px -8px rgba(50, 35, 10, 0.12);
-    z-index: 12;
-    transform: translateX(-100%);
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .catalog.open { transform: translateX(0); }
-  .catalog-header {
-    padding: 22px 20px 14px;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-  }
-  .catalog-header h2 {
-    margin: 0;
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 500;
-    font-size: 22px;
-    letter-spacing: -0.01em;
-  }
-  .catalog-header h2 em {
-    font-style: italic;
-    font-weight: 400;
-    color: #a08454;
-  }
-  .catalog-header .close {
-    background: none;
-    border: none;
     color: var(--muted);
-    font-size: 22px;
-    line-height: 1;
     cursor: pointer;
-    padding: 0;
-    font-family: inherit;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
   }
-  .catalog-header .close:hover { color: var(--ink); }
-
-  .catalog-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 4px 16px 24px;
+  .dock-tab:hover { color: var(--ink); }
+  .dock-tab.active {
+    color: var(--ink);
+    border-bottom-color: #d4a017;
   }
-  .catalog-section {
-    margin-top: 14px;
+  .dock-items {
+    display: flex;
+    gap: 10px;
+    padding: 12px 18px 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
-  .catalog-section-label {
-    font-size: 10.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #b9b1a3;
-    font-weight: 600;
-    margin: 0 0 8px 4px;
-  }
-  .catalog-section-items {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 6px;
-  }
-
-  .catalog-item {
+  .dock-item {
     position: relative;
-    background: transparent;
-    border: none;
+    flex: 0 0 88px;
+    height: 108px;
+    background: var(--line-soft);
+    border: 1px solid transparent;
     border-radius: 12px;
-    padding: 6px 2px 8px;
+    padding: 6px 4px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    transition: background 0.12s, transform 0.08s;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s, box-shadow 0.15s;
+    font-family: inherit;
   }
-  .catalog-item:hover { background: var(--line-soft); }
-  .catalog-item:active { transform: translateY(1px); }
-
-  /* Disco de fondo del preview (estilo "moneda") */
-  .catalog-item .disc {
-    width: 56px;
-    height: 56px;
+  .dock-item:hover { background: #faf3e0; }
+  .dock-item:active { transform: translateY(1px); }
+  .dock-item.active {
+    background: #fff;
+    border-color: #d4a017;
+    box-shadow: 0 6px 18px -6px rgba(212, 160, 23, 0.45);
+  }
+  .dock-item.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .dock-item .disc {
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #faf3e2, #ebe0c4);
     box-shadow: inset 0 -3px 6px rgba(120, 90, 30, 0.08),
                 inset 0 2px 4px rgba(255, 255, 255, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     overflow: hidden;
     position: relative;
   }
-  .catalog-item canvas {
-    width: 100%;
-    height: 100%;
+  .dock-item canvas {
+    width: 100%; height: 100%;
     display: block;
   }
-
-  /* Estado activo: anillo dorado alrededor del disco */
-  .catalog-item.active .disc {
-    box-shadow: 0 0 0 2px #d8c79e,
-                inset 0 -3px 6px rgba(120, 90, 30, 0.08),
-                inset 0 2px 4px rgba(255, 255, 255, 0.6);
-  }
-  .catalog-item.active::after {
-    content: '';
-    position: absolute;
-    top: 2px; right: 2px;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #6fb442;
-    box-shadow: 0 0 0 2px var(--panel);
-  }
-
-  .catalog-item .name {
-    font-size: 10.5px;
+  .dock-item .name {
+    font-size: 11px;
     font-weight: 500;
     color: var(--ink);
     margin-top: 4px;
     letter-spacing: 0.01em;
+    line-height: 1.1;
   }
-
-  /* Eraser sin canvas: dibujamos el patrón directamente en el disco */
-  .catalog-item.eraser .disc {
+  .dock-item .cost {
+    position: absolute;
+    top: 4px; right: 5px;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .dock-item .cost.cant { color: #c84848; border-color: #e8c8c8; }
+  .dock-item .limit {
+    position: absolute;
+    top: 4px; left: 5px;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 1px 6px;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+  .dock-item .limit.full { color: #c84848; border-color: #e8c8c8; }
+  .dock-item.eraser .disc {
     background:
       repeating-linear-gradient(45deg,
         transparent, transparent 4px,
         rgba(120, 90, 30, 0.25) 4px, rgba(120, 90, 30, 0.25) 8px),
       radial-gradient(circle at 35% 30%, #faf3e2, #ebe0c4);
   }
-  .catalog-item.eraser canvas { display: none; }
+  .dock-item.eraser canvas { display: none; }
 
-  /* Backdrop sutil cuando el panel está abierto, solo en móvil */
-  .catalog-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(50, 35, 10, 0.2);
-    z-index: 11;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-  }
-  .catalog-backdrop.open {
-    opacity: 1;
-    pointer-events: auto;
-  }
+  /* legacy .controls/.btn removed — Reset/Clear now live inside the HUD */
 
-  .controls {
-    position: fixed;
-    top: 26px; right: 28px;
-    display: flex;
-    gap: 8px;
-    z-index: 10;
-  }
-  .btn {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    padding: 9px 14px;
-    border-radius: 10px;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--ink);
-    cursor: pointer;
-    box-shadow: 0 1px 0 rgba(60, 40, 10, 0.04);
-    transition: background 0.12s, transform 0.08s;
-  }
-  .btn:hover { background: #faf5ea; }
-  .btn:active { transform: translateY(1px); }
-  .btn.on {
-    background: #f4ecd8;
-    border-color: #d8c79e;
-  }
-  .btn.on::before {
-    content: '●';
-    color: #6fb442;
-    margin-right: 4px;
-    font-size: 9px;
-    vertical-align: 1px;
-  }
-
-  /* Indicador de herramienta activa en la esquina inferior derecha */
-  .current-tool {
-    position: fixed;
-    bottom: 28px; left: 28px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 8px 14px 8px 8px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 1px 0 rgba(60, 40, 10, 0.04);
-    z-index: 10;
-    cursor: pointer;
-    transition: background 0.12s;
-  }
-  .current-tool:hover { background: #faf5ea; }
-  .current-tool .swatch {
-    width: 26px; height: 26px;
-    border-radius: 7px;
-    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.06);
-  }
-  .current-tool .swatch.eraser {
-    background: repeating-linear-gradient(45deg, #e8e3d6, #e8e3d6 3px, #d6cdb8 3px, #d6cdb8 6px) !important;
-  }
-  .current-tool .label {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.2;
-  }
-  .current-tool .label strong {
-    display: block;
-    font-size: 13px;
-    color: var(--ink);
-    font-weight: 600;
-  }
 
   .help {
     position: fixed;
-    bottom: 28px; right: 28px;
-    font-size: 11.5px;
+    bottom: 178px; right: 28px;
+    font-size: 11px;
     color: var(--muted);
     text-align: right;
     line-height: 1.7;
     z-index: 10;
     pointer-events: none;
+    opacity: 0.7;
   }
+  @media (max-height: 760px) { .help { display: none; } }
   .help kbd {
     display: inline-block;
     padding: 1.5px 5px;
@@ -355,14 +229,304 @@
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
 
+  /* -------- HUD: top-right resource bar -------- */
+  .hud {
+    position: fixed;
+    top: 26px;
+    right: 28px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 14px 12px;
+    z-index: 10;
+    box-shadow: var(--shadow);
+    min-width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .hud-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .hud-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .hud-icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s, color 0.12s, transform 0.08s;
+    font-family: inherit;
+  }
+  .hud-icon-btn:hover { background: #faf5ea; color: var(--ink); }
+  .hud-icon-btn:active { transform: translateY(1px); }
+  .hud .res-row { display: flex; gap: 14px; justify-content: space-between; align-items: baseline; }
+  .hud .res {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    transition: color 0.2s;
+  }
+  .hud .res .ico { font-size: 13px; margin-right: 2px; }
+  .hud .res .cap { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .hud .res.bump { animation: bump 0.3s ease-out; }
+  @keyframes bump {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  .hud .xp-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .hud .xp-bar {
+    height: 6px;
+    background: var(--line-soft);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .hud .xp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #d4a017, #f0c641);
+    transition: width 0.4s ease;
+    border-radius: 3px;
+  }
+  .hud .xp-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* -------- Missions panel (left side) -------- */
+  .missions {
+    position: fixed;
+    top: 110px;
+    left: 28px;
+    width: 280px;
+    max-height: calc(100vh - 320px);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px 12px;
+    z-index: 10;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .missions-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .missions-header h3 {
+    margin: 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .missions-header h3 em {
+    font-style: italic;
+    font-weight: 400;
+    color: #d4a017;
+  }
+  .missions-counter {
+    font-size: 11px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .missions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .mission {
+    position: relative;
+    background: var(--line-soft);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: opacity 0.25s, transform 0.25s, background 0.18s, border-color 0.18s;
+  }
+  .mission.locked {
+    opacity: 0.55;
+  }
+  .mission.active {
+    background: #fff8e6;
+    border-color: #f0d97a;
+    box-shadow: 0 4px 14px -8px rgba(212, 160, 23, 0.55);
+  }
+  .mission.completing {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  .mission-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .mission-icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .mission-body { flex: 1; min-width: 0; }
+  .mission-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.25;
+    letter-spacing: 0.005em;
+  }
+  .mission-hint {
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.3;
+    display: none;
+  }
+  .mission.active .mission-hint { display: block; }
+  .mission-bar {
+    height: 4px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 2px;
+    margin-top: 7px;
+    overflow: hidden;
+  }
+  .mission-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6fb442, #a8d96a);
+    transition: width 0.4s ease;
+    border-radius: 2px;
+  }
+  .mission-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 10.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .mission-progress { font-weight: 600; }
+  .mission-reward {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(212, 160, 23, 0.12);
+    color: #8a6610;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 10px;
+  }
+  .mission.locked .mission-bar,
+  .mission.locked .mission-meta { display: none; }
+  .mission .lock-icon {
+    color: var(--muted);
+    font-size: 11px;
+    margin-left: auto;
+  }
+
+  /* Floating placement feedback */
+  .float-text {
+    position: fixed;
+    pointer-events: none;
+    font-size: 14px;
+    font-weight: 700;
+    color: #6fb442;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.8), 0 0 8px rgba(255,255,255,0.5);
+    z-index: 60;
+    transform: translate(-50%, 0);
+    animation: float-up 1s ease-out forwards;
+    font-variant-numeric: tabular-nums;
+  }
+  @keyframes float-up {
+    0%   { transform: translate(-50%, 0) scale(0.9); opacity: 0; }
+    15%  { transform: translate(-50%, -8px) scale(1.1); opacity: 1; }
+    100% { transform: translate(-50%, -55px) scale(0.95); opacity: 0; }
+  }
+
+  /* Goal/milestone toasts */
+  .toasts {
+    position: fixed;
+    top: 90px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--ink);
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    animation: toast-in 0.3s ease-out, toast-out 0.4s ease-in 2.6s forwards;
+    white-space: nowrap;
+  }
+  .toast .icon { margin-right: 8px; font-size: 14px; }
+  @keyframes toast-in {
+    from { transform: translateY(-12px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes toast-out {
+    to { transform: translateY(-12px); opacity: 0; }
+  }
+
   @media (max-width: 600px) {
     .brand .title { font-size: 22px; }
     .help { display: none; }
-    .controls { top: 20px; right: 20px; }
-    .brand { top: 20px; left: 20px; }
-    .catalog-toggle { top: 76px; left: 20px; }
-    .current-tool { bottom: 20px; left: 20px; }
+    .brand { top: 16px; left: 16px; }
+    .brand .sub { display: none; }
+    .hud { top: 16px; right: 16px; left: auto; min-width: 0; padding: 8px 10px 10px; }
+    .hud-actions { display: none; }
+    .hud .res { font-size: 12.5px; }
+    .missions { top: auto; bottom: 200px; left: 16px; right: 16px; width: auto; max-height: 35vh; padding: 10px 12px; }
+    .missions .mission { padding: 8px 10px; }
+    .missions-header h3 { font-size: 15px; }
+    .toasts { top: auto; bottom: 200px; }
+    .dock-tabs { padding: 6px 12px 0; }
+    .dock-tab { padding: 8px 10px 9px; font-size: 12px; }
+    .dock-items { padding: 10px 12px 12px; gap: 8px; }
+    .dock-item { flex: 0 0 78px; height: 100px; }
+    .dock-item .disc { width: 54px; height: 54px; }
+    .dock-item .name { font-size: 10.5px; }
   }
+  /* Old catalog selectors kept as no-ops in case external markup lingers. */
+  .catalog, .catalog-toggle, .catalog-backdrop { display: none !important; }
 </style>
 </head>
 <body>
@@ -373,31 +537,46 @@
     <div class="sub">Click to place · drag to orbit · scroll to zoom</div>
   </div>
 
-  <button class="catalog-toggle" id="catalogToggle">
-    <span class="icon"></span>
-    Catalog
-  </button>
-
-  <div class="catalog-backdrop" id="catalogBackdrop"></div>
-  <aside class="catalog" id="catalog">
-    <div class="catalog-header">
-      <h2>Tiny <em>Catalog</em></h2>
-      <button class="close" id="catalogClose" aria-label="Close">×</button>
-    </div>
-    <div class="catalog-list" id="catalogList"></div>
-  </aside>
-
-  <button class="current-tool" id="currentTool">
-    <div class="swatch" id="currentToolSwatch"></div>
-    <div class="label">Placing<strong id="currentToolName">Tree</strong></div>
-  </button>
-
   <div class="toolbar" id="toolbar" style="display:none"></div>
 
-  <div class="controls">
-    <button class="btn" id="reset">↺ Reset</button>
-    <button class="btn" id="clear">Clear</button>
+  <div class="dock" id="dock">
+    <div class="dock-tabs" id="dockTabs"></div>
+    <div class="dock-items" id="dockItems"></div>
   </div>
+
+  <div class="hud" id="hud">
+    <div class="hud-top">
+      <div class="res-row">
+        <div class="res" id="resCoins" title="Coins — earned by harvesting">
+          <span class="ico">🪙</span><span class="val">30</span>
+        </div>
+        <div class="res" id="resLevel" title="Level — gain XP by harvesting">
+          <span class="ico">⭐</span>Lv&nbsp;<span class="val">1</span>
+        </div>
+        <div class="res" id="resPop" title="Villagers (from houses)">
+          <span class="ico">👥</span><span class="val">0</span>
+        </div>
+      </div>
+      <div class="hud-actions">
+        <button class="hud-icon-btn" id="reset" title="Reset (R)">↺</button>
+        <button class="hud-icon-btn" id="clear" title="Clear (C)">⌫</button>
+      </div>
+    </div>
+    <div class="xp-row">
+      <div class="xp-bar"><div class="xp-bar-fill" id="xpBarFill" style="width:0%"></div></div>
+      <div class="xp-label"><span id="xpVal">0</span> / <span id="xpNext">20</span> XP</div>
+    </div>
+  </div>
+
+  <aside class="missions" id="missions">
+    <div class="missions-header">
+      <h3>Tiny <em>Missions</em></h3>
+      <span class="missions-counter" id="missionsCounter">0/0</span>
+    </div>
+    <div class="missions-list" id="missionsList"></div>
+  </aside>
+
+  <div class="toasts" id="toasts"></div>
 
   <div class="toolbar" id="toolbar"></div>
 
@@ -2424,7 +2603,7 @@
     { id: 'erase',  label: 'Erase',  erase: true, color: 'transparent', eraser: true },
   ];
 
-  let selectedTool = TOOLS[5]; // start on Tree — feels inviting
+  let selectedTool = TOOLS[8]; // start on Crop — matches the first goal
 
   function buildToolbar() {
     const bar = document.getElementById('toolbar');
@@ -2534,29 +2713,38 @@
     return { scene: scn, camera: cam, group };
   }
 
+  // -------- Sims-style bottom dock --------
+  // Tabs select a category; items for the active category are visible, the
+  // rest are display:none. Every item keeps its 3D preview canvas alive so
+  // switching tabs feels instant.
+  let activeCategory = 'buildings';
+
   function buildCatalog() {
-    const list = document.getElementById('catalogList');
-    list.innerHTML = '';
+    const tabsEl = document.getElementById('dockTabs');
+    const itemsEl = document.getElementById('dockItems');
+    if (!tabsEl || !itemsEl) return;
+    tabsEl.innerHTML = '';
+    itemsEl.innerHTML = '';
     previewItems.length = 0;
 
     for (const cat of CATEGORIES) {
-      const section = document.createElement('div');
-      section.className = 'catalog-section';
-      const label = document.createElement('div');
-      label.className = 'catalog-section-label';
-      label.textContent = cat.label;
-      section.appendChild(label);
+      const tab = document.createElement('button');
+      tab.className = 'dock-tab';
+      tab.textContent = cat.label;
+      tab.dataset.cat = cat.id;
+      tab.addEventListener('click', () => switchCategory(cat.id));
+      tabsEl.appendChild(tab);
+    }
 
-      const items = document.createElement('div');
-      items.className = 'catalog-section-items';
-
+    for (const cat of CATEGORIES) {
       for (const id of cat.ids) {
         const tool = TOOLS.find(t => t.id === id);
         if (!tool) continue;
 
         const item = document.createElement('button');
-        item.className = 'catalog-item' + (tool.eraser ? ' eraser' : '');
+        item.className = 'dock-item' + (tool.eraser ? ' eraser' : '');
         item.dataset.id = tool.id;
+        item.dataset.cat = cat.id;
         if (tool === selectedTool) item.classList.add('active');
 
         const disc = document.createElement('div');
@@ -2572,12 +2760,27 @@
         name.textContent = tool.label;
         item.appendChild(name);
 
-        item.addEventListener('click', () => {
-          selectTool(tool);
-          if (window.innerWidth <= 600) closeCatalog();
-        });
+        // Cost chip (top-right): price in coins; turns red when unaffordable.
+        const cost = COSTS[tool.kind];
+        if (cost) {
+          const chip = document.createElement('span');
+          chip.className = 'cost';
+          chip.dataset.cost = cost;
+          chip.textContent = cost + '🪙';
+          item.appendChild(chip);
+        }
 
-        items.appendChild(item);
+        // Limit chip (top-left): currently only trees show "have/cap".
+        // The chip element is always present so updateDockLimits can fill it.
+        if (tool.kind === 'tree') {
+          const limit = document.createElement('span');
+          limit.className = 'limit tree-limit';
+          limit.textContent = '0/0';
+          item.appendChild(limit);
+        }
+
+        item.addEventListener('click', () => selectTool(tool));
+        itemsEl.appendChild(item);
 
         if (!tool.eraser) {
           const { scene: scn, camera: cam, group } = makePreviewScene(tool);
@@ -2585,93 +2788,104 @@
           previewItems.push({ tool, scene: scn, camera: cam, group, canvas, ctx });
         }
       }
-
-      section.appendChild(items);
-      list.appendChild(section);
     }
+
+    switchCategory(activeCategory);
   }
 
-  // Animar / renderizar todos los previews. Cada item rota un poco su grupo
-  // y se copia el resultado del renderer offscreen a su canvas 2D.
-  // Importante: hacemos render + drawImage en pares (no batch), porque
-  // el navegador puede swapar el framebuffer entre renders consecutivos.
+  function switchCategory(catId) {
+    activeCategory = catId;
+    document.querySelectorAll('.dock-tab').forEach(el => {
+      el.classList.toggle('active', el.dataset.cat === catId);
+    });
+    document.querySelectorAll('.dock-item').forEach(el => {
+      el.style.display = (el.dataset.cat === catId) ? '' : 'none';
+    });
+  }
+
+  // The dock is always visible, so we always render previews. The shared
+  // offscreen renderer is reused once per item per frame.
   function tickCatalogPreviews(t) {
-    if (!catalogOpen) return;
     for (const item of previewItems) {
       item.group.rotation.y = t * 0.4;
       previewRenderer.render(item.scene, item.camera);
       const src = previewRenderer.domElement;
       item.ctx.clearRect(0, 0, item.canvas.width, item.canvas.height);
-      // Forzamos el copy inmediato. drawImage del canvas WebGL al 2D es síncrono.
       try {
         item.ctx.drawImage(src, 0, 0, item.canvas.width, item.canvas.height);
-      } catch (err) {
-        // Algunas combinaciones de navegador throwean si el WebGL canvas tiene
-        // dimensiones cero o algún otro estado raro — ignoramos.
-      }
+      } catch (err) { /* ignore intermittent WebGL state errors */ }
     }
   }
 
   function updateCatalogActive() {
-    document.querySelectorAll('.catalog-item').forEach(el => {
+    document.querySelectorAll('.dock-item').forEach(el => {
       el.classList.toggle('active', el.dataset.id === selectedTool.id);
     });
-  }
-
-  let catalogOpen = false;
-  function openCatalog() {
-    catalogOpen = true;
-    document.getElementById('catalog').classList.add('open');
-    document.getElementById('toolbar').classList.add('hidden');
-    if (window.innerWidth <= 600) {
-      document.getElementById('catalogBackdrop').classList.add('open');
+    // Auto-switch tabs so the active item is visible after a keyboard shortcut
+    const activeEl = document.querySelector('.dock-item.active');
+    if (activeEl && activeEl.dataset.cat && activeEl.dataset.cat !== activeCategory) {
+      switchCategory(activeEl.dataset.cat);
     }
   }
-  function closeCatalog() {
-    catalogOpen = false;
-    document.getElementById('catalog').classList.remove('open');
-    document.getElementById('toolbar').classList.remove('hidden');
-    document.getElementById('catalogBackdrop').classList.remove('open');
-  }
-  function toggleCatalog() { catalogOpen ? closeCatalog() : openCatalog(); }
-
-  on('catalogToggle', 'click', toggleCatalog);
-  on('catalogClose', 'click', closeCatalog);
-  on('catalogBackdrop', 'click', closeCatalog);
-  on('currentTool', 'click', toggleCatalog);
 
   function selectTool(t) {
     selectedTool = t;
     updateCatalogActive();
     hoverMesh.material = t.erase ? M.hoverErase : M.hover;
-    // Actualizar indicador de herramienta actual
-    const sw = document.getElementById('currentToolSwatch');
-    const nm = document.getElementById('currentToolName');
-    if (sw && nm) {
-      sw.className = 'swatch' + (t.eraser ? ' eraser' : '');
-      sw.style.background = t.eraser ? '' : t.color;
-      nm.textContent = t.label;
-    }
   }
 
   // -------- click → place / erase --------
+  let lastClickPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
   function applyTool(x, z) {
     const cell = world[x][z];
+    const key = x + ',' + z;
+
+    // Harvest-first: a click on a ready cell collects, regardless of tool —
+    // except the eraser, which is meant to destroy whatever's there.
+    if (!selectedTool.erase && isReady(key)) {
+      harvestAt(x, z, lastClickPos.x, lastClickPos.y);
+      return;
+    }
+
     if (selectedTool.erase) {
-      if (cell.kind) setCell(x, z, { terrain: cell.terrain, kind: null });
-      else if (cell.terrain !== 'grass') setCell(x, z, { terrain: 'grass', kind: null });
+      if (cell.kind) {
+        unregisterHarvest(x, z);
+        setCell(x, z, { terrain: cell.terrain, kind: null });
+      } else if (cell.terrain !== 'grass') {
+        setCell(x, z, { terrain: 'grass', kind: null });
+      }
+      updateHud(); checkGoals();
       return;
     }
-    if (selectedTool.kind === 'house' && cell.kind === 'house') {
-      // Stack: clicking the house tool on an existing house adds a floor.
-      const newFloors = Math.min((cell.floors || 1) + 1, MAX_FLOORS);
-      if (newFloors === (cell.floors || 1)) return;
-      setCell(x, z, { terrain: cell.terrain, kind: 'house', floors: newFloors });
+
+    // Don't re-plant on top of a growing harvestable cell — show timer instead.
+    // This stops accidental re-clicks from wasting coins on a cell that's
+    // already mid-cycle.
+    if (cell.kind && HARVEST[cell.kind] && harvestState.has(key)) {
+      const st = harvestState.get(key);
+      const cfg = HARVEST[cell.kind];
+      const remain = Math.max(0, Math.ceil(cfg.growSec - (performance.now() / 1000 - st.plantedAt)));
+      showFloatAt(lastClickPos.x, lastClickPos.y, remain + 's…', '#8a847a');
       return;
     }
+
     if (selectedTool.kind) {
+      // Hard cap on trees (Sims-style: limited by housing) so the loop
+      // requires balancing forestry against settlement.
+      if (selectedTool.kind === 'tree' && countKind('tree') >= treeCap()) {
+        showToast('Tree limit ' + treeCap() + ' — build more houses!', '🌳');
+        return;
+      }
+      if (!canAfford(selectedTool)) {
+        showToast('Not enough 🪙 — harvest crops!', '⚠️');
+        return;
+      }
+      payFor(selectedTool);
       const newTerrain = selectedTool.terrainOverride || cell.terrain;
       setCell(x, z, { terrain: newTerrain, kind: selectedTool.kind });
+      onPlace(selectedTool, x, z, lastClickPos.x, lastClickPos.y);
+      updateHud(); checkGoals();
       return;
     }
     if (selectedTool.terrain) {
@@ -2733,13 +2947,17 @@
       // personaje, aplicamos la herramienta seleccionada en el tile DELANTE
       // del personaje (a 1 paso adelante).
       if (pointerDown && Math.abs(e.clientX - pointerDown.x) + Math.abs(e.clientY - pointerDown.y) < DRAG_THRESHOLD) {
-        if (currentHover) applyTool(currentHover.x, currentHover.z);
+        if (currentHover) {
+          lastClickPos = { x: e.clientX, y: e.clientY };
+          applyTool(currentHover.x, currentHover.z);
+        }
       }
       pointerDown = null;
       lastPointer = null;
       return;
     }
     if (pointerDown && !didDrag && currentHover) {
+      lastClickPos = { x: e.clientX, y: e.clientY };
       applyTool(currentHover.x, currentHover.z);
     }
     pointerDown = null;
@@ -2780,7 +2998,10 @@
   on('reset', 'click', doReset);
   on('clear', 'click', doClear);
 
-  function doReset() { loadInitialScene(); }
+  function doReset() {
+    loadInitialScene();
+    if (typeof resetEcon === 'function') resetEcon();
+  }
   function doClear() {
     const TILE_STAGGER = 0.022;
     for (let x = 0; x < GRID; x++)
@@ -2791,6 +3012,7 @@
           tileDelay: (x + z) * TILE_STAGGER,
           forceTile: true,
         });
+    if (typeof resetEcon === 'function') resetEcon();
   }
 
   // -------- chimney smoke --------
@@ -2907,6 +3129,7 @@
     renderer.render(scene, camera);
 
     tickCatalogPreviews(t);
+    if (typeof tickHarvest === 'function') tickHarvest(t);
   }
 
   // -------- resize --------
@@ -3288,13 +3511,634 @@
     }
   }
 
+  // =====================================================================
+  // Economy (FarmVille-style):
+  //   - 🪙 coins are the single currency.
+  //   - ⭐ XP accumulates from harvests; reaching the level threshold awards
+  //     a coin bonus and bumps level. No hard unlocks — level is flavor.
+  //   - Every placeable "kind" with a HARVEST entry grows for N seconds then
+  //     becomes ready (a coin/fruit emoji sprite hovers over it). A click on
+  //     a ready cell collects, ignoring the currently selected tool.
+  //   - Crops are one-shot (become dirt). Trees / houses / mills / barns
+  //     reset their timer and keep producing.
+  // =====================================================================
+  const ECON = { coins: 30, xp: 0, level: 1 };
+
+  // Cost in coins to place each kind. Terrain + tuft are free.
+  const COSTS = {
+    crop: 2, tree: 8, fence: 1,
+    house: 20, windmill: 50, barn: 80,
+  };
+
+  // Harvest spec per kind. growSec: seconds until ready. coins/xp: reward
+  // on harvest. consume: if true, the placement is destroyed on harvest
+  // (e.g. crops become dirt). label: floating text on collection.
+  const HARVEST = {
+    crop:     { growSec: 25,  coins: 6,  xp: 2,  consume: true,  emoji: '🌾', label: '+6 🪙' },
+    tree:     { growSec: 60,  coins: 12, xp: 4,                  emoji: '🍎', label: '+12 🪙' },
+    house:    { growSec: 45,  coins: 5,  xp: 2,                  emoji: '🪙', label: '+5 🪙' },
+    windmill: { growSec: 90,  coins: 30, xp: 10,                 emoji: '🌾', label: '+30 🪙' },
+    barn:     { growSec: 120, coins: 50, xp: 15,                 emoji: '🥛', label: '+50 🪙' },
+  };
+
+  // Per-cell harvest state: key 'x,z' → { kind, plantedAt }
+  // plantedAt is in seconds (performance.now() / 1000).
+  const harvestState = new Map();
+  // key → THREE.Sprite hovering over the cell when ready
+  const readySprites = new Map();
+  // key → { sprite, lastSec, progress } shown while the cell is still growing
+  const timerSprites = new Map();
+
+  // Shared emoji sprite textures (one per kind).
+  function makeEmojiTexture(emoji) {
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    const g = c.getContext('2d');
+    g.font = '92px serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    // soft white halo so the emoji reads against any backdrop
+    g.shadowColor = 'rgba(255,255,255,0.95)';
+    g.shadowBlur = 14;
+    g.fillText(emoji, 64, 68);
+    g.shadowBlur = 0;
+    g.fillText(emoji, 64, 68);
+    return new THREE.CanvasTexture(c);
+  }
+  const READY_TEX = {};
+  for (const k in HARVEST) READY_TEX[k] = makeEmojiTexture(HARVEST[k].emoji);
+
+  function makeReadySprite(kind) {
+    const mat = new THREE.SpriteMaterial({
+      map: READY_TEX[kind] || READY_TEX.crop,
+      transparent: true,
+      depthTest: false,   // always on top
+    });
+    const sp = new THREE.Sprite(mat);
+    sp.scale.set(0.55, 0.55, 0.55);
+    sp.renderOrder = 999;
+    return sp;
+  }
+
+  // Timer pill: dark rounded background with "Xs" text + thin progress bar
+  // underneath. We redraw the canvas only when the integer second OR a
+  // visible progress step (10% increments) changes — saves on texture
+  // uploads while still feeling alive.
+  function drawTimerCanvas(canvas, secs, progress01) {
+    const g = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    g.clearRect(0, 0, w, h);
+    // Pill
+    const pillW = 110, pillH = 44, px = (w - pillW) / 2, py = 6;
+    g.fillStyle = 'rgba(42, 39, 34, 0.88)';
+    g.beginPath();
+    const r = 22;
+    g.moveTo(px + r, py);
+    g.arcTo(px + pillW, py, px + pillW, py + pillH, r);
+    g.arcTo(px + pillW, py + pillH, px, py + pillH, r);
+    g.arcTo(px, py + pillH, px, py, r);
+    g.arcTo(px, py, px + pillW, py, r);
+    g.closePath();
+    g.fill();
+    // Inset progress bar
+    const barW = pillW - 22, barH = 6, bx = px + 11, by = py + pillH - 12;
+    g.fillStyle = 'rgba(255,255,255,0.18)';
+    g.fillRect(bx, by, barW, barH);
+    g.fillStyle = '#6fb442';
+    g.fillRect(bx, by, barW * progress01, barH);
+    // Text
+    g.fillStyle = '#fff';
+    g.font = '600 22px Inter, system-ui, -apple-system, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(secs + 's', w / 2, py + 16);
+  }
+
+  function makeTimerSprite() {
+    const c = document.createElement('canvas');
+    c.width = 160; c.height = 64;
+    const tex = new THREE.CanvasTexture(c);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    const sp = new THREE.Sprite(mat);
+    // ~2.5:1 aspect; smaller than ready emoji so multiple cells read clearly
+    sp.scale.set(0.95, 0.38, 1);
+    sp.renderOrder = 998;
+    sp.userData.canvas = c;
+    sp.userData.texture = tex;
+    return sp;
+  }
+
+  function clearTimerSprite(key) {
+    const t = timerSprites.get(key);
+    if (!t) return;
+    worldGroup.remove(t.sprite);
+    if (t.sprite.material) {
+      if (t.sprite.material.map) t.sprite.material.map.dispose();
+      t.sprite.material.dispose();
+    }
+    timerSprites.delete(key);
+  }
+
+  function countKind(k) {
+    let n = 0;
+    for (let x = 0; x < GRID; x++)
+      for (let z = 0; z < GRID; z++)
+        if (world[x][z].kind === k) n++;
+    return n;
+  }
+
+  // Trees are not unlimited: each house unlocks 2 tree slots on top of a
+  // small starting allowance. This forces the player to invest in housing
+  // before scaling apple income — and prevents the screen from becoming a
+  // pure forest.
+  const TREE_BASE_CAP = 3;
+  const TREE_PER_HOUSE = 2;
+  function treeCap() { return TREE_BASE_CAP + countKind('house') * TREE_PER_HOUSE; }
+
+  // Total villagers = sum over houses of 4 × floors. Pure flavor stat shown
+  // in the HUD; the actual economy runs on coins/XP, not population.
+  function popCount() {
+    let n = 0;
+    for (let x = 0; x < GRID; x++)
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (c.kind === 'house') n += 4 * (c.floors || 1);
+      }
+    return n;
+  }
+
+  // Total harvests collected this session — used as a session stat for goals.
+  let totalHarvests = 0;
+  // XP needed to reach (current level + 1). Slightly superlinear so each
+  // level takes a touch longer than the last without feeling grindy.
+  function xpForNext() { return 10 + 8 * ECON.level + 2 * ECON.level * ECON.level; }
+
+  function tickHarvest(t) {
+    // t is in seconds (now / 1000) from the main animate loop.
+    for (const [key, st] of harvestState) {
+      const cfg = HARVEST[st.kind];
+      if (!cfg) continue;
+      const elapsed = t - st.plantedAt;
+      const ready = elapsed >= cfg.growSec;
+      const [xs, zs] = key.split(',').map(Number);
+      const phase = (xs * 17 + zs * 31) * 0.13;
+
+      if (ready) {
+        // Drop the countdown pill if any, show the harvest emoji sprite.
+        if (timerSprites.has(key)) clearTimerSprite(key);
+        let sp = readySprites.get(key);
+        if (!sp) {
+          sp = makeReadySprite(st.kind);
+          const p = tilePos(xs, zs);
+          sp.position.set(p.x, 0, p.z);
+          // pickTile() walks parents looking for userData.gx — give it to the
+          // sprite so a click on the icon hits the cell.
+          sp.userData.gx = xs;
+          sp.userData.gz = zs;
+          worldGroup.add(sp);
+          readySprites.set(key, sp);
+        }
+        sp.position.y = 1.15 + Math.sin(t * 3 + phase) * 0.09;
+      } else {
+        // Still growing → countdown pill above the tile.
+        if (readySprites.has(key)) clearReadySprite(key); // safety
+        let entry = timerSprites.get(key);
+        if (!entry) {
+          const sp = makeTimerSprite();
+          const p = tilePos(xs, zs);
+          sp.position.set(p.x, 1.15, p.z);
+          // Same picking trick: clicks on the pill resolve to the cell so
+          // applyTool can show the "Xs…" floating hint.
+          sp.userData.gx = xs;
+          sp.userData.gz = zs;
+          worldGroup.add(sp);
+          entry = { sprite: sp, lastSec: -1, lastProgStep: -1 };
+          timerSprites.set(key, entry);
+        }
+        const remain = Math.max(0, cfg.growSec - elapsed);
+        const showSec = Math.max(1, Math.ceil(remain));
+        const progress01 = Math.min(1, Math.max(0, elapsed / cfg.growSec));
+        // Step progress in 5% increments to avoid redrawing every frame.
+        const progStep = Math.round(progress01 * 20);
+        if (entry.lastSec !== showSec || entry.lastProgStep !== progStep) {
+          drawTimerCanvas(entry.sprite.userData.canvas, showSec, progress01);
+          entry.sprite.userData.texture.needsUpdate = true;
+          entry.lastSec = showSec;
+          entry.lastProgStep = progStep;
+        }
+        // Very subtle bob — the pill is informational so we don't want it
+        // dancing as much as the "ready" emoji.
+        entry.sprite.position.y = 1.15 + Math.sin(t * 2 + phase) * 0.04;
+      }
+    }
+  }
+
+  function clearReadySprite(key) {
+    const sp = readySprites.get(key);
+    if (!sp) return;
+    worldGroup.remove(sp);
+    if (sp.material) sp.material.dispose();
+    readySprites.delete(key);
+  }
+
+  function isReady(key) {
+    const st = harvestState.get(key);
+    if (!st) return false;
+    const cfg = HARVEST[st.kind];
+    if (!cfg) return false;
+    return (performance.now() / 1000 - st.plantedAt) >= cfg.growSec;
+  }
+
+  function registerHarvest(x, z, kind) {
+    if (!HARVEST[kind]) return;
+    const key = x + ',' + z;
+    clearReadySprite(key);
+    clearTimerSprite(key);
+    harvestState.set(key, { kind, plantedAt: performance.now() / 1000 });
+  }
+
+  function unregisterHarvest(x, z) {
+    const key = x + ',' + z;
+    clearReadySprite(key);
+    clearTimerSprite(key);
+    harvestState.delete(key);
+  }
+
+  // Sync harvestState ↔ world: when the initial scene loads or cells are
+  // erased outside applyTool, the harvest map can drift. Rebuild it here
+  // so a Reset starts every existing kind on a fresh growth cycle.
+  function syncHarvestStateFromWorld() {
+    for (const key of Array.from(harvestState.keys())) {
+      clearReadySprite(key);
+      clearTimerSprite(key);
+    }
+    harvestState.clear();
+    const now = performance.now() / 1000;
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const k = world[x][z].kind;
+        if (k && HARVEST[k]) {
+          harvestState.set(x + ',' + z, { kind: k, plantedAt: now });
+        }
+      }
+    }
+  }
+
+  function harvestAt(x, z, sx, sy) {
+    const key = x + ',' + z;
+    const st = harvestState.get(key);
+    if (!st) return false;
+    const cfg = HARVEST[st.kind];
+    const now = performance.now() / 1000;
+    if (now - st.plantedAt < cfg.growSec) return false;
+
+    // Award rewards + visual feedback
+    ECON.coins += cfg.coins;
+    bumpRes('resCoins');
+    showFloatAt(sx, sy, cfg.label, '#d4a017');
+    gainXp(cfg.xp);
+    totalHarvests++;
+
+    if (cfg.consume) {
+      // Crop: vanish, leaving dirt behind so re-planting is one click.
+      unregisterHarvest(x, z);
+      setCell(x, z, { terrain: 'dirt', kind: null });
+    } else {
+      // Repeating: reset the timer and clear the ready sprite — next frame
+      // tickHarvest will spawn a fresh countdown pill.
+      st.plantedAt = now;
+      clearReadySprite(key);
+      clearTimerSprite(key);
+    }
+
+    updateHud();
+    checkGoals();
+    saveState();
+    return true;
+  }
+
+  function gainXp(amount) {
+    ECON.xp += amount;
+    let leveled = false;
+    while (ECON.xp >= xpForNext()) {
+      ECON.xp -= xpForNext();
+      ECON.level++;
+      leveled = true;
+      const bonus = ECON.level * 10;
+      ECON.coins += bonus;
+      showToast('Level ' + ECON.level + '! +' + bonus + ' 🪙', '⭐');
+    }
+    if (leveled) bumpRes('resLevel');
+    bumpRes('resXp');
+  }
+
+  function bumpRes(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('bump');
+    void el.offsetWidth; // force reflow to restart anim
+    el.classList.add('bump');
+  }
+
+  function updateHud() {
+    const coinsEl = document.getElementById('resCoins');
+    if (coinsEl) coinsEl.querySelector('.val').textContent = ECON.coins;
+
+    const lvlEl = document.getElementById('resLevel');
+    if (lvlEl) lvlEl.querySelector('.val').textContent = ECON.level;
+
+    const popEl = document.getElementById('resPop');
+    if (popEl) popEl.querySelector('.val').textContent = popCount();
+
+    const need = xpForNext();
+    const xpVal = document.getElementById('xpVal');
+    const xpNext = document.getElementById('xpNext');
+    const xpFill = document.getElementById('xpBarFill');
+    if (xpVal) xpVal.textContent = ECON.xp;
+    if (xpNext) xpNext.textContent = need;
+    if (xpFill) xpFill.style.width = (100 * ECON.xp / need) + '%';
+
+    updateCatalogCosts();
+  }
+
+  function updateCatalogCosts() {
+    document.querySelectorAll('.dock-item .cost').forEach(chip => {
+      const c = parseInt(chip.dataset.cost, 10);
+      chip.classList.toggle('cant', ECON.coins < c);
+    });
+    // Tree slot indicator on the tree card
+    const haveTrees = countKind('tree');
+    const cap = treeCap();
+    document.querySelectorAll('.tree-limit').forEach(el => {
+      el.textContent = haveTrees + '/' + cap;
+      el.classList.toggle('full', haveTrees >= cap);
+    });
+  }
+
+  function canAfford(tool) {
+    const cost = COSTS[tool.kind] || 0;
+    return ECON.coins >= cost;
+  }
+
+  function payFor(tool) {
+    const cost = COSTS[tool.kind] || 0;
+    if (cost > 0) {
+      ECON.coins -= cost;
+      bumpRes('resCoins');
+    }
+  }
+
+  function onPlace(tool, x, z, sx, sy) {
+    // Register growth timer for harvestable kinds
+    if (HARVEST[tool.kind]) {
+      registerHarvest(x, z, tool.kind);
+      const cfg = HARVEST[tool.kind];
+      showFloatAt(sx, sy, 'planted · ' + cfg.growSec + 's', '#6fb442');
+    }
+  }
+
+  function showFloatAt(x, y, text, color) {
+    const el = document.createElement('div');
+    el.className = 'float-text';
+    el.textContent = text;
+    if (color) el.style.color = color;
+    el.style.left = x + 'px';
+    el.style.top  = (y - 10) + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  function showToast(text, icon) {
+    const host = document.getElementById('toasts');
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = (icon ? '<span class="icon">' + icon + '</span>' : '') + text;
+    host.appendChild(el);
+    setTimeout(() => el.remove(), 3200);
+  }
+
+  // -------- Missions: linear chain with rewards + hints --------
+  // Each mission completes when progress() reaches target. The completion
+  // grants `reward.coins` and `reward.xp`, and the next mission unlocks.
+  // The panel shows the current mission expanded + the next 2 dimmed so the
+  // player always sees what's coming.
+  const MISSIONS = [
+    { id: 'plant_crop',
+      icon: '🌾', name: 'Plant your first crop',
+      hint: 'Open the Vegetation tab in the dock and click Crop, then tap a tile.',
+      target: 1, progress: () => countKind('crop'),
+      reward: { coins: 20, xp: 5 } },
+    { id: 'harvest_3',
+      icon: '🪙', name: 'Harvest 3 times',
+      hint: 'Wait for the 🌾 icon to float above a crop, then click it.',
+      target: 3, progress: () => totalHarvests,
+      reward: { coins: 30, xp: 10 } },
+    { id: 'plant_tree',
+      icon: '🌳', name: 'Plant your first tree',
+      hint: 'Trees produce apples 🍎 every minute. They cost 8 🪙.',
+      target: 1, progress: () => countKind('tree'),
+      reward: { coins: 15, xp: 5 } },
+    { id: 'build_house',
+      icon: '🏠', name: 'Build a house',
+      hint: 'Houses cost 20 🪙 and unlock 2 more tree slots each.',
+      target: 1, progress: () => countKind('house'),
+      reward: { coins: 50, xp: 15 } },
+    { id: 'level3',
+      icon: '⭐', name: 'Reach level 3',
+      hint: 'Keep harvesting to earn XP. Every harvest gives ⭐.',
+      target: 3, progress: () => ECON.level,
+      reward: { coins: 50, xp: 0 } },
+    { id: 'harvest_10',
+      icon: '🌾', name: 'Harvest 10 times in total',
+      hint: 'Crops are quick (25s) — plant a row of them.',
+      target: 10, progress: () => totalHarvests,
+      reward: { coins: 60, xp: 15 } },
+    { id: 'build_mill',
+      icon: '🌬️', name: 'Build a windmill',
+      hint: 'Mills cost 50 🪙 and pay 30 🪙 every 90s. Save up!',
+      target: 1, progress: () => countKind('windmill'),
+      reward: { coins: 80, xp: 25 } },
+    { id: 'plant_5_trees',
+      icon: '🌳', name: 'Plant 5 trees',
+      hint: 'You need at least 1 house to plant more than 3 trees.',
+      target: 5, progress: () => countKind('tree'),
+      reward: { coins: 60, xp: 20 } },
+    { id: 'level5',
+      icon: '⭐', name: 'Reach level 5',
+      hint: 'Mills and barns give big XP — chase those harvests.',
+      target: 5, progress: () => ECON.level,
+      reward: { coins: 100, xp: 0 } },
+    { id: 'build_barn',
+      icon: '🏚️', name: 'Build a barn',
+      hint: 'Barns cost 80 🪙 and pay 50 🪙 every 2 minutes.',
+      target: 1, progress: () => countKind('barn'),
+      reward: { coins: 150, xp: 40 } },
+    { id: 'pop_12',
+      icon: '👥', name: 'Reach 12 villagers',
+      hint: 'Each house = 4 villagers. Build more (or stack floors).',
+      target: 12, progress: () => popCount(),
+      reward: { coins: 120, xp: 30 } },
+    { id: 'harvest_30',
+      icon: '🪙', name: 'Harvest 30 times',
+      hint: 'Keep that loop running.',
+      target: 30, progress: () => totalHarvests,
+      reward: { coins: 150, xp: 50 } },
+    { id: 'coins_500',
+      icon: '💰', name: 'Save up 500 coins',
+      hint: 'Mills and barns are your big earners.',
+      target: 500, progress: () => ECON.coins,
+      reward: { coins: 200, xp: 50 } },
+    { id: 'level8',
+      icon: '⭐', name: 'Reach level 8',
+      hint: 'Almost there!',
+      target: 8, progress: () => ECON.level,
+      reward: { coins: 200, xp: 0 } },
+    { id: 'level10',
+      icon: '👑', name: 'Reach level 10 — Master Builder',
+      hint: 'The final milestone. Your town is thriving.',
+      target: 10, progress: () => ECON.level,
+      reward: { coins: 500, xp: 0 } },
+    { id: 'done',
+      icon: '👑', name: 'You built a thriving farm!',
+      hint: 'Keep building for fun — there are no more missions to complete.',
+      target: 1, progress: () => 1,
+      reward: { coins: 0, xp: 0 } },
+  ];
+
+  // Back-compat: legacy name in save schema.
+  let goalIdx = 0;
+
+  function checkGoals() {
+    // Try to advance through any missions whose target is already satisfied.
+    // We loop because completing a "+coins" mission can immediately satisfy
+    // a "save up X coins" mission, etc.
+    let advanced = false;
+    while (goalIdx < MISSIONS.length - 1) {
+      const m = MISSIONS[goalIdx];
+      if (m.progress() < m.target) break;
+      const r = m.reward || { coins: 0, xp: 0 };
+      if (r.coins) { ECON.coins += r.coins; bumpRes('resCoins'); }
+      if (r.xp)    gainXp(r.xp);
+      showToast(m.name + ' ✓  +' + (r.coins || 0) + ' 🪙', m.icon);
+      goalIdx++;
+      advanced = true;
+    }
+    renderMissions();
+    if (advanced) { updateHud(); saveState(); }
+  }
+
+  // Render up to 3 missions: current + next 2 (locked). When the last is
+  // reached we just show it on its own. Hint is visible only on the active
+  // mission to keep the panel compact.
+  function renderMissions() {
+    const list = document.getElementById('missionsList');
+    const counter = document.getElementById('missionsCounter');
+    if (!list || !counter) return;
+    counter.textContent = goalIdx + ' / ' + (MISSIONS.length - 1);
+
+    const slice = [];
+    for (let i = 0; i < 3; i++) {
+      const m = MISSIONS[goalIdx + i];
+      if (m) slice.push({ m, locked: i > 0 });
+    }
+
+    list.innerHTML = '';
+    slice.forEach(({ m, locked }, i) => {
+      const el = document.createElement('div');
+      el.className = 'mission ' + (locked ? 'locked' : 'active');
+      const p = Math.min(m.target, m.progress());
+      const pct = Math.round(100 * p / m.target);
+      const r = m.reward || {};
+      const rewardChip = (r.coins || r.xp)
+        ? '<span class="mission-reward">+' + (r.coins || 0) + '🪙' + (r.xp ? ' +' + r.xp + '⭐' : '') + '</span>'
+        : '';
+      const lockIcon = locked ? '<span class="lock-icon">🔒</span>' : '';
+      el.innerHTML =
+        '<div class="mission-row">' +
+          '<div class="mission-icon">' + m.icon + '</div>' +
+          '<div class="mission-body">' +
+            '<div class="mission-name">' + escapeHtml(m.name) + '</div>' +
+            (locked ? '' :
+              '<div class="mission-hint">' + escapeHtml(m.hint || '') + '</div>' +
+              '<div class="mission-bar"><div class="mission-bar-fill" style="width:' + pct + '%"></div></div>' +
+              '<div class="mission-meta">' +
+                '<span class="mission-progress">' + p + ' / ' + m.target + '</span>' +
+                rewardChip +
+              '</div>') +
+          '</div>' +
+          lockIcon +
+        '</div>';
+      list.appendChild(el);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+
+  // Save / load: serialize coins/xp/level/goalIdx and the harvest timers
+  // (relative to "seconds ago") so a refresh doesn't reset growth progress.
+  const SAVE_KEY = 'tinyworld_v2';
+  function saveState() {
+    try {
+      const now = performance.now() / 1000;
+      const timers = [];
+      for (const [key, st] of harvestState) {
+        timers.push([key, st.kind, now - st.plantedAt]);
+      }
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        coins: ECON.coins, xp: ECON.xp, level: ECON.level,
+        goalIdx, totalHarvests, timers,
+      }));
+    } catch (e) {}
+  }
+
+  function loadState() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
+      if (typeof s.coins === 'number') ECON.coins = s.coins;
+      if (typeof s.xp    === 'number') ECON.xp    = s.xp;
+      if (typeof s.level === 'number') ECON.level = s.level;
+      if (typeof s.goalIdx === 'number') goalIdx = s.goalIdx;
+      if (typeof s.totalHarvests === 'number') totalHarvests = s.totalHarvests;
+      if (Array.isArray(s.timers)) {
+        const now = performance.now() / 1000;
+        for (const [key, kind, elapsed] of s.timers) {
+          if (HARVEST[kind]) {
+            harvestState.set(key, { kind, plantedAt: now - elapsed });
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  function resetEcon() {
+    ECON.coins = 30; ECON.xp = 0; ECON.level = 1;
+    goalIdx = 0; totalHarvests = 0;
+    for (const key of Array.from(readySprites.keys())) clearReadySprite(key);
+    for (const key of Array.from(timerSprites.keys())) clearTimerSprite(key);
+    harvestState.clear();
+    syncHarvestStateFromWorld();
+    updateHud();
+    checkGoals();
+    saveState();
+  }
+
   // -------- boot --------
   buildToolbar();
   if (typeof buildCatalog === 'function') buildCatalog();
-  selectTool(TOOLS[5]);
+  selectTool(TOOLS[8]);
   targetViewSize = viewSize;
   loadInitialScene();
   onResize();
+  // Seed harvest timers for every kind that's part of the starter scene
+  // before loadState overrides them with the player's saved progress.
+  syncHarvestStateFromWorld();
+  loadState();
+  updateHud();
+  checkGoals();
   requestAnimationFrame(animate);
   </script>
 </body>
