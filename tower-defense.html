@@ -1,0 +1,2182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Tiny Tower Defense</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f4ede0;
+    --panel: #ffffff;
+    --ink: #2a2722;
+    --muted: #8a847a;
+    --line: #ebe3d2;
+    --line-soft: #f3ecdc;
+    --accent: #3a72c8;
+    --shadow: 0 18px 50px -20px rgba(50, 35, 10, 0.18), 0 2px 6px -2px rgba(50, 35, 10, 0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #app { position: fixed; inset: 0; z-index: 2; }
+  canvas { display: block; cursor: grab; }
+  canvas.placing { cursor: crosshair; }
+  canvas.dragging { cursor: grabbing; }
+
+  .brand {
+    position: fixed;
+    top: 26px; left: 28px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .brand .title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .brand .title em {
+    font-style: italic;
+    font-weight: 400;
+    color: #a08454;
+  }
+  .brand .sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- HUD (top right) ---------- */
+  .hud {
+    position: fixed;
+    top: 26px; right: 28px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 14px 12px;
+    z-index: 10;
+    box-shadow: var(--shadow);
+    min-width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .hud-row { display: flex; gap: 14px; justify-content: space-between; align-items: baseline; }
+  .res {
+    display: flex; align-items: baseline; gap: 4px;
+    font-size: 14px; font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    transition: color 0.2s;
+  }
+  .res .ico { font-size: 13px; margin-right: 2px; }
+  .res.bump { animation: bump 0.3s ease-out; }
+  @keyframes bump {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  .wave-btn {
+    background: #6fb442;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    box-shadow: 0 6px 18px -8px rgba(111, 180, 66, 0.65);
+    transition: background 0.15s, transform 0.08s;
+  }
+  .wave-btn:hover { background: #5fa033; }
+  .wave-btn:active { transform: translateY(1px); }
+  .wave-btn.fast { background: #d4a017; box-shadow: 0 6px 18px -8px rgba(212, 160, 23, 0.65); }
+  .wave-btn.fast:hover { background: #b88a13; }
+  .wave-btn:disabled { background: #c8c2b4; cursor: not-allowed; box-shadow: none; }
+  .hud-icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s, color 0.12s, transform 0.08s;
+    font-family: inherit;
+  }
+  .hud-icon-btn:hover { background: #faf5ea; color: var(--ink); }
+
+  /* ---------- Sims-style bottom dock ---------- */
+  .dock {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 12;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -14px 40px -16px rgba(50, 35, 10, 0.18);
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+  .dock-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 8px 18px 0;
+    border-bottom: 1px solid var(--line-soft);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dock-tabs::-webkit-scrollbar { display: none; }
+  .dock-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 10px 16px 11px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .dock-tab:hover { color: var(--ink); }
+  .dock-tab.active {
+    color: var(--ink);
+    border-bottom-color: #d4a017;
+  }
+  .dock-items {
+    display: flex;
+    gap: 10px;
+    padding: 12px 18px 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .dock-item {
+    position: relative;
+    flex: 0 0 100px;
+    height: 122px;
+    background: var(--line-soft);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 6px 4px 4px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  .dock-item:hover { background: #faf3e0; }
+  .dock-item:active { transform: translateY(1px); }
+  .dock-item.active {
+    background: #fff;
+    border-color: #d4a017;
+    box-shadow: 0 6px 18px -6px rgba(212, 160, 23, 0.45);
+  }
+  .dock-item.disabled { opacity: 0.55; cursor: not-allowed; }
+  .dock-item .disc {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #faf3e2, #ebe0c4);
+    box-shadow: inset 0 -3px 6px rgba(120, 90, 30, 0.08),
+                inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .dock-item canvas { width: 100%; height: 100%; display: block; }
+  .dock-item .name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-top: 4px;
+    letter-spacing: 0.01em;
+    line-height: 1.1;
+  }
+  .dock-item .desc {
+    font-size: 9.5px;
+    color: var(--muted);
+    line-height: 1.15;
+    margin-top: 1px;
+    text-align: center;
+  }
+  .dock-item .cost {
+    position: absolute;
+    top: 4px; right: 5px;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .dock-item .cost.cant { color: #c84848; border-color: #e8c8c8; }
+  .dock-item.sell .disc {
+    background:
+      repeating-linear-gradient(45deg,
+        transparent, transparent 4px,
+        rgba(200, 72, 72, 0.25) 4px, rgba(200, 72, 72, 0.25) 8px),
+      radial-gradient(circle at 35% 30%, #faf3e2, #ebe0c4);
+  }
+  .dock-item.sell canvas { display: none; }
+  .dock-item.sell .disc::after {
+    content: '↩';
+    position: absolute;
+    font-size: 32px;
+    color: #c84848;
+    font-weight: 600;
+  }
+
+  /* ---------- Tower info panel ---------- */
+  .info-panel {
+    position: fixed;
+    top: 110px;
+    left: 28px;
+    width: 240px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    z-index: 10;
+    box-shadow: var(--shadow);
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .info-panel.show { display: flex; }
+  .info-panel h3 {
+    margin: 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .info-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .info-stat b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .info-actions { display: flex; gap: 6px; margin-top: 4px; }
+  .info-btn {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .info-btn:hover { background: #faf5ea; }
+  .info-btn.sell { background: #c84848; color: #fff; border-color: transparent; }
+  .info-btn.sell:hover { background: #b03c3c; }
+
+  /* ---------- Modals (game over / victory) ---------- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 18, 14, 0.7);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal.show { display: flex; }
+  .modal-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 28px 36px;
+    min-width: 320px;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.4);
+    text-align: center;
+  }
+  .modal-card h2 {
+    margin: 0 0 18px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 32px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .modal-card h2 em { color: #d4a017; font-style: italic; font-weight: 400; }
+  .modal-card h2.lose em { color: #c84848; }
+  .go-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-soft);
+    font-size: 14px;
+  }
+  .go-stat span { color: var(--muted); }
+  .go-stat b { font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .go-actions {
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .go-btn {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.12s, transform 0.08s;
+  }
+  .go-btn:hover { background: #faf5ea; }
+  .go-btn:active { transform: translateY(1px); }
+  .go-btn.primary {
+    background: #6fb442;
+    color: #fff;
+    border-color: transparent;
+  }
+  .go-btn.primary:hover { background: #5fa033; }
+  .go-btn.primary.lose { background: #c84848; }
+  .go-btn.primary.lose:hover { background: #b03c3c; }
+
+  /* ---------- Help / toasts / etc ---------- */
+  .help {
+    position: fixed;
+    bottom: 178px; right: 28px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.7;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  @media (max-height: 760px) { .help { display: none; } }
+  .help kbd {
+    display: inline-block;
+    padding: 1.5px 5px;
+    border-radius: 4px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    font-size: 10.5px;
+    font-family: inherit;
+    color: var(--ink);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+  }
+
+  .float-text {
+    position: fixed;
+    pointer-events: none;
+    font-size: 13px;
+    font-weight: 700;
+    color: #6fb442;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.8), 0 0 8px rgba(255,255,255,0.5);
+    z-index: 60;
+    transform: translate(-50%, 0);
+    animation: float-up 1s ease-out forwards;
+    font-variant-numeric: tabular-nums;
+  }
+  @keyframes float-up {
+    0%   { transform: translate(-50%, 0) scale(0.9); opacity: 0; }
+    15%  { transform: translate(-50%, -8px) scale(1.1); opacity: 1; }
+    100% { transform: translate(-50%, -55px) scale(0.95); opacity: 0; }
+  }
+
+  .toasts {
+    position: fixed;
+    top: 90px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--ink);
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    animation: toast-in 0.3s ease-out, toast-out 0.4s ease-in 2.6s forwards;
+    white-space: nowrap;
+  }
+  .toast .icon { margin-right: 8px; font-size: 14px; }
+  @keyframes toast-in {
+    from { transform: translateY(-12px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes toast-out {
+    to { transform: translateY(-12px); opacity: 0; }
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+    z-index: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  @media (max-width: 600px) {
+    .brand .title { font-size: 22px; }
+    .help { display: none; }
+    .brand { top: 16px; left: 16px; }
+    .brand .sub { display: none; }
+    .hud { top: 16px; right: 16px; left: auto; min-width: 0; padding: 8px 10px 10px; }
+    .info-panel { top: auto; bottom: 180px; left: 16px; right: 16px; width: auto; }
+    .dock-items { padding: 10px 12px 12px; gap: 8px; }
+    .dock-item { flex: 0 0 86px; height: 114px; }
+    .dock-item .disc { width: 54px; height: 54px; }
+  }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <div class="grain"></div>
+
+  <div class="brand">
+    <div class="title">Tiny Tower <em>Defense</em></div>
+    <div class="sub">Place towers · stop the swarm · drag to orbit · scroll to zoom</div>
+  </div>
+
+  <div class="hud" id="hud">
+    <div class="hud-row">
+      <div class="res" id="resLives" title="Lives — lost when an enemy escapes">
+        <span class="ico">❤️</span><span class="val">20</span>
+      </div>
+      <div class="res" id="resGold" title="Gold — earn by killing enemies">
+        <span class="ico">🪙</span><span class="val">120</span>
+      </div>
+      <div class="res" id="resWave" title="Current wave">
+        <span class="ico">🌊</span><span class="val">0</span><span style="color:var(--muted); font-weight:500; margin-left:2px;">/ 15</span>
+      </div>
+      <button class="hud-icon-btn" id="reset" title="Reset game (R)">↺</button>
+    </div>
+    <div class="hud-row" style="justify-content:flex-end; gap:6px;">
+      <button class="wave-btn" id="waveBtn">▶ Start Wave 1</button>
+    </div>
+  </div>
+
+  <aside class="info-panel" id="infoPanel">
+    <h3 id="infoName">Tower</h3>
+    <div class="info-stat"><span>Damage</span><b id="infoDmg">—</b></div>
+    <div class="info-stat"><span>Range</span><b id="infoRange">—</b></div>
+    <div class="info-stat"><span>Fire rate</span><b id="infoRate">—</b></div>
+    <div class="info-stat"><span>Kills</span><b id="infoKills">0</b></div>
+    <div class="info-actions">
+      <button class="info-btn" id="infoClose">Close</button>
+      <button class="info-btn sell" id="infoSell">Sell · <span id="infoRefund">0</span> 🪙</button>
+    </div>
+  </aside>
+
+  <div class="dock" id="dock">
+    <div class="dock-tabs" id="dockTabs"></div>
+    <div class="dock-items" id="dockItems"></div>
+  </div>
+
+  <div class="modal" id="gameOver">
+    <div class="modal-card">
+      <h2 class="lose">Defeat — <em>the swarm won</em></h2>
+      <div class="go-stat"><span>Wave reached</span><b id="loseWave">1</b></div>
+      <div class="go-stat"><span>Kills</span><b id="loseKills">0</b></div>
+      <div class="go-actions">
+        <button class="go-btn primary lose" id="loseRestart">Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="victory">
+    <div class="modal-card">
+      <h2>Victory — <em>town saved!</em></h2>
+      <div class="go-stat"><span>Final wave</span><b id="winWave">15</b></div>
+      <div class="go-stat"><span>Kills</span><b id="winKills">0</b></div>
+      <div class="go-stat"><span>Gold left</span><b id="winGold">0</b></div>
+      <div class="go-actions">
+        <button class="go-btn primary" id="winRestart">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <div class="help">
+    Click a tower in the dock, then click an empty grass tile to place<br/>
+    <kbd>1</kbd>–<kbd>4</kbd> select tower · <kbd>S</kbd> sell · <kbd>R</kbd> reset · <kbd>Space</kbd> start wave
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  /* =====================================================================
+     Tiny Tower Defense
+     Reuses the visual identity of Tiny World Builder: rounded-bevelled
+     low-poly tiles, houses, barns, windmills, trees, cubic enemies.
+     The world is a fixed 16x16 board with a pre-baked path; the player
+     places towers on grass tiles and they shoot at enemies that walk
+     along the path. Survive 15 waves to win.
+     ===================================================================== */
+
+  // -------- constants --------
+  const GRID = 16;
+  const TILE = 1;
+  const TOP_H = 0.18;
+  const DIRT_H = 0.55;
+
+  // -------- scene / renderer --------
+  const container = document.getElementById('app');
+  const canvasEl = document.createElement('canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.NoToneMapping;
+  container.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf4ede0);
+
+  // -------- camera (perspective, miniature look) --------
+  let viewSize = 14;
+  const aspect0 = window.innerWidth / window.innerHeight;
+  const camera = new THREE.PerspectiveCamera(28, aspect0, 0.1, 200);
+
+  let azimuth = Math.PI * 0.25;
+  let polar   = Math.PI * 0.32;
+  let targetAzimuth = azimuth;
+  let targetPolar   = polar;
+  let targetViewSize = viewSize;
+  const ORBIT_DAMPING = 0.18;
+  const ZOOM_DAMPING  = 0.35;
+  const target = new THREE.Vector3(0, 0, 0);
+
+  function updateCamera() {
+    const r = viewSize * 4.2;
+    camera.position.x = target.x + r * Math.sin(polar) * Math.cos(azimuth);
+    camera.position.y = target.y + r * Math.cos(polar);
+    camera.position.z = target.z + r * Math.sin(polar) * Math.sin(azimuth);
+    camera.lookAt(target);
+  }
+  updateCamera();
+
+  // -------- lighting --------
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb39879, 0.30));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+  sun.position.set(7, 12, 5);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -18;
+  sun.shadow.camera.right = 18;
+  sun.shadow.camera.top = 18;
+  sun.shadow.camera.bottom = -18;
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 50;
+  sun.shadow.bias = -0.0006;
+  sun.shadow.radius = 3;
+  scene.add(sun);
+
+  // -------- geometry helpers --------
+  function roundedSlab(size, height, radius = 0.07) {
+    const w = size / 2;
+    const r = Math.min(radius, w - 0.01);
+    const shape = new THREE.Shape();
+    shape.moveTo(-w + r, -w);
+    shape.lineTo(w - r, -w);
+    shape.quadraticCurveTo(w, -w, w, -w + r);
+    shape.lineTo(w, w - r);
+    shape.quadraticCurveTo(w, w, w - r, w);
+    shape.lineTo(-w + r, w);
+    shape.quadraticCurveTo(-w, w, -w, w - r);
+    shape.lineTo(-w, -w + r);
+    shape.quadraticCurveTo(-w, -w, -w + r, -w);
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: height, bevelEnabled: true,
+      bevelSegments: 2, bevelSize: 0.04, bevelThickness: 0.04, curveSegments: 4
+    });
+    geo.rotateX(-Math.PI / 2);
+    return geo;
+  }
+  function roundedBox(w, h, d, r = 0.05) {
+    const shape = new THREE.Shape();
+    const hw = w / 2, hd = d / 2;
+    const rr = Math.min(r, hw - 0.001, hd - 0.001);
+    shape.moveTo(-hw + rr, -hd);
+    shape.lineTo(hw - rr, -hd);
+    shape.quadraticCurveTo(hw, -hd, hw, -hd + rr);
+    shape.lineTo(hw, hd - rr);
+    shape.quadraticCurveTo(hw, hd, hw - rr, hd);
+    shape.lineTo(-hw + rr, hd);
+    shape.quadraticCurveTo(-hw, hd, -hw, hd - rr);
+    shape.lineTo(-hw, -hd + rr);
+    shape.quadraticCurveTo(-hw, -hd, -hw + rr, -hd);
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: h, bevelEnabled: true,
+      bevelSegments: 1, bevelSize: 0.02, bevelThickness: 0.02, curveSegments: 3
+    });
+    geo.rotateX(-Math.PI / 2);
+    return geo;
+  }
+
+  // -------- materials (identical palette to the original game) --------
+  const M = {
+    grass:     new THREE.MeshLambertMaterial({ color: 0xb0d949 }),
+    grassEdge: new THREE.MeshLambertMaterial({ color: 0x95c138 }),
+    dirt:      new THREE.MeshLambertMaterial({ color: 0x7d4519 }),
+    dirtRich:  new THREE.MeshLambertMaterial({ color: 0x462b15 }),
+    path:      new THREE.MeshLambertMaterial({ color: 0xf2d29c }),
+    water:     new THREE.MeshLambertMaterial({ color: 0x3a8fcc }),
+
+    trunk:     new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    leaves:    new THREE.MeshLambertMaterial({ color: 0x86d139 }),
+    leavesDk:  new THREE.MeshLambertMaterial({ color: 0x5fab26 }),
+
+    wallCream: new THREE.MeshLambertMaterial({ color: 0xf2dfb0 }),
+    wallTrim:  new THREE.MeshLambertMaterial({ color: 0xe5cf99 }),
+    roofBlue:  new THREE.MeshLambertMaterial({ color: 0x2a6dd1 }),
+    roofBlueD: new THREE.MeshLambertMaterial({ color: 0x1d4d9c }),
+    door:      new THREE.MeshLambertMaterial({ color: 0x7a4a2e }),
+    woodTrim:  new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    windowB:   new THREE.MeshLambertMaterial({ color: 0x2a6dd1 }),
+    chimney:   new THREE.MeshLambertMaterial({ color: 0xc9c4ba }),
+    step:      new THREE.MeshLambertMaterial({ color: 0xa9a49a }),
+    knob:      new THREE.MeshLambertMaterial({ color: 0xe8c050 }),
+
+    millStone: new THREE.MeshLambertMaterial({ color: 0xe8dfc8 }),
+    millStoneD:new THREE.MeshLambertMaterial({ color: 0xc4b893 }),
+    millRoof:  new THREE.MeshLambertMaterial({ color: 0x8a3d2a }),
+    millBlade: new THREE.MeshLambertMaterial({ color: 0xf2dfb0 }),
+    millFrame: new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+
+    barnRed:   new THREE.MeshLambertMaterial({ color: 0xa83828 }),
+    barnRedD:  new THREE.MeshLambertMaterial({ color: 0x7d2a1c }),
+    barnRoof:  new THREE.MeshLambertMaterial({ color: 0x3a2418 }),
+    barnRoofD: new THREE.MeshLambertMaterial({ color: 0x251610 }),
+    barnTrim:  new THREE.MeshLambertMaterial({ color: 0xf2ece0 }),
+    barnHay:   new THREE.MeshLambertMaterial({ color: 0xd4a04c }),
+
+    hover:        new THREE.MeshBasicMaterial({ color: 0x2a2722, transparent: true, opacity: 0.18, depthWrite: false }),
+    hoverInvalid: new THREE.MeshBasicMaterial({ color: 0xb84838, transparent: true, opacity: 0.28, depthWrite: false }),
+    hoverGood:    new THREE.MeshBasicMaterial({ color: 0x6fb442, transparent: true, opacity: 0.28, depthWrite: false }),
+    rangeRing:    new THREE.MeshBasicMaterial({ color: 0xffd44a, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide }),
+  };
+
+  function castReceive(obj) {
+    obj.traverse(c => {
+      if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+    });
+    return obj;
+  }
+
+  // -------- tile factory --------
+  function makeTile(terrain) {
+    const g = new THREE.Group();
+    g.userData = { kind: 'tile', terrain };
+
+    const dirt = new THREE.Mesh(roundedSlab(TILE * 0.98, DIRT_H, 0.06), M.dirt);
+    dirt.position.y = -DIRT_H;
+    g.add(dirt);
+
+    let topMat = M.grass;
+    if (terrain === 'path')  topMat = M.path;
+    if (terrain === 'water') topMat = M.water;
+    if (terrain === 'dirt')  topMat = M.dirtRich;
+    const top = new THREE.Mesh(roundedSlab(TILE * 0.98, TOP_H, 0.06), topMat);
+    g.add(top);
+
+    if (terrain === 'grass' && Math.random() < 0.18) {
+      const fleck = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.04, 0.05), M.leavesDk);
+      fleck.position.set((Math.random() - 0.5) * 0.6, TOP_H + 0.01, (Math.random() - 0.5) * 0.6);
+      g.add(fleck);
+    }
+    if (terrain === 'path') {
+      const scuff = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.02, 0.08),
+        new THREE.MeshStandardMaterial({ color: 0xd4be8c, roughness: 0.95 })
+      );
+      scuff.position.set((Math.random() - 0.5) * 0.4, TOP_H + 0.005, (Math.random() - 0.5) * 0.4);
+      g.add(scuff);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- tree --------
+  function makeTree() {
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), M.trunk);
+    trunk.position.y = 0.25; g.add(trunk);
+    const lower = new THREE.Mesh(roundedBox(0.62, 0.42, 0.62, 0.08), M.leaves);
+    lower.position.y = 0.5; g.add(lower);
+    const upper = new THREE.Mesh(roundedBox(0.42, 0.32, 0.42, 0.06), M.leaves);
+    upper.position.y = 0.92; g.add(upper);
+    const tip = new THREE.Mesh(roundedBox(0.22, 0.18, 0.22, 0.04), M.leaves);
+    tip.position.y = 1.18; g.add(tip);
+    g.userData = { kind: 'tree', swayPhase: Math.random() * Math.PI * 2 };
+    castReceive(g);
+    return g;
+  }
+
+  // -------- house parts (identical to original) --------
+  const H = {
+    WALL_W: 0.82, WALL_H: 0.55, PEAK_Y: 0.87, T: 0.06, ROOF_OVERHANG: 0.3,
+  };
+
+  const Parts = {
+    gable() {
+      const shape = new THREE.Shape();
+      shape.moveTo(-H.WALL_W / 2, H.WALL_H);
+      shape.lineTo( H.WALL_W / 2, H.WALL_H);
+      shape.lineTo(0, H.PEAK_Y);
+      shape.closePath();
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: false, curveSegments: 1 });
+      return new THREE.Mesh(geo, M.wallCream);
+    },
+    pitchedRoof(WALL_D, frontOverhang = 0.15, backOverhang = 0.15) {
+      const g = new THREE.Group();
+      const halfW = H.WALL_W / 2;
+      const ROOF_DEPTH = WALL_D + frontOverhang + backOverhang;
+      const ROOF_Z = (frontOverhang - backOverhang) / 2;
+      const rise = H.PEAK_Y - H.WALL_H;
+      const slabLen = Math.sqrt(halfW * halfW + rise * rise);
+      const slabAngle = Math.atan2(rise, halfW);
+      const sa = Math.sin(slabAngle), ca = Math.cos(slabAngle);
+      const slabGeo = new THREE.BoxGeometry(slabLen, H.T, ROOF_DEPTH);
+
+      const slabL = new THREE.Mesh(slabGeo, M.roofBlue);
+      slabL.position.set(-halfW / 2 - (H.T / 2) * sa, (H.WALL_H + H.PEAK_Y) / 2 + (H.T / 2) * ca, ROOF_Z);
+      slabL.rotation.z = slabAngle;
+      g.add(slabL);
+
+      const slabR = new THREE.Mesh(slabGeo, M.roofBlue);
+      slabR.position.set(halfW / 2 + (H.T / 2) * sa, (H.WALL_H + H.PEAK_Y) / 2 + (H.T / 2) * ca, ROOF_Z);
+      slabR.rotation.z = -slabAngle;
+      g.add(slabR);
+
+      const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.06, ROOF_DEPTH + 0.02), M.roofBlueD);
+      ridge.position.set(0, H.PEAK_Y + (H.T / 2) * ca + 0.005, ROOF_Z);
+      g.add(ridge);
+      return g;
+    },
+    door(orientation) {
+      const g = new THREE.Group();
+      if (orientation === 'gable') {
+        const door = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.48, 0.04), M.door);
+        door.position.set(0, 0.24, 0); g.add(door);
+        const aL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aL.position.set(-0.10, 0.24, 0.01); g.add(aL);
+        const aR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aR.position.set( 0.10, 0.24, 0.01); g.add(aR);
+        const aT = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.04, 0.04), M.woodTrim); aT.position.set(0, 0.50, 0.01); g.add(aT);
+        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), M.knob);
+        knob.position.set(0.08, 0.24, 0.03); g.add(knob);
+      }
+      return g;
+    },
+    window(orientation) {
+      const g = new THREE.Group();
+      const f = 0.24, p = 0.17;
+      if (orientation === 'gable') {
+        const wf = new THREE.Mesh(new THREE.BoxGeometry(f, f, 0.04), M.woodTrim); wf.position.set(0, 0, 0); g.add(wf);
+        const wg = new THREE.Mesh(new THREE.BoxGeometry(p, p, 0.04), M.windowB);  wg.position.set(0, 0, 0.015); g.add(wg);
+        const cH = new THREE.Mesh(new THREE.BoxGeometry(p, 0.012, 0.04), M.woodTrim); cH.position.set(0, 0, 0.025); g.add(cH);
+        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.012, p, 0.04), M.woodTrim); cV.position.set(0, 0, 0.025); g.add(cV);
+      } else {
+        const wf = new THREE.Mesh(new THREE.BoxGeometry(0.04, f, f), M.woodTrim); wf.position.set(0, 0, 0); g.add(wf);
+        const wg = new THREE.Mesh(new THREE.BoxGeometry(0.04, p, p), M.windowB);  wg.position.set(0.015, 0, 0); g.add(wg);
+        const cH = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.012, p), M.woodTrim); cH.position.set(0.025, 0, 0); g.add(cH);
+        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.04, p, 0.012), M.woodTrim); cV.position.set(0.025, 0, 0); g.add(cV);
+      }
+      return g;
+    },
+    chimney() {
+      return new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.6, 0.14), M.chimney);
+    },
+    step(orientation) {
+      return orientation === 'side'
+        ? new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.26), M.step)
+        : new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.06, 0.12), M.step);
+    },
+  };
+
+  // -------- House (Archer Tower) --------
+  function makeHouse() {
+    const g = new THREE.Group();
+    const WALL_D = 0.7;
+    const halfW = H.WALL_W / 2;
+    const halfD = WALL_D / 2;
+
+    const walls = new THREE.Mesh(roundedBox(H.WALL_W, H.WALL_H, WALL_D, 0.04), M.wallCream);
+    g.add(walls);
+
+    const gF = Parts.gable(); gF.position.set(0, 0, halfD - 0.04); g.add(gF);
+    const gB = Parts.gable(); gB.position.set(0, 0, -halfD); g.add(gB);
+
+    const roof = Parts.pitchedRoof(WALL_D);
+    g.add(roof);
+
+    const door = Parts.door('gable');
+    door.position.set(-0.12, 0, halfD + 0.01); g.add(door);
+    const win = Parts.window('gable');
+    win.position.set(0.2, 0.32, halfD + 0.01); g.add(win);
+    const step = Parts.step('gable');
+    step.position.set(-0.12, 0.03, halfD + 0.08); g.add(step);
+
+    const chim = Parts.chimney();
+    chim.position.set(-0.28, H.WALL_H + 0.30, -0.05); g.add(chim);
+
+    castReceive(g);
+    g.userData = { kind: 'house' };
+    return g;
+  }
+
+  // -------- Barn (Cannon Tower) --------
+  // Simplified single-cell barn (1 tile). Same colors and gambrel roof as original.
+  function makeBarn() {
+    const g = new THREE.Group();
+    const W = 0.82, L = 0.82;
+    const halfW = W / 2, halfL = L / 2;
+    const H1 = 0.55, H2 = 0.95, H3 = 1.20;
+    const T = 0.06, OVERHANG = 0.12;
+    const BREAK_X = W * 0.25;
+
+    const walls = new THREE.Mesh(roundedBox(W, H1, L, 0.04), M.barnRed);
+    g.add(walls);
+
+    // Trim
+    const trimLong  = new THREE.BoxGeometry(W + 0.04, 0.04, 0.05);
+    const trimShort = new THREE.BoxGeometry(0.05, 0.04, L + 0.04);
+    const tF = new THREE.Mesh(trimLong, M.barnTrim);  tF.position.set(0, H1, halfL + 0.005); g.add(tF);
+    const tB = new THREE.Mesh(trimLong, M.barnTrim);  tB.position.set(0, H1, -halfL - 0.005); g.add(tB);
+    const tR = new THREE.Mesh(trimShort, M.barnTrim); tR.position.set( halfW + 0.005, H1, 0); g.add(tR);
+    const tL = new THREE.Mesh(trimShort, M.barnTrim); tL.position.set(-halfW - 0.005, H1, 0); g.add(tL);
+
+    // Gables (pentagonal panel)
+    const apex = [0, H3], breakR = [BREAK_X, H2], breakL = [-BREAK_X, H2];
+    const eaveR = [halfW, H1], eaveL = [-halfW, H1];
+    const gableShape = new THREE.Shape();
+    gableShape.moveTo(eaveL[0], eaveL[1]);
+    gableShape.lineTo(breakL[0], breakL[1]);
+    gableShape.lineTo(apex[0], apex[1]);
+    gableShape.lineTo(breakR[0], breakR[1]);
+    gableShape.lineTo(eaveR[0], eaveR[1]);
+    gableShape.closePath();
+    const gableGeo = new THREE.ExtrudeGeometry(gableShape, { depth: 0.04, bevelEnabled: false, curveSegments: 1 });
+    const gF = new THREE.Mesh(gableGeo, M.barnRed); gF.position.z = halfL - 0.04; g.add(gF);
+    const gB = new THREE.Mesh(gableGeo, M.barnRed); gB.position.z = -halfL + 0.00; g.add(gB);
+
+    // Gambrel slabs (4 per side)
+    const roofDepth = L + OVERHANG * 2;
+    const SLAB_EXTEND = 0.06, SLAB_OFFSET = T * 0.9;
+    function pitchSlab(x1, y1, x2, y2, mirror) {
+      const dx = x2 - x1, dy = y2 - y1;
+      const slabLen = Math.sqrt(dx*dx + dy*dy) + SLAB_EXTEND * 2;
+      const angle = Math.atan2(dy, dx);
+      const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(slabLen, T, roofDepth), M.barnRoof);
+      let finalAngle = angle, finalCx = cx;
+      if (mirror) { finalAngle = Math.PI - angle; finalCx = -cx; }
+      slab.rotation.z = finalAngle;
+      const px = -Math.sin(finalAngle) * SLAB_OFFSET;
+      const py =  Math.cos(finalAngle) * SLAB_OFFSET;
+      slab.position.set(finalCx + px, cy + py, 0);
+      return slab;
+    }
+    g.add(pitchSlab( halfW, H1, BREAK_X, H2, false));
+    g.add(pitchSlab( BREAK_X, H2, 0, H3, false));
+    g.add(pitchSlab( halfW, H1, BREAK_X, H2, true));
+    g.add(pitchSlab( BREAK_X, H2, 0, H3, true));
+
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, roofDepth + 0.02), M.barnRoofD);
+    ridge.position.set(0, H3 + 0.02, 0);
+    g.add(ridge);
+
+    // Big front doors with white X
+    const doorW = 0.56, doorH = 0.5, doorZ = halfL + 0.025;
+    const frameT = 0.05;
+    const frameOuterH = doorH + frameT;
+    const frameTop = new THREE.Mesh(new THREE.BoxGeometry(doorW + frameT * 2, frameT, 0.03), M.barnTrim);
+    frameTop.position.set(0, doorH + frameT / 2, doorZ + 0.005); g.add(frameTop);
+    const frameLeft = new THREE.Mesh(new THREE.BoxGeometry(frameT, frameOuterH, 0.03), M.barnTrim);
+    frameLeft.position.set(-doorW / 2 - frameT / 2, frameOuterH / 2, doorZ + 0.005); g.add(frameLeft);
+    const frameRight = new THREE.Mesh(new THREE.BoxGeometry(frameT, frameOuterH, 0.03), M.barnTrim);
+    frameRight.position.set(doorW / 2 + frameT / 2, frameOuterH / 2, doorZ + 0.005); g.add(frameRight);
+    const halfDoor = new THREE.BoxGeometry(doorW / 2 - 0.01, doorH, 0.04);
+    const doorL = new THREE.Mesh(halfDoor, M.barnRedD); doorL.position.set(-doorW / 4, doorH / 2, doorZ); g.add(doorL);
+    const doorR = new THREE.Mesh(halfDoor, M.barnRedD); doorR.position.set( doorW / 4, doorH / 2, doorZ); g.add(doorR);
+
+    function addXOnPanel(centerX) {
+      const panelW = doorW / 2 - 0.04;
+      const diagLen = Math.sqrt(panelW*panelW + doorH*doorH);
+      const diagAngle = Math.atan2(doorH, panelW);
+      const trimZ = doorZ + 0.025;
+      const t1 = new THREE.Mesh(new THREE.BoxGeometry(diagLen, 0.035, 0.02), M.barnTrim);
+      t1.position.set(centerX, doorH / 2, trimZ); t1.rotation.z =  diagAngle; g.add(t1);
+      const t2 = new THREE.Mesh(new THREE.BoxGeometry(diagLen, 0.035, 0.02), M.barnTrim);
+      t2.position.set(centerX, doorH / 2, trimZ); t2.rotation.z = -diagAngle; g.add(t2);
+    }
+    addXOnPanel(-doorW / 4);
+    addXOnPanel( doorW / 4);
+
+    // Hay loft window
+    const henilY = (H2 + H3) / 2;
+    const henilFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.04, 14), M.barnTrim);
+    henilFrame.rotation.x = Math.PI / 2;
+    henilFrame.position.set(0, henilY, halfL + 0.005); g.add(henilFrame);
+    const henilGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.04, 14), M.windowB);
+    henilGlass.rotation.x = Math.PI / 2;
+    henilGlass.position.set(0, henilY, halfL + 0.015); g.add(henilGlass);
+    const hay = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.04), M.barnHay);
+    hay.position.set(0, henilY - 0.06, halfL + 0.035); hay.rotation.z = 0.15; g.add(hay);
+
+    castReceive(g);
+    g.userData = { kind: 'barn' };
+    return g;
+  }
+
+  // -------- Windmill (Magic Tower) --------
+  function makeWindmill() {
+    const g = new THREE.Group();
+
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 0.95, 14), M.millStone);
+    base.position.y = 0.475; g.add(base);
+
+    const band1 = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.32, 0.04, 14), M.millStoneD);
+    band1.position.y = 0.18; g.add(band1);
+    const band2 = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.28, 0.04, 14), M.millStoneD);
+    band2.position.y = 0.62; g.add(band2);
+
+    const winFrame = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.03), M.woodTrim);
+    winFrame.position.set(0, 0.55, 0.265); g.add(winFrame);
+    const winGlass = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.04), M.windowB);
+    winGlass.position.set(0, 0.55, 0.28); g.add(winGlass);
+
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.32, 0.04), M.door);
+    door.position.set(0, 0.16, 0.27); g.add(door);
+
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.34, 14), M.millRoof);
+    roof.position.y = 1.12; g.add(roof);
+
+    const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.18, 8), M.millFrame);
+    axle.rotation.x = Math.PI / 2;
+    axle.position.set(0, 1.0, 0.32); g.add(axle);
+
+    const blades = new THREE.Group();
+    blades.position.set(0, 1.0, 0.40);
+
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), M.millFrame);
+    hub.rotation.x = Math.PI / 2; blades.add(hub);
+
+    for (let i = 0; i < 4; i++) {
+      const blade = new THREE.Group();
+      blade.rotation.z = i * Math.PI / 2;
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.62, 0.04), M.millFrame);
+      beam.position.y = 0.34; blade.add(beam);
+      const sail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.02), M.millBlade);
+      sail.position.set(0.11, 0.36, 0.03); blade.add(sail);
+      blades.add(blade);
+    }
+    g.add(blades);
+
+    castReceive(g);
+    g.userData = { kind: 'windmill', blades, spinSpeed: 1.4 };
+    return g;
+  }
+
+  // -------- Enemy mesh (reused from combat) --------
+  const _enemyBodyGeom = new THREE.BoxGeometry(0.45, 0.60, 0.45);
+  const _enemyEyeGeom  = new THREE.SphereGeometry(0.05, 6, 6);
+  const _enemyEyeMat   = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const _enemyPupilGeom= new THREE.SphereGeometry(0.025, 6, 6);
+  const _enemyPupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+  function makeEnemyMesh(color) {
+    const mat = new THREE.MeshLambertMaterial({ color });
+    const body = new THREE.Mesh(_enemyBodyGeom, mat);
+    body.castShadow = true;
+    const e1 = new THREE.Mesh(_enemyEyeGeom, _enemyEyeMat);
+    const e2 = new THREE.Mesh(_enemyEyeGeom, _enemyEyeMat);
+    e1.position.set(-0.10, 0.16, 0.23);
+    e2.position.set( 0.10, 0.16, 0.23);
+    body.add(e1); body.add(e2);
+    const p1 = new THREE.Mesh(_enemyPupilGeom, _enemyPupilMat);
+    const p2 = new THREE.Mesh(_enemyPupilGeom, _enemyPupilMat);
+    p1.position.set(-0.10, 0.16, 0.27);
+    p2.position.set( 0.10, 0.16, 0.27);
+    body.add(p1); body.add(p2);
+    return body;
+  }
+
+  // -------- HP bar above enemies --------
+  function makeHpBar() {
+    const g = new THREE.Group();
+    const bg = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.5, 0.07),
+      new THREE.MeshBasicMaterial({ color: 0x2a2722, transparent: true, opacity: 0.7, depthTest: false })
+    );
+    bg.renderOrder = 999;
+    g.add(bg);
+    const fill = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.46, 0.045),
+      new THREE.MeshBasicMaterial({ color: 0x6fb442, transparent: true, opacity: 0.95, depthTest: false })
+    );
+    fill.renderOrder = 1000;
+    fill.position.z = 0.001;
+    g.add(fill);
+    g.userData = { fill, baseW: 0.46 };
+    return g;
+  }
+
+  // -------- world / path --------
+  // Pre-baked map. `pathSet` lookups whether a cell is path.
+  // Path: enters from west edge at row 8, snakes through, exits east edge at row 8.
+  // The `pathCoords` array is the ordered list of grid cells in the path.
+  const pathCoords = [];
+  function buildPath() {
+    // Each segment defined as [fromX, fromZ, toX, toZ] inclusive, axis-aligned.
+    const segs = [
+      [ 0,  3,  4,  3],
+      [ 4,  3,  4,  9],
+      [ 4,  9, 10,  9],
+      [10,  9, 10,  4],
+      [10,  4, 13,  4],
+      [13,  4, 13, 12],
+      [13, 12,  6, 12],
+      [ 6, 12,  6, 14],
+      [ 6, 14, 15, 14],
+    ];
+    let last = null;
+    for (const [x1, z1, x2, z2] of segs) {
+      const dx = Math.sign(x2 - x1), dz = Math.sign(z2 - z1);
+      let x = x1, z = z1;
+      while (true) {
+        const key = x + ',' + z;
+        if (!last || last !== key) pathCoords.push({ x, z });
+        last = key;
+        if (x === x2 && z === z2) break;
+        x += dx; z += dz;
+      }
+    }
+  }
+  buildPath();
+  const pathSet = new Set(pathCoords.map(p => p.x + ',' + p.z));
+
+  // World grid (16x16)
+  const world = [];
+  const cellMeshes = {}; // 'x,z' -> { tile, object }
+  for (let x = 0; x < GRID; x++) {
+    world[x] = [];
+    for (let z = 0; z < GRID; z++) {
+      world[x][z] = {
+        terrain: pathSet.has(x + ',' + z) ? 'path' : 'grass',
+        tower: null,
+      };
+    }
+  }
+
+  const worldGroup = new THREE.Group();
+  scene.add(worldGroup);
+
+  function tilePos(x, z) {
+    return new THREE.Vector3(x - GRID / 2 + 0.5, 0, z - GRID / 2 + 0.5);
+  }
+
+  // Build all tiles
+  for (let x = 0; x < GRID; x++) {
+    for (let z = 0; z < GRID; z++) {
+      const t = makeTile(world[x][z].terrain);
+      const p = tilePos(x, z);
+      t.position.set(p.x, 0, p.z);
+      worldGroup.add(t);
+      cellMeshes[x + ',' + z] = { tile: t, object: null };
+    }
+  }
+
+  // Sprinkle a few decorative trees & tufts on grass tiles (non-path)
+  // to fill out the scene. They block tower placement.
+  function scatterDecor() {
+    const seedTrees = [
+      [1, 1], [2, 6], [7, 2], [8, 5], [12, 1], [14, 11], [0, 11], [15, 6],
+      [3, 14], [12, 8],
+    ];
+    for (const [x, z] of seedTrees) {
+      if (pathSet.has(x + ',' + z)) continue;
+      const tree = makeTree();
+      const p = tilePos(x, z);
+      tree.position.set(p.x, TOP_H, p.z);
+      worldGroup.add(tree);
+      cellMeshes[x + ',' + z].object = tree;
+      world[x][z].decor = 'tree';
+    }
+  }
+  scatterDecor();
+
+  // Visual markers: spawn (green flag) at first path tile, goal (red house) at last.
+  function makeFlag(color) {
+    const g = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 8), M.trunk);
+    pole.position.y = 0.35; g.add(pole);
+    const flag = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.02), new THREE.MeshLambertMaterial({ color }));
+    flag.position.set(0.18, 0.58, 0); g.add(flag);
+    castReceive(g);
+    return g;
+  }
+  {
+    const s = pathCoords[0];
+    const e = pathCoords[pathCoords.length - 1];
+    const sp = tilePos(s.x, s.z);
+    const ep = tilePos(e.x, e.z);
+    const spawnFlag = makeFlag(0x6fb442);
+    spawnFlag.position.set(sp.x - 0.25, TOP_H, sp.z - 0.25);
+    worldGroup.add(spawnFlag);
+    const goalFlag = makeFlag(0xc84848);
+    goalFlag.position.set(ep.x + 0.25, TOP_H, ep.z + 0.25);
+    worldGroup.add(goalFlag);
+  }
+
+  // -------- hover indicator --------
+  const hoverMesh = new THREE.Mesh(roundedSlab(TILE * 0.96, 0.05, 0.06), M.hoverGood);
+  hoverMesh.position.y = TOP_H + 0.005;
+  hoverMesh.visible = false;
+  worldGroup.add(hoverMesh);
+
+  // Range ring preview (when placing a tower)
+  const rangeRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.98, 1.02, 48),
+    M.rangeRing
+  );
+  rangeRing.rotation.x = -Math.PI / 2;
+  rangeRing.position.y = TOP_H + 0.04;
+  rangeRing.visible = false;
+  worldGroup.add(rangeRing);
+
+  // -------- towers config --------
+  const TOWERS = {
+    arrow: {
+      id: 'arrow', label: 'Archer', desc: 'Cottage',
+      cost: 20, refund: 12,
+      damage: 1, range: 2.4, fireRate: 1.8,
+      projectile: 'arrow',
+      build: makeHouse,
+    },
+    cannon: {
+      id: 'cannon', label: 'Cannon', desc: 'Barn',
+      cost: 55, refund: 30,
+      damage: 4, range: 2.7, fireRate: 0.7,
+      projectile: 'cannon', splash: 0.8,
+      build: makeBarn,
+    },
+    magic: {
+      id: 'magic', label: 'Wizard', desc: 'Windmill',
+      cost: 100, refund: 60,
+      damage: 3, range: 4.5, fireRate: 1.3,
+      projectile: 'magic', pierce: 2,
+      build: makeWindmill,
+    },
+  };
+
+  const TOOL_LIST = ['arrow', 'cannon', 'magic', 'sell'];
+
+  // -------- projectile pools --------
+  const _projGeoms = {
+    arrow:  new THREE.SphereGeometry(0.06, 8, 8),
+    cannon: new THREE.SphereGeometry(0.11, 10, 10),
+    magic:  new THREE.SphereGeometry(0.08, 8, 8),
+  };
+  const _projMats = {
+    arrow:  new THREE.MeshBasicMaterial({ color: 0xffe55c }),
+    cannon: new THREE.MeshBasicMaterial({ color: 0x2a2722 }),
+    magic:  new THREE.MeshBasicMaterial({ color: 0x9b6bff }),
+  };
+
+  // -------- game state --------
+  const STATE = {
+    lives: 20, maxLives: 20,
+    gold: 120,
+    wave: 0,
+    maxWave: 15,
+    kills: 0,
+    selectedTool: null,    // 'arrow' | 'cannon' | 'magic' | 'sell' | null
+    inWave: false,
+    enemies: [],
+    projectiles: [],
+    towers: [],            // { config, x, z, group, cooldown, kills, baseRot }
+    spawnQueue: [],        // [{ type, delay }]
+    spawnTimer: 0,
+    gameOver: false,
+    fastForward: false,
+    selectedTower: null,
+  };
+
+  // -------- HUD updates --------
+  function bumpRes(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  }
+  function updateHud() {
+    const setVal = (id, v) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const span = el.querySelector('.val');
+      if (span && span.textContent !== String(v)) {
+        span.textContent = v;
+        bumpRes(id);
+      }
+    };
+    setVal('resLives', STATE.lives);
+    setVal('resGold',  STATE.gold);
+    setVal('resWave',  STATE.wave);
+
+    // Wave button label
+    const btn = document.getElementById('waveBtn');
+    if (STATE.gameOver) {
+      btn.disabled = true;
+      btn.textContent = 'Game over';
+    } else if (STATE.inWave) {
+      btn.disabled = false;
+      btn.classList.add('fast');
+      btn.textContent = STATE.fastForward ? '⏩ Fast ×3' : '⏩ Fast forward';
+    } else {
+      btn.disabled = false;
+      btn.classList.remove('fast');
+      const next = STATE.wave + 1;
+      btn.textContent = next > STATE.maxWave ? '✓ All waves cleared' : `▶ Start Wave ${next}`;
+      if (next > STATE.maxWave) btn.disabled = true;
+    }
+
+    // Refresh dock affordability tints
+    document.querySelectorAll('.dock-item').forEach(it => {
+      const tid = it.dataset.tool;
+      if (tid && TOWERS[tid]) {
+        const cost = TOWERS[tid].cost;
+        const costEl = it.querySelector('.cost');
+        if (costEl) costEl.classList.toggle('cant', STATE.gold < cost);
+        it.classList.toggle('disabled', STATE.gold < cost);
+      }
+    });
+  }
+
+  // -------- toasts --------
+  function showToast(text, icon) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = (icon ? `<span class="icon">${icon}</span>` : '') + text;
+    document.getElementById('toasts').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  function showFloatAt(worldX, worldY, worldZ, text, color) {
+    const v = new THREE.Vector3(worldX, worldY, worldZ).project(camera);
+    const sx = (v.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
+    const el = document.createElement('div');
+    el.className = 'float-text';
+    el.textContent = text;
+    if (color) el.style.color = color;
+    el.style.left = sx + 'px';
+    el.style.top  = sy + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  // -------- wave generator --------
+  function buildWave(n) {
+    // n is wave index 1..maxWave. Returns array of {type, delay}.
+    const out = [];
+    const baseCount = 6 + Math.floor(n * 1.6);
+    const eliteEvery = n >= 3 ? Math.max(4, 8 - Math.floor(n / 2)) : 99;
+    const bossEvery  = n >= 6 ? Math.max(6, 12 - Math.floor(n / 2)) : 99;
+    const interval = Math.max(0.45, 1.2 - n * 0.05);
+    let t = 0.6;
+    for (let i = 0; i < baseCount; i++) {
+      let type = 'grunt';
+      if (i > 0 && i % bossEvery === 0) type = 'boss';
+      else if (i % eliteEvery === 0 && i > 0) type = 'elite';
+      out.push({ type, delay: t });
+      t += interval;
+    }
+    return out;
+  }
+
+  // -------- enemy types --------
+  const ENEMY_TYPES = {
+    grunt: { hp: 3, speed: 1.6, color: 0xc94848, reward: 6,  scale: 1.0 },
+    elite: { hp: 8, speed: 1.2, color: 0x6b2a82, reward: 14, scale: 1.15 },
+    boss:  { hp: 26, speed: 0.9, color: 0x2a2722, reward: 40, scale: 1.5 },
+  };
+
+  function scaleEnemyForWave(base, wave) {
+    return {
+      hp: base.hp + Math.floor(wave * 1.4),
+      speed: base.speed + wave * 0.04,
+      color: base.color,
+      reward: base.reward + Math.floor(wave * 0.6),
+      scale: base.scale,
+    };
+  }
+
+  function spawnEnemyFromQueue(type) {
+    const base = ENEMY_TYPES[type] || ENEMY_TYPES.grunt;
+    const cfg = scaleEnemyForWave(base, STATE.wave);
+    const mesh = makeEnemyMesh(cfg.color);
+    mesh.scale.set(cfg.scale, cfg.scale, cfg.scale);
+    const start = pathCoords[0];
+    const p = tilePos(start.x, start.z);
+    mesh.position.set(p.x, TOP_H + 0.30, p.z);
+    scene.add(mesh);
+
+    const hpBar = makeHpBar();
+    hpBar.position.y = 0.7 * cfg.scale;
+    mesh.add(hpBar);
+    hpBar.visible = false; // shown on first hit
+
+    STATE.enemies.push({
+      mesh, hpBar,
+      hp: cfg.hp, maxHp: cfg.hp,
+      speed: cfg.speed,
+      reward: cfg.reward,
+      type,
+      pathIndex: 0,        // index of *next* waypoint
+      bobPhase: Math.random() * Math.PI * 2,
+      reached: false,
+    });
+  }
+
+  // -------- placement --------
+  function canPlaceTower(x, z) {
+    if (x < 0 || x >= GRID || z < 0 || z >= GRID) return false;
+    const cell = world[x][z];
+    if (cell.terrain !== 'grass') return false;
+    if (cell.tower) return false;
+    if (cell.decor) return false;
+    return true;
+  }
+
+  function placeTower(toolId, x, z) {
+    const cfg = TOWERS[toolId];
+    if (!cfg) return false;
+    if (!canPlaceTower(x, z)) return false;
+    if (STATE.gold < cfg.cost) {
+      showToast('Not enough gold', '🪙');
+      return false;
+    }
+    STATE.gold -= cfg.cost;
+    const group = cfg.build();
+    const p = tilePos(x, z);
+    group.position.set(p.x, TOP_H, p.z);
+    scene.add(group);
+
+    const tower = {
+      config: cfg,
+      x, z,
+      group,
+      cooldown: 0,
+      kills: 0,
+      baseRot: 0,
+    };
+    world[x][z].tower = tower;
+    STATE.towers.push(tower);
+
+    // Drop-in animation
+    group.position.y = TOP_H + 1.5;
+    tower._dropFrom = TOP_H + 1.5;
+    tower._dropT = 0;
+
+    showFloatAt(p.x, TOP_H + 0.5, p.z, `-${cfg.cost} 🪙`, '#c84848');
+    updateHud();
+    return true;
+  }
+
+  function sellTower(x, z) {
+    const tower = world[x][z] && world[x][z].tower;
+    if (!tower) return false;
+    const refund = tower.config.refund;
+    STATE.gold += refund;
+    scene.remove(tower.group);
+    tower.group.traverse(c => {
+      if (c.isMesh && c.material && c.material.dispose && !Object.values(M).includes(c.material)) {
+        // Don't dispose shared materials; only locals.
+      }
+    });
+    world[x][z].tower = null;
+    STATE.towers = STATE.towers.filter(t => t !== tower);
+    const p = tilePos(x, z);
+    showFloatAt(p.x, TOP_H + 0.5, p.z, `+${refund} 🪙`, '#6fb442');
+    updateHud();
+    if (STATE.selectedTower === tower) closeInfoPanel();
+    return true;
+  }
+
+  function selectTower(tower) {
+    STATE.selectedTower = tower;
+    const ip = document.getElementById('infoPanel');
+    document.getElementById('infoName').textContent = tower.config.label + ' tower';
+    document.getElementById('infoDmg').textContent = tower.config.damage;
+    document.getElementById('infoRange').textContent = tower.config.range.toFixed(1);
+    document.getElementById('infoRate').textContent = tower.config.fireRate.toFixed(1) + '/s';
+    document.getElementById('infoKills').textContent = tower.kills;
+    document.getElementById('infoRefund').textContent = tower.config.refund;
+    ip.classList.add('show');
+
+    // Show range ring at this tower
+    rangeRing.geometry.dispose();
+    rangeRing.geometry = new THREE.RingGeometry(tower.config.range - 0.04, tower.config.range, 48);
+    const p = tilePos(tower.x, tower.z);
+    rangeRing.position.set(p.x, TOP_H + 0.04, p.z);
+    rangeRing.visible = true;
+  }
+
+  function closeInfoPanel() {
+    STATE.selectedTower = null;
+    document.getElementById('infoPanel').classList.remove('show');
+    if (!STATE.selectedTool || STATE.selectedTool === 'sell') {
+      rangeRing.visible = false;
+    }
+  }
+
+  document.getElementById('infoClose').addEventListener('click', closeInfoPanel);
+  document.getElementById('infoSell').addEventListener('click', () => {
+    if (STATE.selectedTower) {
+      sellTower(STATE.selectedTower.x, STATE.selectedTower.z);
+    }
+  });
+
+  // -------- tower targeting / firing --------
+  function tickTowers(dt) {
+    for (const tower of STATE.towers) {
+      // drop-in animation
+      if (tower._dropT !== undefined) {
+        tower._dropT += dt;
+        const T = 0.4;
+        const t = Math.min(1, tower._dropT / T);
+        const ease = 1 - Math.pow(1 - t, 3);
+        tower.group.position.y = TOP_H + (tower._dropFrom - TOP_H) * (1 - ease);
+        if (t >= 1) delete tower._dropT;
+      }
+
+      tower.cooldown -= dt;
+      if (tower.cooldown > 0) continue;
+
+      // Find first enemy in range (closest to goal: pathIndex highest, then closest)
+      let target = null;
+      let bestPathIdx = -1;
+      let bestProgress = -1;
+      const tp = tower.group.position;
+      const rSq = tower.config.range * tower.config.range;
+      for (const en of STATE.enemies) {
+        if (en.reached || en.hp <= 0) continue;
+        const dx = en.mesh.position.x - tp.x;
+        const dz = en.mesh.position.z - tp.z;
+        if (dx*dx + dz*dz > rSq) continue;
+        // Prefer the enemy furthest along the path
+        const wpx = en.pathIndex;
+        const next = pathCoords[wpx] || pathCoords[pathCoords.length - 1];
+        const fromP = pathCoords[wpx - 1] || pathCoords[0];
+        const segDx = (next.x - fromP.x), segDz = (next.z - fromP.z);
+        const segLen = Math.hypot(segDx, segDz) || 1;
+        const dxFromStart = (en.mesh.position.x + GRID/2 - 0.5) - fromP.x;
+        const dzFromStart = (en.mesh.position.z + GRID/2 - 0.5) - fromP.z;
+        const progress = (dxFromStart * segDx + dzFromStart * segDz) / (segLen * segLen);
+        if (wpx > bestPathIdx || (wpx === bestPathIdx && progress > bestProgress)) {
+          target = en;
+          bestPathIdx = wpx;
+          bestProgress = progress;
+        }
+      }
+
+      if (!target) continue;
+
+      // Rotate windmill base to face target (for visual juice)
+      if (tower.config.id === 'magic') {
+        const dx = target.mesh.position.x - tp.x;
+        const dz = target.mesh.position.z - tp.z;
+        const yaw = Math.atan2(dx, dz);
+        tower.group.rotation.y = yaw;
+      } else if (tower.config.id === 'cannon') {
+        const dx = target.mesh.position.x - tp.x;
+        const dz = target.mesh.position.z - tp.z;
+        const yaw = Math.atan2(dx, dz);
+        tower.group.rotation.y = yaw;
+      }
+
+      fireProjectile(tower, target);
+      tower.cooldown = 1 / tower.config.fireRate;
+    }
+  }
+
+  function fireProjectile(tower, target) {
+    const tp = tower.group.position;
+    const startY = TOP_H + 0.75;
+    const proj = new THREE.Mesh(_projGeoms[tower.config.projectile], _projMats[tower.config.projectile]);
+    proj.position.set(tp.x, startY, tp.z);
+    scene.add(proj);
+    STATE.projectiles.push({
+      mesh: proj,
+      target,
+      damage: tower.config.damage,
+      speed: 9 + (tower.config.id === 'magic' ? 6 : 0),
+      tower,
+      kind: tower.config.projectile,
+      splash: tower.config.splash || 0,
+      pierce: tower.config.pierce || 0,
+      pierced: new Set(),
+    });
+  }
+
+  // -------- enemy update --------
+  function tickEnemies(dt) {
+    for (const en of STATE.enemies) {
+      if (en.reached || en.hp <= 0) continue;
+      en.bobPhase += dt * 6;
+      en.mesh.position.y = TOP_H + 0.30 + Math.abs(Math.sin(en.bobPhase)) * 0.05;
+
+      // Walk to next waypoint
+      const wp = pathCoords[en.pathIndex + 1];
+      if (!wp) {
+        // Reached end
+        en.reached = true;
+        scene.remove(en.mesh);
+        STATE.lives--;
+        bumpRes('resLives');
+        flashRed();
+        updateHud();
+        if (STATE.lives <= 0 && !STATE.gameOver) onLose();
+        continue;
+      }
+      const wpPos = tilePos(wp.x, wp.z);
+      const dx = wpPos.x - en.mesh.position.x;
+      const dz = wpPos.z - en.mesh.position.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.05) {
+        en.pathIndex++;
+      } else {
+        const step = en.speed * dt;
+        const moveX = (dx / d) * Math.min(step, d);
+        const moveZ = (dz / d) * Math.min(step, d);
+        en.mesh.position.x += moveX;
+        en.mesh.position.z += moveZ;
+        en.mesh.rotation.y = Math.atan2(dx, dz);
+      }
+    }
+    // Sweep reached/dead
+    STATE.enemies = STATE.enemies.filter(e => !e.reached && e.hp > 0);
+  }
+
+  // -------- projectile update --------
+  function tickProjectiles(dt) {
+    const alive = [];
+    for (const p of STATE.projectiles) {
+      const target = p.target;
+      if (!target || target.hp <= 0 || target.reached) {
+        scene.remove(p.mesh);
+        continue;
+      }
+      const dx = target.mesh.position.x - p.mesh.position.x;
+      const dy = (target.mesh.position.y) - p.mesh.position.y;
+      const dz = target.mesh.position.z - p.mesh.position.z;
+      const d = Math.hypot(dx, dy, dz);
+      const step = p.speed * dt;
+      if (d <= step + 0.15) {
+        hitEnemy(target, p.damage, p);
+        // Splash
+        if (p.splash > 0) {
+          const sx = target.mesh.position.x, sz = target.mesh.position.z;
+          for (const en of STATE.enemies) {
+            if (en === target || en.reached || en.hp <= 0) continue;
+            const ddx = en.mesh.position.x - sx;
+            const ddz = en.mesh.position.z - sz;
+            if (ddx*ddx + ddz*ddz <= p.splash * p.splash) {
+              hitEnemy(en, Math.ceil(p.damage * 0.6), p);
+            }
+          }
+          spawnExplosion(sx, sz);
+        }
+        scene.remove(p.mesh);
+        continue;
+      }
+      p.mesh.position.x += (dx / d) * step;
+      p.mesh.position.y += (dy / d) * step;
+      p.mesh.position.z += (dz / d) * step;
+      alive.push(p);
+    }
+    STATE.projectiles = alive;
+  }
+
+  function hitEnemy(en, dmg, proj) {
+    if (en.hp <= 0 || en.reached) return;
+    en.hp -= dmg;
+    en.hpBar.visible = true;
+    const pct = Math.max(0, en.hp / en.maxHp);
+    en.hpBar.userData.fill.scale.x = Math.max(0.001, pct);
+    en.hpBar.userData.fill.position.x = -en.hpBar.userData.baseW * (1 - pct) / 2;
+    // Color shift
+    const c = en.hpBar.userData.fill.material.color;
+    if (pct > 0.5)      c.setHex(0x6fb442);
+    else if (pct > 0.25) c.setHex(0xe8c050);
+    else                 c.setHex(0xc84848);
+
+    // Flash white briefly
+    en.mesh.material.emissive = new THREE.Color(0xffffff);
+    setTimeout(() => { if (en.mesh.material) en.mesh.material.emissive = new THREE.Color(0x000000); }, 70);
+
+    if (en.hp <= 0) {
+      scene.remove(en.mesh);
+      STATE.gold += en.reward;
+      STATE.kills++;
+      if (proj.tower) proj.tower.kills++;
+      bumpRes('resGold');
+      updateHud();
+      showFloatAt(en.mesh.position.x, en.mesh.position.y + 0.5, en.mesh.position.z, `+${en.reward}`, '#d4a017');
+      // Refresh info panel kills counter
+      if (STATE.selectedTower && proj.tower === STATE.selectedTower) {
+        document.getElementById('infoKills').textContent = STATE.selectedTower.kills;
+      }
+    }
+  }
+
+  // Explosion ring fades quickly.
+  const _expGeom = new THREE.RingGeometry(0.1, 0.3, 24);
+  function spawnExplosion(x, z) {
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffaa33, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
+    const m = new THREE.Mesh(_expGeom, mat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, TOP_H + 0.05, z);
+    scene.add(m);
+    const start = performance.now();
+    function step() {
+      const t = (performance.now() - start) / 350;
+      if (t >= 1) { scene.remove(m); mat.dispose(); return; }
+      m.scale.setScalar(1 + t * 2.5);
+      mat.opacity = 0.85 * (1 - t);
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // -------- damage feedback (vignette flash via toast bumper) --------
+  let damageFlashEl = null;
+  function flashRed() {
+    if (!damageFlashEl) {
+      damageFlashEl = document.createElement('div');
+      damageFlashEl.style.cssText = `
+        position: fixed; inset: 0; pointer-events: none; z-index: 90;
+        background: radial-gradient(ellipse at center, transparent 50%, rgba(200, 30, 30, 0.55) 100%);
+        opacity: 0; transition: opacity 0.12s;
+      `;
+      document.body.appendChild(damageFlashEl);
+    }
+    damageFlashEl.style.opacity = '1';
+    setTimeout(() => { if (damageFlashEl) damageFlashEl.style.opacity = '0'; }, 90);
+  }
+
+  // -------- wave control --------
+  function startNextWave() {
+    if (STATE.gameOver) return;
+    if (STATE.inWave) {
+      STATE.fastForward = !STATE.fastForward;
+      updateHud();
+      return;
+    }
+    if (STATE.wave >= STATE.maxWave) return;
+    STATE.wave++;
+    STATE.inWave = true;
+    STATE.spawnQueue = buildWave(STATE.wave);
+    STATE.spawnTimer = 0;
+    showToast(`Wave ${STATE.wave} of ${STATE.maxWave} — incoming!`, '⚔️');
+    updateHud();
+  }
+  document.getElementById('waveBtn').addEventListener('click', startNextWave);
+
+  function tickWave(dt) {
+    if (!STATE.inWave) return;
+    const realDt = STATE.fastForward ? dt * 3 : dt;
+    // Drain spawn queue. `delay` is an absolute time from wave start; spawnTimer
+    // accumulates wave time and never resets between spawns.
+    if (STATE.spawnQueue.length > 0) {
+      STATE.spawnTimer += realDt;
+      while (STATE.spawnQueue.length > 0 && STATE.spawnTimer >= STATE.spawnQueue[0].delay) {
+        const next = STATE.spawnQueue.shift();
+        spawnEnemyFromQueue(next.type);
+      }
+    } else if (STATE.enemies.length === 0) {
+      // Wave clear
+      STATE.inWave = false;
+      STATE.fastForward = false;
+      const bonus = 20 + STATE.wave * 5;
+      STATE.gold += bonus;
+      bumpRes('resGold');
+      showToast(`Wave ${STATE.wave} cleared! +${bonus} 🪙`, '✨');
+      updateHud();
+      if (STATE.wave >= STATE.maxWave) onWin();
+    }
+  }
+
+  function onLose() {
+    STATE.gameOver = true;
+    STATE.inWave = false;
+    document.getElementById('loseWave').textContent = STATE.wave;
+    document.getElementById('loseKills').textContent = STATE.kills;
+    document.getElementById('gameOver').classList.add('show');
+    updateHud();
+  }
+  function onWin() {
+    STATE.gameOver = true;
+    STATE.inWave = false;
+    document.getElementById('winWave').textContent = STATE.wave;
+    document.getElementById('winKills').textContent = STATE.kills;
+    document.getElementById('winGold').textContent = STATE.gold;
+    document.getElementById('victory').classList.add('show');
+    updateHud();
+  }
+
+  function resetGame() {
+    // Remove all towers, enemies, projectiles
+    for (const t of STATE.towers) scene.remove(t.group);
+    for (const en of STATE.enemies) scene.remove(en.mesh);
+    for (const p of STATE.projectiles) scene.remove(p.mesh);
+    for (const x of Object.keys(world)) {
+      // (world is array; iterating numeric keys works too)
+    }
+    for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) world[x][z].tower = null;
+    STATE.towers = [];
+    STATE.enemies = [];
+    STATE.projectiles = [];
+    STATE.spawnQueue = [];
+    STATE.lives = STATE.maxLives;
+    STATE.gold = 120;
+    STATE.wave = 0;
+    STATE.kills = 0;
+    STATE.inWave = false;
+    STATE.fastForward = false;
+    STATE.gameOver = false;
+    STATE.selectedTool = null;
+    closeInfoPanel();
+    document.getElementById('gameOver').classList.remove('show');
+    document.getElementById('victory').classList.remove('show');
+    updateActiveDockItem();
+    updateHud();
+    showToast('Game reset — defend your town!', '🛡️');
+  }
+
+  document.getElementById('reset').addEventListener('click', resetGame);
+  document.getElementById('loseRestart').addEventListener('click', resetGame);
+  document.getElementById('winRestart').addEventListener('click', resetGame);
+
+  // -------- camera input (orbit + zoom) --------
+  let dragging = false;
+  let dragLast = null;
+  let dragMoved = false;
+  renderer.domElement.addEventListener('pointerdown', e => {
+    if (e.button === 2 || (e.pointerType === 'mouse' && e.button !== 0)) {
+      // Right click also exits selection
+      if (STATE.selectedTool) { STATE.selectedTool = null; updateActiveDockItem(); rangeRing.visible = !!STATE.selectedTower; }
+      if (STATE.selectedTower) closeInfoPanel();
+      return;
+    }
+    dragging = true;
+    dragMoved = false;
+    dragLast = { x: e.clientX, y: e.clientY };
+    renderer.domElement.classList.add('dragging');
+    renderer.domElement.setPointerCapture(e.pointerId);
+  });
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (dragging) {
+      const dx = e.clientX - dragLast.x;
+      const dy = e.clientY - dragLast.y;
+      if (Math.hypot(dx, dy) > 5) dragMoved = true;
+      if (dragMoved) {
+        targetAzimuth -= dx * 0.008;
+        targetPolar = Math.max(0.18, Math.min(1.2, targetPolar - dy * 0.005));
+        dragLast = { x: e.clientX, y: e.clientY };
+      }
+    }
+    // Hover for placement
+    updateHover(e.clientX, e.clientY);
+  });
+  renderer.domElement.addEventListener('pointerup', e => {
+    if (dragging) {
+      const wasMoved = dragMoved;
+      dragging = false;
+      dragMoved = false;
+      renderer.domElement.classList.remove('dragging');
+      try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
+      if (!wasMoved) handleClick(e.clientX, e.clientY);
+    }
+  });
+  renderer.domElement.addEventListener('pointercancel', e => {
+    dragging = false; dragMoved = false;
+    renderer.domElement.classList.remove('dragging');
+  });
+  renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+
+  renderer.domElement.addEventListener('wheel', e => {
+    e.preventDefault();
+    const delta = Math.sign(e.deltaY);
+    targetViewSize = Math.max(7, Math.min(22, targetViewSize + delta * 0.8));
+  }, { passive: false });
+
+  // -------- pick tile from screen --------
+  const raycaster = new THREE.Raycaster();
+  const pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -TOP_H);
+  const _pickV = new THREE.Vector3();
+  function pickTile(clientX, clientY) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1
+    );
+    raycaster.setFromCamera(ndc, camera);
+    if (!raycaster.ray.intersectPlane(pickPlane, _pickV)) return null;
+    const gx = Math.floor(_pickV.x + GRID / 2);
+    const gz = Math.floor(_pickV.z + GRID / 2);
+    if (gx < 0 || gx >= GRID || gz < 0 || gz >= GRID) return null;
+    return { x: gx, z: gz };
+  }
+
+  function updateHover(clientX, clientY) {
+    if (!STATE.selectedTool) {
+      // Hover still highlights towers
+      const cell = pickTile(clientX, clientY);
+      if (cell && world[cell.x][cell.z].tower) {
+        hoverMesh.material = M.hoverGood;
+        hoverMesh.visible = true;
+        const p = tilePos(cell.x, cell.z);
+        hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
+      } else {
+        hoverMesh.visible = false;
+      }
+      return;
+    }
+
+    const cell = pickTile(clientX, clientY);
+    if (!cell) { hoverMesh.visible = false; rangeRing.visible = !!STATE.selectedTower; return; }
+    const p = tilePos(cell.x, cell.z);
+
+    if (STATE.selectedTool === 'sell') {
+      const tower = world[cell.x][cell.z].tower;
+      hoverMesh.material = tower ? M.hoverGood : M.hoverInvalid;
+      hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
+      hoverMesh.visible = true;
+      if (tower) {
+        rangeRing.geometry.dispose();
+        rangeRing.geometry = new THREE.RingGeometry(tower.config.range - 0.04, tower.config.range, 48);
+        rangeRing.position.set(p.x, TOP_H + 0.04, p.z);
+        rangeRing.visible = true;
+      } else {
+        rangeRing.visible = !!STATE.selectedTower;
+      }
+      return;
+    }
+
+    const cfg = TOWERS[STATE.selectedTool];
+    if (!cfg) return;
+    const valid = canPlaceTower(cell.x, cell.z) && STATE.gold >= cfg.cost;
+    hoverMesh.material = valid ? M.hoverGood : M.hoverInvalid;
+    hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
+    hoverMesh.visible = true;
+    // Range preview
+    rangeRing.geometry.dispose();
+    rangeRing.geometry = new THREE.RingGeometry(cfg.range - 0.04, cfg.range, 48);
+    rangeRing.position.set(p.x, TOP_H + 0.04, p.z);
+    rangeRing.visible = true;
+  }
+
+  function handleClick(clientX, clientY) {
+    const cell = pickTile(clientX, clientY);
+    if (!cell) return;
+
+    if (STATE.selectedTool === 'sell') {
+      sellTower(cell.x, cell.z);
+      return;
+    }
+    if (STATE.selectedTool) {
+      placeTower(STATE.selectedTool, cell.x, cell.z);
+      return;
+    }
+    // No tool: clicking a tower selects it for the info panel
+    const tower = world[cell.x][cell.z].tower;
+    if (tower) {
+      selectTower(tower);
+    } else {
+      closeInfoPanel();
+    }
+  }
+
+  // -------- dock UI with 3D previews --------
+  const CATEGORIES = [
+    { id: 'towers', label: 'Towers' },
+  ];
+
+  const previewRenderer = new THREE.WebGLRenderer({
+    antialias: true, alpha: true, preserveDrawingBuffer: true,
+  });
+  previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  previewRenderer.setSize(120, 120);
+  previewRenderer.outputEncoding = THREE.sRGBEncoding;
+
+  const previewItems = [];
+
+  function makePreviewScene(toolId) {
+    const scn = new THREE.Scene();
+    scn.add(new THREE.HemisphereLight(0xffffff, 0xb39879, 0.8));
+    const sn = new THREE.DirectionalLight(0xffffff, 1.2);
+    sn.position.set(3, 5, 2); scn.add(sn);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.4);
+    fill.position.set(-2, 3, -2); scn.add(fill);
+
+    const baseTile = makeTile('grass');
+    scn.add(baseTile);
+
+    const group = new THREE.Group();
+    group.position.y = TOP_H;
+    const cfg = TOWERS[toolId];
+    if (cfg) group.add(cfg.build());
+    scn.add(group);
+
+    const cam = new THREE.PerspectiveCamera(28, 1, 0.1, 50);
+    const r = 2.8, az = Math.PI * 0.25, po = Math.PI * 0.38;
+    cam.position.set(r * Math.sin(po) * Math.cos(az), r * Math.cos(po) + 0.3, r * Math.sin(po) * Math.sin(az));
+    cam.lookAt(0, 0.35, 0);
+    return { scene: scn, camera: cam, group };
+  }
+
+  function buildDock() {
+    const tabs = document.getElementById('dockTabs');
+    const items = document.getElementById('dockItems');
+    tabs.innerHTML = '';
+    items.innerHTML = '';
+    // Single tab for now
+    const tab = document.createElement('button');
+    tab.className = 'dock-tab active';
+    tab.textContent = 'Towers';
+    tabs.appendChild(tab);
+
+    for (const toolId of TOOL_LIST) {
+      const item = document.createElement('button');
+      item.className = 'dock-item';
+      item.dataset.tool = toolId;
+      if (toolId === 'sell') item.classList.add('sell');
+
+      const disc = document.createElement('div');
+      disc.className = 'disc';
+      item.appendChild(disc);
+
+      if (toolId !== 'sell') {
+        const cfg = TOWERS[toolId];
+        const canvas = document.createElement('canvas');
+        canvas.width = 120;
+        canvas.height = 120;
+        disc.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+
+        const cost = document.createElement('span');
+        cost.className = 'cost';
+        cost.textContent = cfg.cost + ' 🪙';
+        item.appendChild(cost);
+
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = cfg.label;
+        item.appendChild(name);
+
+        const desc = document.createElement('span');
+        desc.className = 'desc';
+        desc.textContent = `DMG ${cfg.damage} · RNG ${cfg.range.toFixed(1)}`;
+        item.appendChild(desc);
+
+        const prev = makePreviewScene(toolId);
+        previewItems.push({ toolId, ...prev, canvas, ctx });
+      } else {
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = 'Sell';
+        item.appendChild(name);
+        const desc = document.createElement('span');
+        desc.className = 'desc';
+        desc.textContent = 'Refund 60%';
+        item.appendChild(desc);
+      }
+
+      item.addEventListener('click', () => {
+        if (item.classList.contains('disabled') && toolId !== 'sell') return;
+        if (STATE.selectedTool === toolId) {
+          STATE.selectedTool = null;
+        } else {
+          STATE.selectedTool = toolId;
+          closeInfoPanel();
+        }
+        updateActiveDockItem();
+      });
+
+      items.appendChild(item);
+    }
+  }
+
+  function updateActiveDockItem() {
+    document.querySelectorAll('.dock-item').forEach(it => {
+      it.classList.toggle('active', it.dataset.tool === STATE.selectedTool);
+    });
+    if (!STATE.selectedTool) {
+      hoverMesh.visible = false;
+      if (!STATE.selectedTower) rangeRing.visible = false;
+    }
+    renderer.domElement.classList.toggle('placing', !!STATE.selectedTool);
+  }
+
+  function tickDockPreviews(t) {
+    // Render each preview into its own canvas; rotate slowly for life.
+    for (const item of previewItems) {
+      item.group.rotation.y = t * 0.4;
+      previewRenderer.setSize(120, 120);
+      previewRenderer.render(item.scene, item.camera);
+      try {
+        item.ctx.clearRect(0, 0, 120, 120);
+        item.ctx.drawImage(previewRenderer.domElement, 0, 0, 120, 120);
+      } catch {}
+    }
+  }
+
+  // -------- animation loop --------
+  let prevT = 0;
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const t = now / 1000;
+    const dt = prevT ? Math.min(t - prevT, 0.05) : 0;
+    prevT = t;
+
+    // Camera smoothing
+    const orbitRate = -Math.log(1 - ORBIT_DAMPING) * 60;
+    const zoomRate  = -Math.log(1 - ZOOM_DAMPING)  * 60;
+    const orbitK = 1 - Math.exp(-orbitRate * dt);
+    const zoomK  = 1 - Math.exp(-zoomRate  * dt);
+    let cameraDirty = false;
+    const dAz = targetAzimuth - azimuth;
+    const dPo = targetPolar   - polar;
+    const dVs = targetViewSize - viewSize;
+    if (Math.abs(dAz) > 1e-5) { azimuth += dAz * orbitK; cameraDirty = true; }
+    else if (azimuth !== targetAzimuth) { azimuth = targetAzimuth; cameraDirty = true; }
+    if (Math.abs(dPo) > 1e-5) { polar += dPo * orbitK; cameraDirty = true; }
+    else if (polar !== targetPolar) { polar = targetPolar; cameraDirty = true; }
+    if (Math.abs(dVs) > 1e-4) { viewSize += dVs * zoomK; onResize(); }
+    else if (viewSize !== targetViewSize) { viewSize = targetViewSize; onResize(); }
+    if (cameraDirty) updateCamera();
+
+    // Tree sway
+    for (const key in cellMeshes) {
+      const obj = cellMeshes[key].object;
+      if (obj && obj.userData.kind === 'tree') {
+        obj.rotation.z = Math.sin(t * 0.85 + obj.userData.swayPhase) * 0.022;
+      }
+    }
+
+    // Windmill blades on towers
+    for (const tower of STATE.towers) {
+      if (tower.config.id === 'magic') {
+        tower.group.children.forEach(child => {
+          if (child.userData && child.userData.kind === 'windmill') {}
+        });
+        // The windmill group itself has userData.blades; rotate them
+        const ud = tower.group.userData;
+        if (ud && ud.blades) {
+          ud.blades.rotation.z = t * ud.spinSpeed;
+        }
+      }
+    }
+
+    // HP bars billboard
+    for (const en of STATE.enemies) {
+      if (en.hpBar && en.hpBar.visible) {
+        en.hpBar.quaternion.copy(camera.quaternion);
+      }
+    }
+
+    // Range ring pulse
+    if (rangeRing.visible) {
+      rangeRing.material.opacity = 0.30 + Math.sin(t * 4) * 0.08;
+    }
+
+    // Tick game
+    if (!STATE.gameOver) {
+      const realDt = STATE.fastForward ? dt * 3 : dt;
+      tickWave(dt);
+      tickEnemies(realDt);
+      tickTowers(realDt);
+      tickProjectiles(realDt);
+    }
+
+    renderer.render(scene, camera);
+    tickDockPreviews(t);
+  }
+
+  function onResize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    updateCamera();
+  }
+  window.addEventListener('resize', onResize);
+
+  // -------- keyboard shortcuts --------
+  window.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    if (e.key === '1') { STATE.selectedTool = STATE.selectedTool === 'arrow'  ? null : 'arrow';  updateActiveDockItem(); }
+    if (e.key === '2') { STATE.selectedTool = STATE.selectedTool === 'cannon' ? null : 'cannon'; updateActiveDockItem(); }
+    if (e.key === '3') { STATE.selectedTool = STATE.selectedTool === 'magic'  ? null : 'magic';  updateActiveDockItem(); }
+    if (e.key === '4' || e.key.toLowerCase() === 's') { STATE.selectedTool = STATE.selectedTool === 'sell' ? null : 'sell'; updateActiveDockItem(); }
+    if (e.key.toLowerCase() === 'r') resetGame();
+    if (e.key === 'Escape') {
+      STATE.selectedTool = null;
+      updateActiveDockItem();
+      closeInfoPanel();
+    }
+    if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+      startNextWave();
+    }
+  });
+
+  // -------- boot --------
+  buildDock();
+  updateHud();
+  showToast('Welcome! Place towers, then start wave 1.', '🛡️');
+  requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

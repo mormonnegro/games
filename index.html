@@ -194,6 +194,187 @@
 
   /* legacy .controls/.btn removed — Reset/Clear now live inside the HUD */
 
+  /* -------- Combat mode -------- */
+  .combat-btn {
+    position: fixed;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 11;
+    background: #c84848;
+    color: #fff;
+    border: none;
+    padding: 11px 22px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    box-shadow: 0 8px 22px -8px rgba(200, 72, 72, 0.7), 0 1px 0 rgba(0,0,0,0.04);
+    transition: transform 0.12s, background 0.15s, box-shadow 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .combat-btn .icon { font-size: 16px; }
+  .combat-btn:hover { background: #b03c3c; transform: translateX(-50%) translateY(-1px); }
+  .combat-btn:active { transform: translateX(-50%) translateY(1px); }
+  body.combat .combat-btn { display: none; }
+
+  .crosshair {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+    font-size: 28px;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 50;
+    font-weight: 300;
+    display: none;
+  }
+  body.combat .crosshair { display: block; }
+  body.combat #app canvas { cursor: crosshair !important; }
+
+  .combat-hud {
+    position: fixed;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 11;
+    background: rgba(42, 39, 34, 0.92);
+    color: #fff;
+    border-radius: 14px;
+    padding: 10px 16px;
+    display: none;
+    align-items: center;
+    gap: 16px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(8px);
+  }
+  body.combat .combat-hud { display: flex; }
+  .hearts { display: flex; gap: 3px; font-size: 18px; line-height: 1; }
+  .heart.lost { opacity: 0.25; filter: grayscale(0.9); }
+  .heart.bump { animation: heart-pop 0.4s ease-out; }
+  @keyframes heart-pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+  .combat-stats {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .combat-stats b { font-weight: 700; }
+  .cs-sep { opacity: 0.35; }
+  .combat-exit {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: none;
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .combat-exit:hover { background: rgba(255,255,255,0.22); }
+
+  /* Hide farming UI while in combat */
+  body.combat .missions,
+  body.combat .dock,
+  body.combat .help,
+  body.combat .hud { display: none !important; }
+
+  /* Damage vignette flashes red briefly when player gets hit */
+  .damage-vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(200, 30, 30, 0.55) 100%);
+    opacity: 0;
+    z-index: 40;
+    transition: opacity 0.12s;
+  }
+  .damage-vignette.flash { opacity: 1; transition: opacity 0.05s; }
+
+  /* Game over */
+  .game-over {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 18, 14, 0.7);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .game-over.show { display: flex; }
+  .game-over-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 28px 36px;
+    min-width: 320px;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.4);
+    text-align: center;
+  }
+  .game-over-card h2 {
+    margin: 0 0 18px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 32px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .go-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-soft);
+    font-size: 14px;
+  }
+  .go-stat span { color: var(--muted); }
+  .go-stat b {
+    font-size: 18px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .go-actions {
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .go-btn {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.12s, transform 0.08s;
+  }
+  .go-btn:hover { background: #faf5ea; }
+  .go-btn:active { transform: translateY(1px); }
+  .go-btn.primary {
+    background: #c84848;
+    color: #fff;
+    border-color: transparent;
+  }
+  .go-btn.primary:hover { background: #b03c3c; }
+
 
   .help {
     position: fixed;
@@ -538,6 +719,37 @@
   </div>
 
   <div class="toolbar" id="toolbar" style="display:none"></div>
+
+  <!-- Combat mode UI -->
+  <button class="combat-btn" id="combatBtn" title="Enter combat mode">
+    <span class="icon">⚔️</span> Combat
+  </button>
+  <div class="crosshair" id="crosshair">+</div>
+  <div class="damage-vignette" id="damageVignette"></div>
+  <div class="combat-hud" id="combatHud">
+    <div class="hearts" id="hearts"></div>
+    <div class="combat-stats">
+      <span class="cs-wave">Wave <b id="waveVal">1</b></span>
+      <span class="cs-sep">·</span>
+      <span class="cs-kills"><b id="killsVal">0/5</b> kills</span>
+      <span class="cs-sep">·</span>
+      <span class="cs-score"><b id="scoreVal">0</b> pts</span>
+    </div>
+    <button class="combat-exit" id="combatExit" title="Exit combat (Esc)">Exit</button>
+  </div>
+
+  <div class="game-over" id="gameOver">
+    <div class="game-over-card">
+      <h2>Game Over</h2>
+      <div class="go-stat"><span>Final Wave</span><b id="finalWave">1</b></div>
+      <div class="go-stat"><span>Kills</span><b id="finalKills">0</b></div>
+      <div class="go-stat"><span>Score</span><b id="finalScore">0</b></div>
+      <div class="go-actions">
+        <button class="go-btn primary" id="restart">⚔️ Try Again</button>
+        <button class="go-btn" id="exitCombat">Back to Build</button>
+      </div>
+    </div>
+  </div>
 
   <div class="dock" id="dock">
     <div class="dock-tabs" id="dockTabs"></div>
@@ -2838,6 +3050,8 @@
   let lastClickPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 
   function applyTool(x, z) {
+    // Don't touch the world during combat — clicks shoot, not place.
+    if (typeof COMBAT !== 'undefined' && COMBAT.active) return;
     const cell = world[x][z];
     const key = x + ',' + z;
 
@@ -3126,7 +3340,12 @@
     }
     updateSmoke(dt);
 
-    renderer.render(scene, camera);
+    // Switch camera based on mode: combat/walk uses the third-person fpsCam,
+    // otherwise the orbital build camera.
+    if (fpsActive) tickFps(dt);
+    if (typeof tickCombat === 'function') tickCombat(dt);
+    const renderCam = fpsActive ? fpsCam : camera;
+    renderer.render(scene, renderCam);
 
     tickCatalogPreviews(t);
     if (typeof tickHarvest === 'function') tickHarvest(t);
@@ -3139,6 +3358,9 @@
 
     persCam.aspect = aspect;
     persCam.updateProjectionMatrix();
+
+    fpsCam.aspect = aspect;
+    fpsCam.updateProjectionMatrix();
 
     renderer.setSize(w, h);
     updateCamera();
@@ -3674,6 +3896,10 @@
   function xpForNext() { return 10 + 8 * ECON.level + 2 * ECON.level * ECON.level; }
 
   function tickHarvest(t) {
+    // Pause growth visuals while in combat — the harvest sprites/pills would
+    // clutter the screen during a firefight. Internal state keeps ticking
+    // because plantedAt is relative time, so growth picks up where it left.
+    if (typeof COMBAT !== 'undefined' && COMBAT.active) return;
     // t is in seconds (now / 1000) from the main animate loop.
     for (const [key, st] of harvestState) {
       const cfg = HARVEST[st.kind];
@@ -4125,6 +4351,329 @@
     checkGoals();
     saveState();
   }
+
+  // =====================================================================
+  // Combat mode: walk + shoot + waves of enemies.
+  // Reuses the existing third-person walk system (`fpsActive`, `tickFps`,
+  // `fpsCam`). Adds shooting on click, enemies that path toward the player,
+  // wave progression, HP, and a game-over screen.
+  // =====================================================================
+  const COMBAT = {
+    active: false,
+    gameOver: false,
+    hp: 5, maxHp: 5,
+    score: 0, kills: 0,
+    wave: 1,
+    waveTarget: 5,        // kills needed to advance wave
+    waveDone: 0,
+    spawnTimer: 0.5,
+    spawnEvery: 2.2,
+    enemies: [],
+    projectiles: [],
+    hitCooldown: 0,       // i-frames after being touched
+  };
+
+  // Geometry/material caches so we don't allocate per shot/per enemy.
+  const _projGeom = new THREE.SphereGeometry(0.07, 8, 8);
+  const _projMat  = new THREE.MeshBasicMaterial({ color: 0xffe55c });
+  const _enemyBodyGeom = new THREE.BoxGeometry(0.45, 0.60, 0.45);
+  const _enemyEyeGeom  = new THREE.SphereGeometry(0.05, 6, 6);
+  const _enemyEyeMat   = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const _enemyPupilGeom= new THREE.SphereGeometry(0.025, 6, 6);
+  const _enemyPupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+  function makeEnemyMesh(tinted) {
+    const mat = new THREE.MeshLambertMaterial({
+      color: tinted ? 0x6b2a82 : 0xc94848,
+    });
+    const body = new THREE.Mesh(_enemyBodyGeom, mat);
+    body.castShadow = true;
+    const e1 = new THREE.Mesh(_enemyEyeGeom, _enemyEyeMat);
+    const e2 = new THREE.Mesh(_enemyEyeGeom, _enemyEyeMat);
+    e1.position.set(-0.10, 0.16, 0.23);
+    e2.position.set( 0.10, 0.16, 0.23);
+    body.add(e1); body.add(e2);
+    const p1 = new THREE.Mesh(_enemyPupilGeom, _enemyPupilMat);
+    const p2 = new THREE.Mesh(_enemyPupilGeom, _enemyPupilMat);
+    p1.position.set(-0.10, 0.16, 0.27);
+    p2.position.set( 0.10, 0.16, 0.27);
+    body.add(p1); body.add(p2);
+    return body;
+  }
+
+  function spawnEnemy() {
+    // Pick a random edge cell so enemies emerge from the perimeter.
+    const edge = Math.floor(Math.random() * 4);
+    const off = Math.floor(Math.random() * GRID);
+    let x = 0, z = 0;
+    if (edge === 0) { x = 0;        z = off; }
+    else if (edge === 1) { x = GRID-1; z = off; }
+    else if (edge === 2) { x = off;    z = 0; }
+    else                 { x = off;    z = GRID-1; }
+    const p = tilePos(x, z);
+    // Tougher elites every few waves
+    const elite = COMBAT.wave >= 3 && Math.random() < 0.2;
+    const mesh = makeEnemyMesh(elite);
+    mesh.position.set(p.x, TOP_H + 0.30, p.z);
+    scene.add(mesh);
+    COMBAT.enemies.push({
+      mesh,
+      hp: elite ? 3 : 1 + Math.floor((COMBAT.wave - 1) / 3),
+      speed: (elite ? 1.0 : 1.5) + COMBAT.wave * 0.08,
+      bobPhase: Math.random() * Math.PI * 2,
+    });
+  }
+
+  // Aim direction: the camera's forward vector, flattened to the horizontal
+  // plane. This is the "look forward" axis from third-person camera, which
+  // matches the crosshair the player sees.
+  const _aimDir = new THREE.Vector3();
+  function getAimDir() {
+    fpsCam.getWorldDirection(_aimDir);
+    _aimDir.y = 0;
+    if (_aimDir.lengthSq() < 1e-6) _aimDir.set(0, 0, -1);
+    _aimDir.normalize();
+    return _aimDir;
+  }
+
+  function spawnProjectile() {
+    if (!COMBAT.active || COMBAT.gameOver || !fpsActive) return;
+    const dir = getAimDir();
+    const sp = new THREE.Mesh(_projGeom, _projMat);
+    // Start in front of the player so we don't immediately collide with
+    // the player mesh.
+    sp.position.set(
+      fpsState.pos.x + dir.x * 0.45,
+      TOP_H + 0.55,
+      fpsState.pos.z + dir.z * 0.45
+    );
+    sp.userData = { vx: dir.x * 22, vz: dir.z * 22, life: 1.4 };
+    scene.add(sp);
+    COMBAT.projectiles.push(sp);
+    // Tiny muzzle flash effect via float text
+    if (typeof showFloatAt === 'function') {
+      // skip — too noisy
+    }
+  }
+
+  function flashDamage() {
+    const v = document.getElementById('damageVignette');
+    v.classList.add('flash');
+    setTimeout(() => v.classList.remove('flash'), 220);
+  }
+
+  function bumpHeart(idx) {
+    const list = document.querySelectorAll('#hearts .heart');
+    const h = list[idx];
+    if (!h) return;
+    h.classList.remove('bump');
+    void h.offsetWidth;
+    h.classList.add('bump');
+  }
+
+  function updateCombatHud() {
+    const hearts = document.getElementById('hearts');
+    if (hearts) {
+      hearts.innerHTML = '';
+      for (let i = 0; i < COMBAT.maxHp; i++) {
+        const h = document.createElement('span');
+        h.className = 'heart' + (i < COMBAT.hp ? '' : ' lost');
+        h.textContent = '❤️';
+        hearts.appendChild(h);
+      }
+    }
+    const w = document.getElementById('waveVal');  if (w) w.textContent = COMBAT.wave;
+    const k = document.getElementById('killsVal'); if (k) k.textContent = COMBAT.waveDone + '/' + COMBAT.waveTarget;
+    const s = document.getElementById('scoreVal'); if (s) s.textContent = COMBAT.score;
+  }
+
+  function advanceWave() {
+    COMBAT.wave++;
+    COMBAT.waveDone = 0;
+    COMBAT.waveTarget = 5 + Math.floor(COMBAT.wave * 1.8);
+    COMBAT.spawnEvery = Math.max(0.55, 2.2 - COMBAT.wave * 0.12);
+    COMBAT.spawnTimer = 1.2; // short breather between waves
+    showToast('Wave ' + COMBAT.wave + ' — incoming!', '⚔️');
+    updateCombatHud();
+  }
+
+  function tickCombat(dt) {
+    if (!COMBAT.active || COMBAT.gameOver) return;
+
+    // Spawn budget: while we still owe this wave more enemies, drip them
+    // in at intervals. The wave advances when all spawned ones are killed.
+    if (COMBAT.waveDone < COMBAT.waveTarget) {
+      const spawnedThisWave = COMBAT.waveDone + COMBAT.enemies.length;
+      if (spawnedThisWave < COMBAT.waveTarget) {
+        COMBAT.spawnTimer -= dt;
+        if (COMBAT.spawnTimer <= 0) {
+          spawnEnemy();
+          COMBAT.spawnTimer = COMBAT.spawnEvery;
+        }
+      }
+    }
+
+    // Update enemies: walk toward player; on contact, damage player.
+    const px = fpsState.pos.x, pz = fpsState.pos.z;
+    for (const en of COMBAT.enemies) {
+      const dx = px - en.mesh.position.x;
+      const dz = pz - en.mesh.position.z;
+      const d = Math.hypot(dx, dz);
+      if (d > 0.001) {
+        en.mesh.position.x += (dx / d) * en.speed * dt;
+        en.mesh.position.z += (dz / d) * en.speed * dt;
+        en.mesh.rotation.y = Math.atan2(dx, dz);
+      }
+      // Subtle bob so they don't look static
+      en.bobPhase += dt * 6;
+      en.mesh.position.y = TOP_H + 0.30 + Math.abs(Math.sin(en.bobPhase)) * 0.05;
+
+      if (d < 0.55 && COMBAT.hitCooldown <= 0) {
+        COMBAT.hp--;
+        COMBAT.hitCooldown = 0.9;
+        flashDamage();
+        // Knock the enemy back so it doesn't camp on the player
+        en.mesh.position.x -= (dx / d) * 0.6;
+        en.mesh.position.z -= (dz / d) * 0.6;
+        bumpHeart(COMBAT.hp);
+        updateCombatHud();
+        if (COMBAT.hp <= 0) { onGameOver(); return; }
+      }
+    }
+    COMBAT.hitCooldown = Math.max(0, COMBAT.hitCooldown - dt);
+
+    // Update projectiles: move, age, check enemy hits.
+    const alive = [];
+    for (const p of COMBAT.projectiles) {
+      p.userData.life -= dt;
+      if (p.userData.life <= 0) { scene.remove(p); continue; }
+      p.position.x += p.userData.vx * dt;
+      p.position.z += p.userData.vz * dt;
+
+      let hit = null;
+      for (const en of COMBAT.enemies) {
+        const dx = p.position.x - en.mesh.position.x;
+        const dz = p.position.z - en.mesh.position.z;
+        if (dx*dx + dz*dz < 0.30*0.30) { hit = en; break; }
+      }
+      if (hit) {
+        hit.hp--;
+        scene.remove(p);
+        if (hit.hp <= 0) {
+          scene.remove(hit.mesh);
+          if (hit.mesh.material) hit.mesh.material.dispose();
+          COMBAT.enemies = COMBAT.enemies.filter(e => e !== hit);
+          COMBAT.kills++;
+          COMBAT.waveDone++;
+          COMBAT.score += 10 * COMBAT.wave;
+          updateCombatHud();
+          if (COMBAT.waveDone >= COMBAT.waveTarget && COMBAT.enemies.length === 0) {
+            advanceWave();
+          }
+        } else {
+          // Hit flash via material tint — quick and dirty.
+          hit.mesh.material.emissive = new THREE.Color(0xffffff);
+          setTimeout(() => {
+            if (hit.mesh.material) hit.mesh.material.emissive = new THREE.Color(0x000000);
+          }, 80);
+        }
+        continue;
+      }
+      alive.push(p);
+    }
+    COMBAT.projectiles = alive;
+  }
+
+  function clearCombatEntities() {
+    for (const en of COMBAT.enemies) {
+      scene.remove(en.mesh);
+      if (en.mesh.material) en.mesh.material.dispose();
+    }
+    for (const p of COMBAT.projectiles) scene.remove(p);
+    COMBAT.enemies = [];
+    COMBAT.projectiles = [];
+  }
+
+  function setHarvestSpritesVisible(v) {
+    if (typeof readySprites !== 'undefined') {
+      for (const sp of readySprites.values()) sp.visible = v;
+    }
+    if (typeof timerSprites !== 'undefined') {
+      for (const entry of timerSprites.values()) entry.sprite.visible = v;
+    }
+  }
+
+  function startCombat() {
+    if (COMBAT.active) return;
+    COMBAT.active = true;
+    COMBAT.gameOver = false;
+    COMBAT.hp = COMBAT.maxHp;
+    COMBAT.score = 0; COMBAT.kills = 0;
+    COMBAT.wave = 1;
+    COMBAT.waveTarget = 5; COMBAT.waveDone = 0;
+    COMBAT.spawnTimer = 0.6;
+    COMBAT.spawnEvery = 2.2;
+    COMBAT.hitCooldown = 1.0; // grace period at start
+    clearCombatEntities();
+    setHarvestSpritesVisible(false);
+    document.body.classList.add('combat');
+    if (typeof enterFps === 'function') enterFps();
+    updateCombatHud();
+    showToast('Wave 1 — survive the swarm!', '⚔️');
+  }
+
+  function endCombat() {
+    COMBAT.active = false;
+    COMBAT.gameOver = false;
+    clearCombatEntities();
+    setHarvestSpritesVisible(true);
+    document.body.classList.remove('combat');
+    document.getElementById('gameOver').classList.remove('show');
+    if (typeof exitFps === 'function') exitFps();
+  }
+
+  function onGameOver() {
+    COMBAT.gameOver = true;
+    document.getElementById('finalWave').textContent  = COMBAT.wave;
+    document.getElementById('finalKills').textContent = COMBAT.kills;
+    document.getElementById('finalScore').textContent = COMBAT.score;
+    document.getElementById('gameOver').classList.add('show');
+  }
+
+  // UI wiring
+  on('combatBtn',  'click', startCombat);
+  on('combatExit', 'click', endCombat);
+  on('restart',    'click', () => {
+    document.getElementById('gameOver').classList.remove('show');
+    // restart by re-entering combat
+    clearCombatEntities();
+    COMBAT.gameOver = false;
+    COMBAT.hp = COMBAT.maxHp;
+    COMBAT.score = 0; COMBAT.kills = 0;
+    COMBAT.wave = 1;
+    COMBAT.waveTarget = 5; COMBAT.waveDone = 0;
+    COMBAT.spawnTimer = 0.6;
+    COMBAT.spawnEvery = 2.2;
+    COMBAT.hitCooldown = 1.0;
+    updateCombatHud();
+    showToast('Wave 1 — go!', '⚔️');
+  });
+  on('exitCombat', 'click', endCombat);
+
+  // Shoot on pointerdown anywhere on the canvas while in combat.
+  // This fires alongside the build-mode pointerdown which is gated by
+  // fpsActive (it only does drag/orbit), so no double-action occurs.
+  renderer.domElement.addEventListener('pointerdown', e => {
+    if (COMBAT.active && !COMBAT.gameOver && fpsActive) {
+      if (e.button === 0 || e.pointerType !== 'mouse') spawnProjectile();
+    }
+  });
+
+  // Esc exits combat (also caught by the existing keydown for non-FPS,
+  // but Escape in FPS triggers exitFps which we wrap to also clean up).
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && COMBAT.active) endCombat();
+  });
 
   // -------- boot --------
   buildToolbar();
