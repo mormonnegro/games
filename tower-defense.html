@@ -532,7 +532,7 @@
 
   <div class="brand">
     <div class="title">Tiny Tower <em>Defense</em></div>
-    <div class="sub">Place towers · stop the swarm · drag to orbit · scroll to zoom</div>
+    <div class="sub">Place towers · stop the swarm · drag to pan · scroll to zoom</div>
   </div>
 
   <div class="hud" id="hud">
@@ -646,25 +646,28 @@
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf4ede0);
 
-  // -------- camera (perspective, miniature look) --------
-  let viewSize = 14;
-  const aspect0 = window.innerWidth / window.innerHeight;
-  const camera = new THREE.PerspectiveCamera(28, aspect0, 0.1, 200);
+  // -------- camera (perspective "telephoto", classic TD miniature look) --------
+  // Narrow-FOV perspective gives the iso/miniature feel that Bloons TD 6 and
+  // Kingdom Rush use — there's a touch of depth without orbiting around the
+  // map. Angles are fixed: drag pans, wheel zooms, and zoom anchors on the
+  // world point under the cursor.
+  const AZIMUTH = Math.PI * 0.25;   // 45° around Y — classic iso direction
+  const POLAR   = Math.PI * 0.28;   // ~50° from vertical, slightly more top-down
+  const CAM_FOV = 24;               // narrow FOV → telephoto, soft perspective
 
-  let azimuth = Math.PI * 0.25;
-  let polar   = Math.PI * 0.32;
-  let targetAzimuth = azimuth;
-  let targetPolar   = polar;
-  let targetViewSize = viewSize;
-  const ORBIT_DAMPING = 0.18;
-  const ZOOM_DAMPING  = 0.35;
+  let viewSize = 11;                // governs camera distance; smaller → closer
+  const MIN_VIEW = 6;
+  const MAX_VIEW = 18;
+
   const target = new THREE.Vector3(0, 0, 0);
+  const aspect0 = window.innerWidth / window.innerHeight;
+  const camera = new THREE.PerspectiveCamera(CAM_FOV, aspect0, 0.1, 200);
 
   function updateCamera() {
-    const r = viewSize * 4.2;
-    camera.position.x = target.x + r * Math.sin(polar) * Math.cos(azimuth);
-    camera.position.y = target.y + r * Math.cos(polar);
-    camera.position.z = target.z + r * Math.sin(polar) * Math.sin(azimuth);
+    const r = viewSize * 4.6;
+    camera.position.x = target.x + r * Math.sin(POLAR) * Math.cos(AZIMUTH);
+    camera.position.y = target.y + r * Math.cos(POLAR);
+    camera.position.z = target.z + r * Math.sin(POLAR) * Math.sin(AZIMUTH);
     camera.lookAt(target);
   }
   updateCamera();
@@ -1380,6 +1383,50 @@
     rangeRing.visible = false;
   }
 
+  // Second pair of meshes used to preview the NEXT level's range while the
+  // player is hovering the Upgrade button. Green annular band shows the gain
+  // beyond the current range, and a green ring marks the new boundary.
+  const nextRangeBand = new THREE.Mesh(
+    new THREE.RingGeometry(1.0, 1.05, 48),
+    new THREE.MeshBasicMaterial({ color: 0x6fb442, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide })
+  );
+  nextRangeBand.rotation.x = -Math.PI / 2;
+  nextRangeBand.position.y = TOP_H + 0.038;
+  nextRangeBand.visible = false;
+  worldGroup.add(nextRangeBand);
+
+  const nextRangeRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.94, 1.0, 48),
+    new THREE.MeshBasicMaterial({ color: 0x6fb442, transparent: true, opacity: 0.75, depthWrite: false, side: THREE.DoubleSide })
+  );
+  nextRangeRing.rotation.x = -Math.PI / 2;
+  nextRangeRing.position.y = TOP_H + 0.045;
+  nextRangeRing.visible = false;
+  worldGroup.add(nextRangeRing);
+
+  function showNextRangePreview(tower) {
+    if (!tower || tower.level >= MAX_LEVEL) return;
+    const cur  = getStats(tower).range;
+    const next = getStatsAtLevel(tower, tower.level + 1).range;
+    const p = tilePos(tower.x, tower.z);
+
+    // Outer ring at the next-level radius
+    nextRangeRing.geometry.dispose();
+    nextRangeRing.geometry = new THREE.RingGeometry(next - 0.06, next, 48);
+    nextRangeRing.position.set(p.x, TOP_H + 0.045, p.z);
+    nextRangeRing.visible = true;
+
+    // Annular band between current and next radius (the "gained" area)
+    nextRangeBand.geometry.dispose();
+    nextRangeBand.geometry = new THREE.RingGeometry(cur, next - 0.06, 48);
+    nextRangeBand.position.set(p.x, TOP_H + 0.038, p.z);
+    nextRangeBand.visible = true;
+  }
+  function hideNextRangePreview() {
+    nextRangeRing.visible = false;
+    nextRangeBand.visible = false;
+  }
+
   // -------- towers config --------
   const TOWERS = {
     arrow: {
@@ -1578,20 +1625,22 @@
   }
 
   // -------- tower leveling & stats --------
-  const MAX_LEVEL = 3;
+  const MAX_LEVEL = 5;
   const LEVEL_MULT = {
-    damage:   [1.0, 1.6, 2.4],
-    range:    [1.0, 1.18, 1.35],
-    fireRate: [1.0, 1.30, 1.60],
+    damage:   [1.0, 1.4, 1.9, 2.5, 3.2],
+    range:    [1.0, 1.15, 1.30, 1.45, 1.60],
+    fireRate: [1.0, 1.20, 1.40, 1.65, 1.90],
   };
-  // L1→L2 cost = base; L2→L3 cost = base × 1.8 (rounded). Stored as factors
-  // applied to the tower's base cost.
-  const UPGRADE_COST_FACTOR = [1.0, 1.8];
+  // Cost multipliers applied to the tower's base cost. Index is the current
+  // level minus 1 (so the cost to go L1→L2 reads index 0, etc.).
+  const UPGRADE_COST_FACTOR = [1.0, 1.5, 2.2, 3.2];
   const REFUND_RATIO = 0.6;
 
-  function getStats(tower) {
+  // Stats for an arbitrary level (1..MAX_LEVEL). Used to preview next-level
+  // stats when the user hovers the Upgrade button without committing.
+  function getStatsAtLevel(tower, level) {
     const c = tower.config;
-    const i = (tower.level || 1) - 1;
+    const i = Math.max(0, Math.min(MAX_LEVEL - 1, level - 1));
     return {
       damage:   Math.max(1, Math.round(c.damage * LEVEL_MULT.damage[i])),
       range:    c.range * LEVEL_MULT.range[i],
@@ -1599,6 +1648,9 @@
       splash:   c.splash ? c.splash * LEVEL_MULT.range[i] : 0,
       pierce:   c.pierce ? c.pierce + i : 0,
     };
+  }
+  function getStats(tower) {
+    return getStatsAtLevel(tower, tower.level || 1);
   }
   function getUpgradeCost(tower) {
     if (tower.level >= MAX_LEVEL) return Infinity;
@@ -1655,15 +1707,48 @@
       const band = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.013, 6, 16), M.gold);
       band.rotation.x = Math.PI / 2;
       crown.add(band);
-      for (let i = 0; i < 6; i++) {
+      const spikeCount = tower.level >= 4 ? 8 : 6;
+      for (let i = 0; i < spikeCount; i++) {
         const spike = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.08, 4), M.gold);
-        const a = i * Math.PI * 2 / 6;
-        // Cone points up by default — spikes radiate around the band like a coronet.
+        const a = i * Math.PI * 2 / spikeCount;
         spike.position.set(Math.cos(a) * 0.11, 0.04, Math.sin(a) * 0.11);
         crown.add(spike);
       }
       crown.position.y = topY + 0.06;
       g.add(crown);
+    }
+
+    // Level 4: outer crown band + a small floating gem between flag and stars.
+    if (tower.level >= 4) {
+      const outerBand = new THREE.Mesh(new THREE.TorusGeometry(0.135, 0.013, 6, 20), M.gold);
+      outerBand.rotation.x = Math.PI / 2;
+      outerBand.position.y = topY + 0.11;
+      g.add(outerBand);
+      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.055, 0), M.wizardOrb);
+      gem.position.y = topY + 0.24;
+      g.add(gem);
+    }
+
+    // Level 5: a glowing crystal with halo crowns the whole assembly, and a
+    // luminous ring wraps the base of the tower for unmistakable "elite" feel.
+    if (tower.level >= 5) {
+      const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.085, 0), M.wizardOrb);
+      crystal.position.y = topY + 0.52;
+      g.add(crystal);
+      const halo = new THREE.Mesh(
+        new THREE.SphereGeometry(0.14, 12, 12),
+        M.wizardOrbHalo
+      );
+      halo.position.y = topY + 0.52;
+      g.add(halo);
+      const baseRing = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.018, 6, 28), M.wizardOrb);
+      baseRing.rotation.x = Math.PI / 2;
+      baseRing.position.y = 0.03;
+      g.add(baseRing);
+      // Track these so the animate loop can pulse them along with the wizard's orb.
+      g.userData._eliteCrystal = crystal;
+      g.userData._eliteHalo = halo;
+      g.userData._eliteRing = baseRing;
     }
 
     g.traverse(c => { if (c.isMesh) { c.castShadow = false; c.receiveShadow = false; } });
@@ -1687,8 +1772,43 @@
     if (STATE.selectedTower === tower) {
       const stats = getStats(tower);
       setRangeIndicator(stats.range, p.x, p.z, 0xffd44a);
+      // If the user is still hovering Upgrade (the click came from there),
+      // refresh the next-level preview to the new gap, or hide it at max.
+      if (_upgradeHovering) {
+        if (tower.level >= MAX_LEVEL) hideNextRangePreview();
+        else showNextRangePreview(tower);
+      }
     }
     return true;
+  }
+
+  // Tracks whether the cursor is currently over the Upgrade button, so we can
+  // keep the next-level preview consistent across DOM refreshes.
+  let _upgradeHovering = false;
+
+  // Rewrites the Damage / Range / Fire-rate cells to show "current → next"
+  // values in green. Pure DOM update — visuals on the map are handled by
+  // showNextRangePreview() separately.
+  function applyUpgradeStatsPreviewDOM(tower) {
+    const cur  = getStats(tower);
+    const next = getStatsAtLevel(tower, tower.level + 1);
+    const arrow = '<span style="color:var(--muted); margin:0 4px;">→</span>';
+    const hi = v => `<span style="color:#5fa033; font-weight:700;">${v}</span>`;
+    document.getElementById('infoDmg').innerHTML   = `${cur.damage}${arrow}${hi(next.damage)}`;
+    document.getElementById('infoRange').innerHTML = `${cur.range.toFixed(1)}${arrow}${hi(next.range.toFixed(1))}`;
+    document.getElementById('infoRate').innerHTML  = `${cur.fireRate.toFixed(1)}/s${arrow}${hi(next.fireRate.toFixed(1) + '/s')}`;
+  }
+
+  function showUpgradePreview(tower) {
+    if (!tower || tower.level >= MAX_LEVEL) return;
+    _upgradeHovering = true;
+    applyUpgradeStatsPreviewDOM(tower);
+    showNextRangePreview(tower);
+  }
+  function hideUpgradePreview() {
+    _upgradeHovering = false;
+    hideNextRangePreview();
+    refreshInfoPanel(); // restores stat cells to plain "current" values
   }
 
   // Re-renders the info panel from the currently selected tower without
@@ -1723,6 +1843,12 @@
     document.querySelectorAll('#targetModes .target-mode').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.mode === tower.targeting);
     });
+    // If the player is still hovering Upgrade while this re-render happens
+    // (e.g. because gold changed mid-hover), re-apply the "current → next"
+    // overlay on the stat cells so the preview persists.
+    if (_upgradeHovering && tower.level < MAX_LEVEL) {
+      applyUpgradeStatsPreviewDOM(tower);
+    }
   }
 
   // -------- targeting --------
@@ -1850,6 +1976,8 @@
   }
 
   function closeInfoPanel() {
+    _upgradeHovering = false;
+    hideNextRangePreview();
     STATE.selectedTower = null;
     document.getElementById('infoPanel').classList.remove('show');
     if (!STATE.selectedTool || STATE.selectedTool === 'sell') {
@@ -1863,9 +1991,17 @@
       sellTower(STATE.selectedTower.x, STATE.selectedTower.z);
     }
   });
-  document.getElementById('infoUpgrade').addEventListener('click', () => {
+  const _upBtn = document.getElementById('infoUpgrade');
+  _upBtn.addEventListener('click', () => {
     if (STATE.selectedTower) upgradeTower(STATE.selectedTower);
   });
+  // Hovering the Upgrade button paints a green ring at the next-level range on
+  // the map (plus the gained band) and previews the new stats inline.
+  _upBtn.addEventListener('mouseenter', () => {
+    if (STATE.selectedTower) showUpgradePreview(STATE.selectedTower);
+  });
+  _upBtn.addEventListener('mouseleave', hideUpgradePreview);
+
   // Target priority buttons — clicking switches the tower's targeting mode.
   document.querySelectorAll('#targetModes .target-mode').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2177,13 +2313,18 @@
   document.getElementById('loseRestart').addEventListener('click', resetGame);
   document.getElementById('winRestart').addEventListener('click', resetGame);
 
-  // -------- camera input (orbit + zoom) --------
+  // -------- camera input (pan + zoom) --------
+  // Pan strategy: pick the world point under the cursor at drag start, then on
+  // each move set `target` so that same world point stays under the cursor.
+  // This is the natural "grab and drag" feel and works the same at any zoom.
   let dragging = false;
   let dragLast = null;
   let dragMoved = false;
+  const _panAnchor = { world: new THREE.Vector3(), target: new THREE.Vector3(), valid: false };
+
   renderer.domElement.addEventListener('pointerdown', e => {
     if (e.button === 2 || (e.pointerType === 'mouse' && e.button !== 0)) {
-      // Right click also exits selection
+      // Right click cancels current selection.
       if (STATE.selectedTool) { STATE.selectedTool = null; updateActiveDockItem(); }
       if (STATE.selectedTower) closeInfoPanel();
       if (!STATE.selectedTool && !STATE.selectedTower) hideRangeIndicator();
@@ -2192,6 +2333,15 @@
     dragging = true;
     dragMoved = false;
     dragLast = { x: e.clientX, y: e.clientY };
+    // Capture the anchor: world point under cursor + current camera target.
+    const w = pickGround(e.clientX, e.clientY);
+    if (w) {
+      _panAnchor.world.copy(w);
+      _panAnchor.target.copy(target);
+      _panAnchor.valid = true;
+    } else {
+      _panAnchor.valid = false;
+    }
     renderer.domElement.classList.add('dragging');
     renderer.domElement.setPointerCapture(e.pointerId);
   });
@@ -2199,14 +2349,24 @@
     if (dragging) {
       const dx = e.clientX - dragLast.x;
       const dy = e.clientY - dragLast.y;
-      if (Math.hypot(dx, dy) > 5) dragMoved = true;
-      if (dragMoved) {
-        targetAzimuth -= dx * 0.008;
-        targetPolar = Math.max(0.18, Math.min(1.2, targetPolar - dy * 0.005));
-        dragLast = { x: e.clientX, y: e.clientY };
+      if (Math.hypot(dx, dy) > 4) dragMoved = true;
+      if (dragMoved && _panAnchor.valid) {
+        // Restore camera to anchor target, re-pick where the cursor lands now,
+        // then shift target so the original world point matches the new cursor.
+        target.copy(_panAnchor.target);
+        updateCamera();
+        const cur = pickGround(e.clientX, e.clientY);
+        if (cur) {
+          target.x = _panAnchor.target.x + (_panAnchor.world.x - cur.x);
+          target.z = _panAnchor.target.z + (_panAnchor.world.z - cur.z);
+          // Clamp so the player can't drift the map entirely off screen.
+          const lim = GRID * 0.5;
+          target.x = Math.max(-lim, Math.min(lim, target.x));
+          target.z = Math.max(-lim, Math.min(lim, target.z));
+          updateCamera();
+        }
       }
     }
-    // Hover for placement
     updateHover(e.clientX, e.clientY);
   });
   renderer.domElement.addEventListener('pointerup', e => {
@@ -2214,13 +2374,14 @@
       const wasMoved = dragMoved;
       dragging = false;
       dragMoved = false;
+      _panAnchor.valid = false;
       renderer.domElement.classList.remove('dragging');
       try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
       if (!wasMoved) handleClick(e.clientX, e.clientY);
     }
   });
   renderer.domElement.addEventListener('pointercancel', e => {
-    dragging = false; dragMoved = false;
+    dragging = false; dragMoved = false; _panAnchor.valid = false;
     renderer.domElement.classList.remove('dragging');
   });
   renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
@@ -2228,13 +2389,41 @@
   renderer.domElement.addEventListener('wheel', e => {
     e.preventDefault();
     const delta = Math.sign(e.deltaY);
-    targetViewSize = Math.max(7, Math.min(22, targetViewSize + delta * 0.8));
+    const newView = Math.max(MIN_VIEW, Math.min(MAX_VIEW, viewSize + delta * 0.6));
+    if (newView === viewSize) return;
+    // Zoom-to-cursor: keep the world point under the mouse pinned. We pick
+    // before changing viewSize, apply the zoom, pick again, then shift `target`
+    // so the original world point lands at the same screen pixel.
+    const before = pickGround(e.clientX, e.clientY);
+    viewSize = newView;
+    onResize();
+    const after = before ? pickGround(e.clientX, e.clientY) : null;
+    if (before && after) {
+      target.x += (before.x - after.x);
+      target.z += (before.z - after.z);
+      const lim = GRID * 0.5;
+      target.x = Math.max(-lim, Math.min(lim, target.x));
+      target.z = Math.max(-lim, Math.min(lim, target.z));
+      updateCamera();
+    }
   }, { passive: false });
 
-  // -------- pick tile from screen --------
+  // -------- pick tile / ground from screen --------
   const raycaster = new THREE.Raycaster();
   const pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -TOP_H);
   const _pickV = new THREE.Vector3();
+  // Like pickTile, but returns the raw world XZ of the ground plane (no grid
+  // bounds check). Used by the pan handler.
+  function pickGround(clientX, clientY) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1
+    );
+    raycaster.setFromCamera(ndc, camera);
+    const v = new THREE.Vector3();
+    return raycaster.ray.intersectPlane(pickPlane, v) ? v : null;
+  }
   function pickTile(clientX, clientY) {
     const rect = renderer.domElement.getBoundingClientRect();
     const ndc = new THREE.Vector2(
@@ -2516,22 +2705,8 @@
     const dt = prevT ? Math.min(t - prevT, 0.05) : 0;
     prevT = t;
 
-    // Camera smoothing
-    const orbitRate = -Math.log(1 - ORBIT_DAMPING) * 60;
-    const zoomRate  = -Math.log(1 - ZOOM_DAMPING)  * 60;
-    const orbitK = 1 - Math.exp(-orbitRate * dt);
-    const zoomK  = 1 - Math.exp(-zoomRate  * dt);
-    let cameraDirty = false;
-    const dAz = targetAzimuth - azimuth;
-    const dPo = targetPolar   - polar;
-    const dVs = targetViewSize - viewSize;
-    if (Math.abs(dAz) > 1e-5) { azimuth += dAz * orbitK; cameraDirty = true; }
-    else if (azimuth !== targetAzimuth) { azimuth = targetAzimuth; cameraDirty = true; }
-    if (Math.abs(dPo) > 1e-5) { polar += dPo * orbitK; cameraDirty = true; }
-    else if (polar !== targetPolar) { polar = targetPolar; cameraDirty = true; }
-    if (Math.abs(dVs) > 1e-4) { viewSize += dVs * zoomK; onResize(); }
-    else if (viewSize !== targetViewSize) { viewSize = targetViewSize; onResize(); }
-    if (cameraDirty) updateCamera();
+    // Camera state (viewSize + target) is updated instantly by the pan / wheel
+    // handlers; no per-frame interpolation needed.
 
     // Tree sway
     for (const key in cellMeshes) {
@@ -2573,6 +2748,17 @@
       } else if (ud.kind === 'archer') {
         // Slight torso/bow bob so the archer feels alive.
         tower.group.position.y = (tower.group.userData._baseY ?? TOP_H) + Math.sin(t * 1.4) * 0.005;
+      }
+
+      // Level 5 "elite" cosmetics: pulse the floating crystal + base ring.
+      const lg = tower._levelGroup;
+      if (lg && lg.userData && lg.userData._eliteCrystal) {
+        const p = 0.92 + Math.sin(t * 2.4) * 0.10;
+        lg.userData._eliteCrystal.scale.setScalar(p);
+        lg.userData._eliteCrystal.rotation.y = t * 1.2;
+        lg.userData._eliteHalo.scale.setScalar(0.9 + Math.sin(t * 2.4) * 0.18);
+        lg.userData._eliteHalo.material.opacity = 0.22 + Math.sin(t * 2.4) * 0.10;
+        lg.userData._eliteRing.scale.setScalar(1.0 + Math.sin(t * 2.4) * 0.04);
       }
     }
 

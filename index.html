@@ -655,16 +655,15 @@
     100% { transform: translate(-50%, -55px) scale(0.95); opacity: 0; }
   }
 
-  /* Goal/milestone toasts */
+  /* Growth toasts — bottom-left corner. */
   .toasts {
     position: fixed;
-    top: 90px; left: 50%;
-    transform: translateX(-50%);
+    bottom: 18px; left: 18px;
     z-index: 60;
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse; /* newest on top of the stack */
     gap: 8px;
-    align-items: center;
+    align-items: flex-start;
     pointer-events: none;
   }
   .toast {
@@ -680,12 +679,37 @@
   }
   .toast .icon { margin-right: 8px; font-size: 14px; }
   @keyframes toast-in {
-    from { transform: translateY(-12px); opacity: 0; }
-    to   { transform: translateY(0); opacity: 1; }
+    from { transform: translateX(-12px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
   }
   @keyframes toast-out {
-    to { transform: translateY(-12px); opacity: 0; }
+    to { transform: translateX(-12px); opacity: 0; }
   }
+
+  /* Debug panel: bottom-right buttons to simulate token bursts. */
+  .debug-panel {
+    position: fixed;
+    bottom: 18px; right: 18px;
+    z-index: 50;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .debug-panel button {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 12px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background 0.12s, transform 0.06s;
+  }
+  .debug-panel button:hover  { background: #faf3e0; }
+  .debug-panel button:active { transform: translateY(1px); }
 
   @media (max-width: 600px) {
     .brand .title { font-size: 22px; }
@@ -698,7 +722,7 @@
     .missions { top: auto; bottom: 200px; left: 16px; right: 16px; width: auto; max-height: 35vh; padding: 10px 12px; }
     .missions .mission { padding: 8px 10px; }
     .missions-header h3 { font-size: 15px; }
-    .toasts { top: auto; bottom: 200px; }
+    .toasts { bottom: 70px; left: 12px; }
     .dock-tabs { padding: 6px 12px 0; }
     .dock-tab { padding: 8px 10px 9px; font-size: 12px; }
     .dock-items { padding: 10px 12px 12px; gap: 8px; }
@@ -714,87 +738,22 @@
   <div id="app"></div>
 
   <div class="brand">
-    <div class="title">Tiny World <em>Builder</em></div>
-    <div class="sub">Click to place · drag to orbit · scroll to zoom</div>
+    <div class="title">Forest <em>Grow</em></div>
+    <div class="sub">Plants itself as you spend Claude Code tokens · drag to orbit · scroll to zoom</div>
   </div>
-
-  <div class="toolbar" id="toolbar" style="display:none"></div>
-
-  <!-- Combat mode UI -->
-  <button class="combat-btn" id="combatBtn" title="Enter combat mode">
-    <span class="icon">⚔️</span> Combat
-  </button>
-  <div class="crosshair" id="crosshair">+</div>
-  <div class="damage-vignette" id="damageVignette"></div>
-  <div class="combat-hud" id="combatHud">
-    <div class="hearts" id="hearts"></div>
-    <div class="combat-stats">
-      <span class="cs-wave">Wave <b id="waveVal">1</b></span>
-      <span class="cs-sep">·</span>
-      <span class="cs-kills"><b id="killsVal">0/5</b> kills</span>
-      <span class="cs-sep">·</span>
-      <span class="cs-score"><b id="scoreVal">0</b> pts</span>
-    </div>
-    <button class="combat-exit" id="combatExit" title="Exit combat (Esc)">Exit</button>
-  </div>
-
-  <div class="game-over" id="gameOver">
-    <div class="game-over-card">
-      <h2>Game Over</h2>
-      <div class="go-stat"><span>Final Wave</span><b id="finalWave">1</b></div>
-      <div class="go-stat"><span>Kills</span><b id="finalKills">0</b></div>
-      <div class="go-stat"><span>Score</span><b id="finalScore">0</b></div>
-      <div class="go-actions">
-        <button class="go-btn primary" id="restart">⚔️ Try Again</button>
-        <button class="go-btn" id="exitCombat">Back to Build</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="dock" id="dock">
-    <div class="dock-tabs" id="dockTabs"></div>
-    <div class="dock-items" id="dockItems"></div>
-  </div>
-
-  <div class="hud" id="hud">
-    <div class="hud-top">
-      <div class="res-row">
-        <div class="res" id="resCoins" title="Coins — earned by harvesting">
-          <span class="ico">🪙</span><span class="val">30</span>
-        </div>
-        <div class="res" id="resLevel" title="Level — gain XP by harvesting">
-          <span class="ico">⭐</span>Lv&nbsp;<span class="val">1</span>
-        </div>
-        <div class="res" id="resPop" title="Villagers (from houses)">
-          <span class="ico">👥</span><span class="val">0</span>
-        </div>
-      </div>
-      <div class="hud-actions">
-        <button class="hud-icon-btn" id="reset" title="Reset (R)">↺</button>
-        <button class="hud-icon-btn" id="clear" title="Clear (C)">⌫</button>
-      </div>
-    </div>
-    <div class="xp-row">
-      <div class="xp-bar"><div class="xp-bar-fill" id="xpBarFill" style="width:0%"></div></div>
-      <div class="xp-label"><span id="xpVal">0</span> / <span id="xpNext">20</span> XP</div>
-    </div>
-  </div>
-
-  <aside class="missions" id="missions">
-    <div class="missions-header">
-      <h3>Tiny <em>Missions</em></h3>
-      <span class="missions-counter" id="missionsCounter">0/0</span>
-    </div>
-    <div class="missions-list" id="missionsList"></div>
-  </aside>
 
   <div class="toasts" id="toasts"></div>
 
-  <div class="toolbar" id="toolbar"></div>
-
-  <div class="help">
-    <kbd>1</kbd>–<kbd>9</kbd> tools · <kbd>E</kbd> erase<br/>
-    <kbd>R</kbd> reset · <kbd>C</kbd> clear
+  <div class="debug-panel">
+    <button id="debugPlant" title="Simulate one Claude turn worth of tokens">
+      <span>🐛 +tokens</span>
+    </button>
+    <button id="debugBurst" title="Simulate ten turns at once">
+      <span>🐛 ×10</span>
+    </button>
+    <button id="debugClear" title="Clear forest + reset growth state">
+      <span>↺ reset</span>
+    </button>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -831,7 +790,7 @@
   };
 
   // -------- constants --------
-  const GRID = 16;
+  const GRID = 10;
   const TILE = 1;
   const TOP_H = 0.18;     // grass slab thickness
   const DIRT_H = 0.55;    // dirt block height (visible side)
@@ -852,7 +811,7 @@
   scene.background = new THREE.Color(0xf4ede0);
 
   // -------- camera (perspective) --------
-  let viewSize = 13;
+  let viewSize = 9;
   const aspect0 = window.innerWidth / window.innerHeight;
   // narrow FOV + far distance gives the "miniature/telephoto" look that
   // sits closest to the iso aesthetic while still showing real depth.
@@ -882,114 +841,6 @@
   }
   updateCamera();
 
-  // -------- modo walk: tercera persona con personaje --------
-  // Personaje estilo bloky a juego con la estética del mundo. Lo construimos
-  // como un Group con sub-meshes nombrados para poder animarlos (caminar,
-  // saltar). Origen del grupo: en los pies, mirando -z.
-  const playerMats = {
-    skin:  new THREE.MeshLambertMaterial({ color: 0xf2c8a0 }),
-    shirt: new THREE.MeshLambertMaterial({ color: 0x4a90e2 }),
-    pants: new THREE.MeshLambertMaterial({ color: 0x6b4423 }),
-    hair:  new THREE.MeshLambertMaterial({ color: 0x3a2418 }),
-    shoes: new THREE.MeshLambertMaterial({ color: 0x2a1e14 }),
-  };
-
-  function makePlayer() {
-    const p = new THREE.Group();
-
-    // Piernas: cada una es un grupo cuyo origen está en la CADERA (arriba),
-    // con el mesh de la pierna colgando hacia abajo desde ahí. Así al rotar
-    // el grupo, la pierna oscila como un péndulo desde la cadera.
-    function makeLeg() {
-      const leg = new THREE.Group();
-      const legMesh = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.22, 0.10), playerMats.pants);
-      legMesh.position.y = -0.11;          // cuelga 0.11 hacia abajo desde el origen
-      leg.add(legMesh);
-      const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.14), playerMats.shoes);
-      shoe.position.set(0, -0.245, 0.02);  // bajo la pierna
-      leg.add(shoe);
-      return leg;
-    }
-    const legL = makeLeg(); legL.position.set(-0.06, 0.22, 0); p.add(legL);
-    const legR = makeLeg(); legR.position.set( 0.06, 0.22, 0); p.add(legR);
-
-    // Torso (origen en el centro del torso)
-    const torso = new THREE.Mesh(roundedBox(0.26, 0.28, 0.16, 0.03), playerMats.shirt);
-    torso.position.set(0, 0.36, 0); p.add(torso);
-
-    // Brazos: mismo principio que las piernas — pivote en el HOMBRO.
-    function makeArm() {
-      const arm = new THREE.Group();
-      const armMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.24, 0.08), playerMats.shirt);
-      armMesh.position.y = -0.12;
-      arm.add(armMesh);
-      const hand = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.08), playerMats.skin);
-      hand.position.y = -0.27;
-      arm.add(hand);
-      return arm;
-    }
-    const armL = makeArm(); armL.position.set(-0.17, 0.50, 0); p.add(armL);
-    const armR = makeArm(); armR.position.set( 0.17, 0.50, 0); p.add(armR);
-
-    // Cabeza
-    const head = new THREE.Mesh(roundedBox(0.22, 0.22, 0.22, 0.03), playerMats.skin);
-    head.position.set(0, 0.62, 0); p.add(head);
-
-    // Pelo (gorra simple)
-    const hair = new THREE.Mesh(roundedBox(0.24, 0.08, 0.24, 0.03), playerMats.hair);
-    hair.position.set(0, 0.74, 0); p.add(hair);
-
-    // Ojos
-    const eyeGeo = new THREE.BoxGeometry(0.025, 0.025, 0.01);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1a1410 });
-    const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.05, 0.64, -0.111); p.add(eyeL);
-    const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set( 0.05, 0.64, -0.111); p.add(eyeR);
-
-    // Sombra circular
-    const shadowGeo = new THREE.CircleGeometry(0.18, 16);
-    const shadowMat = new THREE.MeshBasicMaterial({
-      color: 0x000000, transparent: true, opacity: 0.25, depthWrite: false
-    });
-    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = 0.005;
-    p.add(shadow);
-
-    p.traverse(c => {
-      if (c.isMesh && c !== shadow) { c.castShadow = true; c.receiveShadow = true; }
-    });
-
-    p.userData = { legL, legR, armL, armR, shadow };
-    return p;
-  }
-
-  const player = makePlayer();
-  player.visible = false;
-  scene.add(player);
-
-  const fpsCam = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-  let fpsActive = false;
-  const fpsState = {
-    pos: new THREE.Vector3(0, 0, 0),         // posición del personaje (pies)
-    yaw: Math.PI,                            // dirección del personaje (rad)
-    velocityY: 0,                            // velocidad vertical (para salto)
-    onGround: true,
-    // La cámara orbita alrededor del personaje
-    camYaw: Math.PI,                         // dirección horizontal de la cámara
-    camPitch: 0.55,                          // ángulo vertical (hacia abajo)
-    camDistance: 3.2,                        // distancia detrás del personaje
-    height: 0,                               // altura sobre el TOP_H del tile (0 = pies en el suelo)
-    radius: 0.18,
-    moveSpeed: 2.6,
-    runMul: 1.7,
-    jumpSpeed: 4.0,
-    gravity: -12.0,
-    keys: { w: false, a: false, s: false, d: false, shift: false },
-    touchMove: { x: 0, y: 0 },
-    touchLook: { dx: 0, dy: 0 },             // delta acumulado del frame
-    lookSensitivity: 0.0035,
-    walkPhase: 0,                            // para animación de caminar
-  };
 
   // -------- lighting --------
   // Neutral hemisphere — warm sky was dyeing everything cream-yellow.
@@ -1079,8 +930,61 @@
     water:     new THREE.MeshLambertMaterial({ color: 0x3a8fcc }),
 
     trunk:     new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    trunkD:    new THREE.MeshLambertMaterial({ color: 0x3e2510 }),  // shadow / base flare
+    trunkLt:   new THREE.MeshLambertMaterial({ color: 0x7a4d28 }),  // sun-side highlight
     leaves:    new THREE.MeshLambertMaterial({ color: 0x86d139 }),
     leavesDk:  new THREE.MeshLambertMaterial({ color: 0x5fab26 }),
+    leavesLt:  new THREE.MeshLambertMaterial({ color: 0xa8e052 }),  // highlight green
+    pineCone:  new THREE.MeshLambertMaterial({ color: 0x6a3a18 }),
+    oakBerry:  new THREE.MeshLambertMaterial({ color: 0xd4382a }),
+
+    // Extra species — driven by Claude Code token usage (auto-growth).
+    pineLeaf:    new THREE.MeshLambertMaterial({ color: 0x2f6a32 }),
+    pineLeafD:   new THREE.MeshLambertMaterial({ color: 0x1f4d22 }),
+    birchBark:   new THREE.MeshLambertMaterial({ color: 0xece6d6 }),
+    birchBarkD:  new THREE.MeshLambertMaterial({ color: 0x9a937e }),
+    birchLeaf:   new THREE.MeshLambertMaterial({ color: 0xc8e07a }),
+    cherryTrunk: new THREE.MeshLambertMaterial({ color: 0x6a3a22 }),
+    cherryLeaf:  new THREE.MeshLambertMaterial({ color: 0xf4b8c8 }),
+    cherryLeafD: new THREE.MeshLambertMaterial({ color: 0xd989a0 }),
+    willowLeaf:  new THREE.MeshLambertMaterial({ color: 0xc6d76b }),
+    willowLeafD: new THREE.MeshLambertMaterial({ color: 0xa3b855 }),
+    bushLeaf:    new THREE.MeshLambertMaterial({ color: 0x6dc23a }),
+    bushLeafD:   new THREE.MeshLambertMaterial({ color: 0x4f9628 }),
+
+    // Additional species — adds variety so the canopy doesn't feel monoculture.
+    mapleLeaf:    new THREE.MeshLambertMaterial({ color: 0xe07a2a }),
+    mapleLeafD:   new THREE.MeshLambertMaterial({ color: 0xb44d18 }),
+    palmTrunk:    new THREE.MeshLambertMaterial({ color: 0x8a6240 }),
+    palmFrond:    new THREE.MeshLambertMaterial({ color: 0x5fa83a }),
+    palmFrondD:   new THREE.MeshLambertMaterial({ color: 0x3f7a26 }),
+    acaciaLeaf:   new THREE.MeshLambertMaterial({ color: 0xb9d556 }),
+    acaciaLeafD:  new THREE.MeshLambertMaterial({ color: 0x8aa83c }),
+    magnoliaLeaf: new THREE.MeshLambertMaterial({ color: 0xf8f4ec }),
+    magnoliaLeafD:new THREE.MeshLambertMaterial({ color: 0xe2dbc6 }),
+    cypressLeaf:  new THREE.MeshLambertMaterial({ color: 0x4a7a3c }),
+    cypressLeafD: new THREE.MeshLambertMaterial({ color: 0x325a28 }),
+    appleLeaf:    new THREE.MeshLambertMaterial({ color: 0x70b840 }),
+    appleFruit:   new THREE.MeshLambertMaterial({ color: 0xd4382a }),
+    mushroomStem: new THREE.MeshLambertMaterial({ color: 0xf4ecd6 }),
+    mushroomCap:  new THREE.MeshLambertMaterial({ color: 0xc8362a }),
+    mushroomSpot: new THREE.MeshLambertMaterial({ color: 0xf8f4ec }),
+
+    // Ground decorations and ambient critters — for that cozy feel.
+    flowerPink:   new THREE.MeshLambertMaterial({ color: 0xf28ab2 }),
+    flowerWhite:  new THREE.MeshLambertMaterial({ color: 0xf8f0e0 }),
+    flowerYellow: new THREE.MeshLambertMaterial({ color: 0xf4d24a }),
+    flowerPurple: new THREE.MeshLambertMaterial({ color: 0xb070d0 }),
+    flowerStem:   new THREE.MeshLambertMaterial({ color: 0x4f8c20 }),
+    stoneGrey:    new THREE.MeshLambertMaterial({ color: 0xa9a59a }),
+    stoneGreyD:   new THREE.MeshLambertMaterial({ color: 0x807a70 }),
+    fernLeaf:     new THREE.MeshLambertMaterial({ color: 0x4d8a2c }),
+    miniCap:      new THREE.MeshLambertMaterial({ color: 0xe07a3a }),  // orange mushroom cap
+    miniCap2:     new THREE.MeshLambertMaterial({ color: 0xb04dc0 }),  // purple mushroom cap
+    butterflyA:   new THREE.MeshLambertMaterial({ color: 0xf28ab2 }),
+    butterflyB:   new THREE.MeshLambertMaterial({ color: 0xf4d24a }),
+    butterflyC:   new THREE.MeshLambertMaterial({ color: 0xe07ab2 }),
+    butterflyD:   new THREE.MeshLambertMaterial({ color: 0xa4d4f0 }),
 
     wallCream: new THREE.MeshLambertMaterial({ color: 0xf2dfb0 }),
     wallTrim:  new THREE.MeshLambertMaterial({ color: 0xe5cf99 }),
@@ -1141,14 +1045,14 @@
     top.position.y = 0;
     g.add(top);
 
-    // tiny grass details on grass tiles (very subtle)
-    if (terrain === 'grass' && Math.random() < 0.18) {
-      const fleck = new THREE.Mesh(
-        new THREE.BoxGeometry(0.05, 0.04, 0.05),
-        M.leavesDk
-      );
-      fleck.position.set((Math.random() - 0.5) * 0.6, TOP_H + 0.01, (Math.random() - 0.5) * 0.6);
-      g.add(fleck);
+    // Grass tiles get a random cozy decoration ~35% of the time. Decorations
+    // live on the tile, so they persist underneath whatever tree grows there.
+    if (terrain === 'grass') {
+      const r = Math.random();
+      if      (r < 0.12) g.add(makeFlowerPatch());
+      else if (r < 0.20) g.add(makeMiniMushrooms());
+      else if (r < 0.27) g.add(makeStonePatch());
+      else if (r < 0.35) g.add(makeFernPatch());
     }
 
     // path scuff: little dimple on path tiles
@@ -1165,999 +1069,540 @@
     return g;
   }
 
-  // -------- object factories --------
-  function makeTree() {
-    const g = new THREE.Group();
+  // -------- ground decorations --------
+  // Each helper returns a group of tiny meshes sitting just above the tile top.
+  // They're added as children of a grass tile and stay there permanently —
+  // even when a tree grows on the same tile, the decorations remain underneath.
+  const FLOWER_MATS = [M.flowerPink, M.flowerWhite, M.flowerYellow, M.flowerPurple];
 
+  function makeFlowerPatch() {
+    const g = new THREE.Group();
+    const count = 3 + Math.floor(Math.random() * 3); // 3-5 flowers
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 0.7;
+      const z = (Math.random() - 0.5) * 0.7;
+      const stem = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.08, 0.02), M.flowerStem);
+      stem.position.set(x, TOP_H + 0.04, z);
+      g.add(stem);
+      const petalMat = FLOWER_MATS[Math.floor(Math.random() * FLOWER_MATS.length)];
+      const petal = new THREE.Mesh(roundedBox(0.07, 0.05, 0.07, 0.02), petalMat);
+      petal.position.set(x, TOP_H + 0.11, z);
+      g.add(petal);
+    }
+    return g;
+  }
+
+  function makeMiniMushrooms() {
+    const g = new THREE.Group();
+    const count = 2 + Math.floor(Math.random() * 3);
+    const caps = [M.mushroomCap, M.miniCap, M.miniCap2];
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 0.55;
+      const z = (Math.random() - 0.5) * 0.55;
+      const stem = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.06, 0.03), M.mushroomStem);
+      stem.position.set(x, TOP_H + 0.03, z);
+      g.add(stem);
+      const cap = new THREE.Mesh(roundedBox(0.10, 0.05, 0.10, 0.03), caps[Math.floor(Math.random() * caps.length)]);
+      cap.position.set(x, TOP_H + 0.09, z);
+      g.add(cap);
+      // Optional tiny white speck on the cap.
+      if (Math.random() < 0.5) {
+        const spot = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.02, 0.03), M.flowerWhite);
+        spot.position.set(x + 0.02, TOP_H + 0.12, z);
+        g.add(spot);
+      }
+    }
+    return g;
+  }
+
+  function makeStonePatch() {
+    const g = new THREE.Group();
+    const count = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 0.55;
+      const z = (Math.random() - 0.5) * 0.55;
+      const stone = new THREE.Mesh(
+        roundedBox(0.14 + Math.random() * 0.08, 0.08, 0.12 + Math.random() * 0.06, 0.04),
+        Math.random() < 0.5 ? M.stoneGrey : M.stoneGreyD,
+      );
+      stone.position.set(x, TOP_H + 0.04, z);
+      stone.rotation.y = Math.random() * Math.PI;
+      g.add(stone);
+    }
+    return g;
+  }
+
+  function makeFernPatch() {
+    const g = new THREE.Group();
+    const count = 3 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 0.55;
+      const z = (Math.random() - 0.5) * 0.55;
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.04), M.fernLeaf);
+      blade.position.set(x, TOP_H + 0.08, z);
+      blade.rotation.z = (Math.random() - 0.5) * 0.5;
+      blade.rotation.y = Math.random() * Math.PI;
+      g.add(blade);
+    }
+    return g;
+  }
+
+  // -------- object factories --------
+  // Each species is split into a `trunk` subgroup and a `canopy` subgroup so
+  // we can stretch only the trunk in Y as the tree matures, lifting the
+  // canopy with it without distorting the canopy shapes.
+  function buildTree(species, trunkParts, canopyParts, trunkTopY) {
+    const g = new THREE.Group();
+    const trunkG  = new THREE.Group();
+    const canopyG = new THREE.Group();
+    for (const m of trunkParts)  trunkG.add(m);
+    for (const m of canopyParts) canopyG.add(m);
+    g.add(trunkG);
+    g.add(canopyG);
+    g.userData = {
+      kind: 'tree', species,
+      swayPhase: Math.random() * Math.PI * 2,
+      trunk: trunkG, canopy: canopyG, trunkTop: trunkTopY,
+    };
+    castReceive(g);
+    return g;
+  }
+
+  const TREE_SPECIES = [
+    'oak', 'pine', 'birch', 'cherry', 'willow', 'bush',
+    'maple', 'palm', 'acacia', 'magnolia',
+    'cypress', 'apple', 'mushroom',
+  ];
+  function makeTree(species) {
+    switch (species) {
+      case 'pine':     return makePine();
+      case 'birch':    return makeBirch();
+      case 'cherry':   return makeCherry();
+      case 'willow':   return makeWillow();
+      case 'bush':     return makeBush();
+      case 'maple':    return makeMaple();
+      case 'palm':     return makePalm();
+      case 'acacia':   return makeAcacia();
+      case 'magnolia': return makeMagnolia();
+      case 'cypress':  return makeCypress();
+      case 'apple':    return makeApple();
+      case 'mushroom': return makeMushroom();
+      default:         return makeOak();
+    }
+  }
+
+  function makeOak() {
     const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), M.trunk);
     trunk.position.y = 0.25;
-    g.add(trunk);
+    // Root flare — wider darker bump at the base.
+    const flare = new THREE.Mesh(roundedBox(0.28, 0.10, 0.28, 0.05), M.trunkD);
+    flare.position.y = 0.05;
+    // Side branch nub.
+    const nub = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.06, 0.06), M.trunkLt);
+    nub.position.set(0.13, 0.38, 0);
 
+    // Canopy with darker shadow clump + lighter highlight clump + a few
+    // red berry dots for texture.
     const lower = new THREE.Mesh(roundedBox(0.62, 0.42, 0.62, 0.08), M.leaves);
     lower.position.y = 0.5;
-    g.add(lower);
-
+    const shadow = new THREE.Mesh(roundedBox(0.46, 0.22, 0.46, 0.06), M.leavesDk);
+    shadow.position.set(-0.10, 0.42, 0.08);
     const upper = new THREE.Mesh(roundedBox(0.42, 0.32, 0.42, 0.06), M.leaves);
     upper.position.y = 0.92;
-    g.add(upper);
-
+    const highlight = new THREE.Mesh(roundedBox(0.26, 0.18, 0.26, 0.05), M.leavesLt);
+    highlight.position.set(0.10, 0.98, -0.10);
     const tip = new THREE.Mesh(roundedBox(0.22, 0.18, 0.22, 0.04), M.leaves);
     tip.position.y = 1.18;
-    g.add(tip);
 
-    g.userData = { kind: 'tree', swayPhase: Math.random() * Math.PI * 2 };
-    castReceive(g);
-    return g;
+    const berries = [];
+    for (const [x, y, z] of [[0.22, 0.52, 0.18], [-0.18, 0.66, -0.16], [0.06, 0.86, 0.20]]) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 5), M.oakBerry);
+      b.position.set(x, y, z);
+      berries.push(b);
+    }
+    return buildTree('oak', [trunk, flare, nub], [lower, shadow, upper, highlight, tip, ...berries], 0.5);
   }
 
-  // -------- house primitives + assembler --------
-  // The house is decomposed into reusable parts. A "house plan" describes
-  // which face each cell of a cluster presents (gable door at one end,
-  // side doors elsewhere) and the assembler builds the geometry from
-  // primitive parts. Both solo and cluster houses go through the same path,
-  // so adding new shapes (L-cluster, square, etc.) only needs new plans.
+  function makePine() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.3, 0.14), M.trunk);
+    trunk.position.y = 0.15;
+    const flare = new THREE.Mesh(roundedBox(0.22, 0.08, 0.22, 0.04), M.trunkD);
+    flare.position.y = 0.04;
 
-  const H = {
-    WALL_W: 0.82,        // short-axis wall width
-    WALL_H: 0.55,        // wall height to eaves
-    PEAK_Y: 0.87,        // ridge apex
-    T:      0.06,        // roof slab thickness
-    ROOF_OVERHANG: 0.3,  // roof depth = WALL_D + this (extends past long-axis ends)
-  };
-
-  const Parts = {
-    // Wall volume — rounded box covering the cluster's long-axis extent.
-    walls(WALL_D) {
-      return new THREE.Mesh(roundedBox(H.WALL_W, H.WALL_H, WALL_D, 0.04), M.wallCream);
-    },
-
-    // Triangular gable panel (in XY plane, 0.04 thick in z). Caller positions.
-    gable() {
-      const shape = new THREE.Shape();
-      shape.moveTo(-H.WALL_W / 2, H.WALL_H);
-      shape.lineTo( H.WALL_W / 2, H.WALL_H);
-      shape.lineTo(0, H.PEAK_Y);
-      shape.closePath();
-      const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: false, curveSegments: 1 });
-      return new THREE.Mesh(geo, M.wallCream);
-    },
-
-    // Pitched roof: two slabs whose bottom faces sit along the gable hypotenuse,
-    // plus a ridge cap. Origin at house centre. Front/back overhang can be set
-    // asymmetrically — composite wings pass backOverhang=0 so the wing's inside
-    // end doesn't poke through the main wing's roof.
-    pitchedRoof(WALL_D, frontOverhang = 0.15, backOverhang = 0.15) {
-      const g = new THREE.Group();
-      const halfW = H.WALL_W / 2;
-      const ROOF_DEPTH = WALL_D + frontOverhang + backOverhang;
-      const ROOF_Z     = (frontOverhang - backOverhang) / 2; // shift centre when asymmetric
-      const rise = H.PEAK_Y - H.WALL_H;
-      const slabLen   = Math.sqrt(halfW * halfW + rise * rise);
-      const slabAngle = Math.atan2(rise, halfW);
-      const sa = Math.sin(slabAngle), ca = Math.cos(slabAngle);
-      const slabGeo = new THREE.BoxGeometry(slabLen, H.T, ROOF_DEPTH);
-
-      const slabL = new THREE.Mesh(slabGeo, M.roofBlue);
-      slabL.position.set(-halfW / 2 - (H.T / 2) * sa, (H.WALL_H + H.PEAK_Y) / 2 + (H.T / 2) * ca, ROOF_Z);
-      slabL.rotation.z = slabAngle;
-      g.add(slabL);
-
-      const slabR = new THREE.Mesh(slabGeo, M.roofBlue);
-      slabR.position.set( halfW / 2 + (H.T / 2) * sa, (H.WALL_H + H.PEAK_Y) / 2 + (H.T / 2) * ca, ROOF_Z);
-      slabR.rotation.z = -slabAngle;
-      g.add(slabR);
-
-      const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.06, ROOF_DEPTH + 0.02), M.roofBlueD);
-      ridge.position.set(0, H.PEAK_Y + (H.T / 2) * ca + 0.005, ROOF_Z);
-      g.add(ridge);
-      return g;
-    },
-
-    // Hipped (pyramidal) roof — 4 triangular slabs meeting at a central apex.
-    // Used for square / 2x2 footprints. Origin at base centre, base at y=0,
-    // apex at y=rise. Built as a BufferGeometry pyramid with computed normals.
-    hippedRoof(width, depth, rise) {
-      const halfW = width / 2;
-      const halfD = depth / 2;
-      const verts = new Float32Array([
-        0,      rise, 0,        // 0: apex
-        -halfW, 0,    -halfD,   // 1: NW
-         halfW, 0,    -halfD,   // 2: NE
-         halfW, 0,     halfD,   // 3: SE
-        -halfW, 0,     halfD,   // 4: SW
-      ]);
-      // CCW winding from outside (verified by cross-product: each face's outward
-      // normal points away from the apex with the correct sign).
-      const indices = new Uint16Array([
-        0, 2, 1,  // north face (apex, ne, nw) — outward normal -z
-        0, 3, 2,  // east face  (apex, se, ne) — outward normal +x
-        0, 4, 3,  // south face (apex, sw, se) — outward normal +z
-        0, 1, 4,  // west face  (apex, nw, sw) — outward normal -x
-      ]);
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
-      geo.setIndex(new THREE.BufferAttribute(indices, 1));
-      geo.computeVertexNormals();
-      return new THREE.Mesh(geo, M.roofBlue);
-    },
-
-    // Door + arches + knob. orientation:
-    //   'gable' — door faces +z, outer face at z=0 of the part's local frame.
-    //   'side'  — door faces +x, outer face at x=0.
-    // Origin is at GROUND LEVEL beneath the door's outer face centre, so callers
-    // place a door by setting its position to where the door's centre projects on the floor.
-    door(orientation) {
-      const g = new THREE.Group();
-      if (orientation === 'gable') {
-        const door = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.48, 0.04), M.door);
-        door.position.set(0, 0.24, 0); g.add(door);
-        const aL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aL.position.set(-0.10, 0.24, 0.01); g.add(aL);
-        const aR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aR.position.set( 0.10, 0.24, 0.01); g.add(aR);
-        const aT = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.04, 0.04), M.woodTrim); aT.position.set(0,     0.50, 0.01); g.add(aT);
-        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), M.knob);
-        knob.position.set(0.08, 0.24, 0.03); g.add(knob);
-      } else {
-        const door = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.2), M.door);
-        door.position.set(0, 0.24, 0); g.add(door);
-        const aL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aL.position.set(0.01, 0.24, -0.10); g.add(aL);
-        const aR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aR.position.set(0.01, 0.24,  0.10); g.add(aR);
-        const aT = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.24), M.woodTrim); aT.position.set(0.01, 0.50,  0   ); g.add(aT);
-        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), M.knob);
-        knob.position.set(0.03, 0.24, 0.05); g.add(knob);
-      }
-      return g;
-    },
-
-    // Window with frame, glass and cross trims, layered along the outer-face axis.
-    // Origin at the FRAME CENTRE; callers place by setting position to where the
-    // frame's centre should sit on the wall surface.
-    window(orientation, size = 'large') {
-      const g = new THREE.Group();
-      const f = size === 'small' ? 0.20 : 0.24; // frame
-      const p = size === 'small' ? 0.14 : 0.17; // glass / cross length
-      if (orientation === 'gable') {
-        const wf = new THREE.Mesh(new THREE.BoxGeometry(f, f, 0.04),       M.woodTrim); wf.position.set(0, 0, 0);     g.add(wf);
-        const wg = new THREE.Mesh(new THREE.BoxGeometry(p, p, 0.04),       M.windowB);  wg.position.set(0, 0, 0.015); g.add(wg);
-        const cH = new THREE.Mesh(new THREE.BoxGeometry(p, 0.012, 0.04),   M.woodTrim); cH.position.set(0, 0, 0.025); g.add(cH);
-        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.012, p, 0.04),   M.woodTrim); cV.position.set(0, 0, 0.025); g.add(cV);
-      } else {
-        const wf = new THREE.Mesh(new THREE.BoxGeometry(0.04, f, f),       M.woodTrim); wf.position.set(0,     0, 0); g.add(wf);
-        const wg = new THREE.Mesh(new THREE.BoxGeometry(0.04, p, p),       M.windowB);  wg.position.set(0.015, 0, 0); g.add(wg);
-        const cH = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.012, p),   M.woodTrim); cH.position.set(0.025, 0, 0); g.add(cH);
-        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.04, p, 0.012),   M.woodTrim); cV.position.set(0.025, 0, 0); g.add(cV);
-      }
-      return g;
-    },
-
-    // Chimney stack. Origin at chimney CENTRE in y (so a position of y=0.85 puts
-    // the bottom inside the wall and the top at y=1.15).
-    chimney() {
-      return new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.6, 0.14), M.chimney);
-    },
-
-    // Doorstep slab. Origin at step CENTRE.
-    step(orientation) {
-      return orientation === 'side'
-        ? new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.26), M.step)
-        : new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.06, 0.12), M.step);
-    },
-
-    // External staircase — chunky stylized stair climbing toward -z and +y
-    // from the part's origin (placed at the bottom-front of the lowest step).
-    // 6 steps; each step is full stepRise tall (no y overlap) but 1.4x wide
-    // in depth so consecutive steps visually overlap in z.
-    externalStairs(rise) {
-      const g = new THREE.Group();
-      const N = 6;
-      const stepRise = rise / N;
-      const stepRun  = 0.10;
-      const width    = 0.22;
-      for (let i = 0; i < N; i++) {
-        const s = new THREE.Mesh(
-          new THREE.BoxGeometry(width, stepRise, stepRun * 1.4),
-          M.step
-        );
-        s.position.set(0, stepRise * (i + 0.5), -i * stepRun);
-        g.add(s);
-      }
-      return g;
-    },
-
-    // Upper-floor door reached by external stairs. Same geometry as the side
-    // door but smaller, intended to sit on a +x face.
-    upperDoor() {
-      const g = new THREE.Group();
-      const door = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.18), M.door);
-      door.position.set(0, 0.21, 0); g.add(door);
-      const aL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.04), M.woodTrim); aL.position.set(0.01, 0.21, -0.09); g.add(aL);
-      const aR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.04), M.woodTrim); aR.position.set(0.01, 0.21,  0.09); g.add(aR);
-      const aT = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.22), M.woodTrim); aT.position.set(0.01, 0.44, 0   ); g.add(aT);
-      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.020, 8, 8), M.knob);
-      knob.position.set(0.03, 0.21, 0.05); g.add(knob);
-      return g;
-    },
-  };
-
-  // A linear (1xN) plan: south-end cell uses the gable-end door, the rest use side
-  // doors on the +x face, chimneys alternate forward/back per cell for visual rhythm.
-  // For length 1 the chimney offset matches the original solo cottage.
-  function linearHousePlan(length) {
-    const cells = [];
-    for (let i = 0; i < length; i++) {
-      const isSouthEnd = (i === length - 1);
-      const chimneyOffset = (length === 1) ? -0.05 : (i % 2 === 0 ? -0.15 : 0.15);
-      cells.push({ face: isSouthEnd ? 'gable' : 'side', chimneyOffset });
-    }
-    return cells;
-  }
-
-  // Assemble a house from a cell plan. orientation: 'z' (long-axis along z, no
-  // rotation) or 'x' (long-axis along x, geometry rotated +π/2 around Y).
-  // floors: 1 (default), 2, 3 — walls stretch upward, per-floor windows added,
-  // and at floors === 2 an exterior staircase appears against the +x face
-  // leading to an upper door (floors >= 3 implies internal stairs and the
-  // exterior set is removed). opts.{frontOverhang, backOverhang} let composite
-  // wings trim the inside end of the roof so it doesn't poke through the main
-  // wing's roof — pass backOverhang=0 to disable the inside overhang. opts.
-  // suppressBackGable hides the -z gable triangle (used for composite wings,
-  // since their back gable would be coplanar with the main wing's outer wall
-  // and cause z-fighting / redundant geometry).
-  function buildHouse(cells, orientation = 'z', floors = 1, opts = {}) {
-    const { frontOverhang = 0.15, backOverhang = 0.15, suppressBackGable = false } = opts;
-    const g = new THREE.Group();
-    const length = cells.length;
-    // Solo cottage keeps its original slimmer depth. Clusters fill the cells.
-    const WALL_D = (length === 1) ? 0.7 : length * TILE - 0.18;
-    const halfW = H.WALL_W / 2;
-    const halfD = WALL_D / 2;
-    const wallHTotal = H.WALL_H * floors;
-    const roofLift   = (floors - 1) * H.WALL_H;
-
-    // Walls — stretched in Y for upper floors. roundedBox extrudes from y=0
-    // upward, so no y-shift is needed: bottom sits at ground, top at wallHTotal.
-    const walls = new THREE.Mesh(roundedBox(H.WALL_W, wallHTotal, WALL_D, 0.04), M.wallCream);
-    g.add(walls);
-
-    // Gables sit above the top floor's wall top. Composite wings suppress the
-    // back gable since it's coplanar with the main wing's outer wall.
-    const gF = Parts.gable(); gF.position.set(0, roofLift, halfD - 0.04); g.add(gF);
-    if (!suppressBackGable) {
-      const gB = Parts.gable(); gB.position.set(0, roofLift, -halfD); g.add(gB);
-    }
-
-    // Roof — pitched roof raised by roofLift. backOverhang/frontOverhang let
-    // composite wings trim the inside end so it doesn't poke through the main
-    // wing's roof.
-    const roof = Parts.pitchedRoof(WALL_D, frontOverhang, backOverhang);
-    roof.position.y = roofLift;
-    g.add(roof);
-
-    // Per-floor windows for any floor above the ground floor — small windows on
-    // both long sides AND on both gable faces (so tall houses don't have blank
-    // gable walls).
-    for (let f = 1; f < floors; f++) {
-      const yOff = f * H.WALL_H;
-      for (let i = 0; i < length; i++) {
-        const cellZ = -((length - 1) / 2) + i;
-        const wR = Parts.window('side', 'small');
-        wR.position.set( halfW + 0.005, 0.32 + yOff, cellZ); g.add(wR);
-        const wL = Parts.window('side', 'small');
-        wL.position.set(-halfW - 0.005, 0.32 + yOff, cellZ);
-        wL.rotation.y = Math.PI;
-        g.add(wL);
-      }
-      // Gable-face upper windows at cluster's two ends
-      const wGF = Parts.window('gable', 'small');
-      wGF.position.set(0, 0.32 + yOff, halfD + 0.005); g.add(wGF);
-      const wGB = Parts.window('gable', 'small');
-      wGB.position.set(0, 0.32 + yOff, -halfD - 0.005);
-      wGB.rotation.y = Math.PI;
-      g.add(wGB);
-    }
-
-    // Per-cell ground-floor decorations (door, window, chimney, step) — same as before.
-    const chimneyTopsLocal = [];
-    for (let i = 0; i < length; i++) {
-      const cell = cells[i];
-      const cellZ = -((length - 1) / 2) + i;
-
-      if (cell.face === 'gable') {
-        const door = Parts.door('gable');
-        door.position.set(-0.12, 0, halfD + 0.01); g.add(door);
-        const win = Parts.window('gable');
-        win.position.set(0.2, 0.32, halfD + 0.01); g.add(win);
-        const step = Parts.step('gable');
-        step.position.set(-0.12, 0.03, halfD + 0.08); g.add(step);
-      } else if (cell.face === 'side') {
-        const dx = halfW + 0.005;
-        const door = Parts.door('side');
-        door.position.set(dx, 0, cellZ - 0.1); g.add(door);
-        const win = Parts.window('side');
-        win.position.set(dx, 0.32, cellZ + 0.18); g.add(win);
-        const step = Parts.step('side');
-        step.position.set(dx + 0.06, 0.03, cellZ - 0.1); g.add(step);
-        const bwin = Parts.window('side', 'small');
-        bwin.position.set(-halfW - 0.005, 0.32, cellZ);
-        bwin.rotation.y = Math.PI;
-        g.add(bwin);
-      }
-
-      // Chimney — bottom hides at the top floor's wall top, top sits 0.30
-      // above the wall top regardless of floors.
-      const chim = Parts.chimney();
-      const chimX = -0.28;
-      const chimZ = cellZ + (cell.chimneyOffset || 0);
-      chim.position.set(chimX, wallHTotal + 0.30, chimZ); g.add(chim);
-      chimneyTopsLocal.push(new THREE.Vector3(chimX, wallHTotal + 0.60, chimZ));
-    }
-
-    // External staircase + upper door — only when there's exactly 2 floors.
-    // Stairs sit alongside the +x face, climbing from south (bottom) to north
-    // (top); the upper door sits at the top, on the +x wall at floor 2 height.
-    if (floors === 2) {
-      const stairsBottomZ = halfD - 0.10;
-      const stairsX = halfW + 0.13;
-      const stairsTopZ = stairsBottomZ - 5 * 0.10; // 5 steps further north (z=-)
-      const stairs = Parts.externalStairs(H.WALL_H);
-      stairs.position.set(stairsX, 0, stairsBottomZ);
-      g.add(stairs);
-      const upd = Parts.upperDoor();
-      upd.position.set(halfW + 0.005, H.WALL_H, stairsTopZ);
-      g.add(upd);
-    }
-
-    castReceive(g);
-
-    let chimneyTops;
-    if (orientation === 'x') {
-      g.rotation.y = Math.PI / 2;
-      const ax = new THREE.Vector3(0, 1, 0);
-      chimneyTops = chimneyTopsLocal.map(v => v.clone().applyAxisAngle(ax, Math.PI / 2));
-    } else {
-      chimneyTops = chimneyTopsLocal;
-    }
-    g.userData = { kind: 'house', chimneyTops };
-    return g;
-  }
-
-  function makeHouse(floors = 1) {
-    return buildHouse(linearHousePlan(1), 'z', floors);
-  }
-
-  function makeStretchedHouse(length, orientation, floors = 1) {
-    return buildHouse(linearHousePlan(length), orientation, floors);
-  }
-
-  // Square (2x2) farmhouse — single rectangular footprint with a hipped
-  // (pyramidal) roof. Door + window pair at the +z face, exterior stairs at
-  // floors === 2 on the +x side.
-  function buildSquareHouse(floors = 1) {
-    const g = new THREE.Group();
-    const SIDE = 2 * TILE - 0.18; // 1.82
-    const halfSide = SIDE / 2;
-    const wallH = H.WALL_H * floors;
-
-    // Walls — roundedBox extrudes from y=0 upward, so no y-shift needed.
-    const walls = new THREE.Mesh(roundedBox(SIDE, wallH, SIDE, 0.04), M.wallCream);
-    g.add(walls);
-
-    // Hipped roof at the top of the wall stack
-    const roof = Parts.hippedRoof(SIDE, SIDE, 0.65);
-    roof.position.y = wallH;
-    g.add(roof);
-
-    // Roof eave trim — a thin dark rim around the roof base for visual punch
-    const eaveR = new THREE.Mesh(new THREE.BoxGeometry(SIDE + 0.04, 0.04, SIDE + 0.04), M.roofBlueD);
-    eaveR.position.y = wallH + 0.02;
-    g.add(eaveR);
-
-    // Door + window pair on +z face
-    const door = Parts.door('gable');
-    door.position.set(0, 0, halfSide + 0.01); g.add(door);
-    const winR = Parts.window('gable');
-    winR.position.set( 0.45, 0.32, halfSide + 0.01); g.add(winR);
-    const winL = Parts.window('gable');
-    winL.position.set(-0.45, 0.32, halfSide + 0.01); g.add(winL);
-    const step = Parts.step('gable');
-    step.position.set(0, 0.03, halfSide + 0.08); g.add(step);
-
-    // Side windows along -x and back -z faces (one per side, ground floor)
-    const wB = Parts.window('side');
-    wB.position.set(-halfSide - 0.005, 0.32, 0); g.add(wB);
-    wB.rotation.y = Math.PI;
-    const wRside = Parts.window('side');
-    wRside.position.set( halfSide + 0.005, 0.32, -0.45); g.add(wRside);
-
-    // Per-floor windows on all 4 faces for upper floors
-    for (let f = 1; f < floors; f++) {
-      const yOff = f * H.WALL_H;
-      const upperWindows = [
-        { x: -0.45, z:  halfSide + 0.005, rot: 0 },
-        { x:  0.45, z:  halfSide + 0.005, rot: 0 },
-        { x: -0.45, z: -halfSide - 0.005, rot: Math.PI },
-        { x:  0.45, z: -halfSide - 0.005, rot: Math.PI },
-        { x:  halfSide + 0.005, z:  0.45, rot: 0,        side: true },
-        { x:  halfSide + 0.005, z: -0.45, rot: 0,        side: true },
-        { x: -halfSide - 0.005, z:  0.45, rot: Math.PI,  side: true },
-        { x: -halfSide - 0.005, z: -0.45, rot: Math.PI,  side: true },
-      ];
-      for (const p of upperWindows) {
-        const w = Parts.window(p.side ? 'side' : 'gable', 'small');
-        w.position.set(p.x, 0.32 + yOff, p.z);
-        w.rotation.y = p.rot;
-        g.add(w);
-      }
-    }
-
-    // Two chimneys for visual interest, on opposite corners
-    const chimneyTopsLocal = [];
-    [
-      { x: -0.55, z: -0.55 },
-      { x:  0.55, z:  0.55 },
-    ].forEach(c => {
-      const chim = Parts.chimney();
-      chim.position.set(c.x, wallH + 0.30, c.z); g.add(chim);
-      chimneyTopsLocal.push(new THREE.Vector3(c.x, wallH + 0.60, c.z));
-    });
-
-    // External stairs on +x face when floors === 2
-    if (floors === 2) {
-      const stairsBottomZ = halfSide - 0.10;
-      const stairsX = halfSide + 0.13;
-      const stairsTopZ = stairsBottomZ - 5 * 0.10;
-      const stairs = Parts.externalStairs(H.WALL_H);
-      stairs.position.set(stairsX, 0, stairsBottomZ);
-      g.add(stairs);
-      const upd = Parts.upperDoor();
-      upd.position.set(halfSide + 0.005, H.WALL_H, stairsTopZ);
-      g.add(upd);
-    }
-
-    castReceive(g);
-    g.userData = { kind: 'house', chimneyTops: chimneyTopsLocal };
-    return g;
-  }
-
-  // Composite house — a main wing (linear stretched house) plus 1+ single-cell
-  // perpendicular side wings. Each side wing is a length-1 house oriented and
-  // rotated to face away from the main wing; positioned so the wing's gable
-  // touches the main wing's outer wall (no visible gap). Junction geometry
-  // overlaps slightly which is hidden by Z-buffer / matching wall material.
-  function buildCompositeHouse(topology, floors = 1) {
-    const { mainOrientation, mainCells, branches, bbox } = topology;
-    const composite = new THREE.Group();
-    const allChimneyTops = [];
-
-    const bboxCX = (bbox.xMin + bbox.xMax) / 2;
-    const bboxCZ = (bbox.zMin + bbox.zMax) / 2;
-
-    // Main wing: positioned at its run's centre, in composite-local coords.
-    const mainLength = mainCells.length;
-    const first = mainCells[0], last = mainCells[mainCells.length - 1];
-    const mainCX = mainOrientation === 'z' ? first.x          : (first.x + last.x) / 2;
-    const mainCZ = mainOrientation === 'z' ? (first.z + last.z) / 2 : first.z;
-    const mainOX = mainCX - bboxCX;
-    const mainOZ = mainCZ - bboxCZ;
-
-    const mainWing = buildHouse(linearHousePlan(mainLength), mainOrientation, floors);
-    mainWing.position.set(mainOX, 0, mainOZ);
-    composite.add(mainWing);
-    for (const top of (mainWing.userData.chimneyTops || [])) {
-      allChimneyTops.push(new THREE.Vector3(top.x + mainOX, top.y, top.z + mainOZ));
-    }
-
-    // Side wings (always 1 cell each, only render external stairs once on the
-    // main wing — pass floors=floors but suppress stairs for wings by passing 1).
-    const SHIFT = 0.18;
-    const ax = new THREE.Vector3(0, 1, 0);
-    for (const br of branches) {
-      let wingX = br.x - bboxCX;
-      let wingZ = br.z - bboxCZ;
-      if      (br.axis === '+x') wingX -= SHIFT;
-      else if (br.axis === '-x') wingX += SHIFT;
-      else if (br.axis === '+z') wingZ -= SHIFT;
-      else                       wingZ += SHIFT;
-
-      const wingOrientation = (br.axis === '+x' || br.axis === '-x') ? 'x' : 'z';
-      // Wings trim their inside-end overhang AND suppress their back gable so
-      // the roof clips cleanly at the main wing's outer wall without redundant
-      // / coplanar geometry. The "back" of a wing (pre-rotation -z gable, no
-      // door) is always the side facing the main wing.
-      const wing = buildHouse(linearHousePlan(1), wingOrientation, floors, {
-        backOverhang: 0,
-        suppressBackGable: true,
-      });
-      const flip = (br.axis === '-x' || br.axis === '-z');
-      if (flip) wing.rotation.y += Math.PI;
-      wing.position.set(wingX, 0, wingZ);
-      composite.add(wing);
-
-      for (const top of (wing.userData.chimneyTops || [])) {
-        const r = flip ? top.clone().applyAxisAngle(ax, Math.PI) : top;
-        allChimneyTops.push(new THREE.Vector3(r.x + wingX, r.y, r.z + wingZ));
-      }
-    }
-
-    composite.userData = { kind: 'house', chimneyTops: allChimneyTops };
-    return composite;
-  }
-
-  function makeFence(neighbors) {
-    neighbors = neighbors || { n: false, s: false, e: false, w: false };
-    const g = new THREE.Group();
-    const postGeo = new THREE.BoxGeometry(0.09, 0.32, 0.09);
-
-    // Drop a corner post if either of its two adjacent sides has a fence neighbour
-    // (the neighbour cell's own corner post sits right next to it, so we'd get
-    // chunky double-posts at every cell boundary in a run).
-    const corners = [
-      [-0.4, -0.4, neighbors.n || neighbors.w], // NW
-      [ 0.4, -0.4, neighbors.n || neighbors.e], // NE
-      [-0.4,  0.4, neighbors.s || neighbors.w], // SW
-      [ 0.4,  0.4, neighbors.s || neighbors.e], // SE
+    const canopy = [];
+    const tiers = [
+      { y: 0.32, w: 0.62, h: 0.40, mat: M.pineLeafD },
+      { y: 0.66, w: 0.50, h: 0.36, mat: M.pineLeaf  },
+      { y: 0.96, w: 0.38, h: 0.32, mat: M.pineLeafD },
+      { y: 1.22, w: 0.24, h: 0.26, mat: M.pineLeaf  },
     ];
-    for (const [px, pz, drop] of corners) {
-      if (drop) continue;
-      const p = new THREE.Mesh(postGeo, M.fence);
-      p.position.set(px, 0.16, pz);
-      g.add(p);
+    for (const t of tiers) {
+      const m = new THREE.Mesh(roundedBox(t.w, t.h, t.w, 0.05), t.mat);
+      m.position.y = t.y + t.h / 2;
+      canopy.push(m);
     }
+    // Sun-lit highlight wedge on one side of the lower tier.
+    const sunHi = new THREE.Mesh(roundedBox(0.18, 0.30, 0.18, 0.04), M.leavesLt);
+    sunHi.position.set(0.18, 0.50, 0.18);
+    canopy.push(sunHi);
+    const tip = new THREE.Mesh(roundedBox(0.10, 0.18, 0.10, 0.03), M.pineLeaf);
+    tip.position.y = 1.52;
+    canopy.push(tip);
 
-    // Rails on each side, skipped where a neighbour exists (run merges cleanly).
-    const railH = new THREE.BoxGeometry(0.72, 0.06, 0.06); // along x (north/south sides)
-    const railV = new THREE.BoxGeometry(0.06, 0.06, 0.72); // along z (west/east sides)
-    if (!neighbors.n) {
-      const a = new THREE.Mesh(railH, M.fence); a.position.set(0, 0.24, -0.4); g.add(a);
-      const b = new THREE.Mesh(railH, M.fence); b.position.set(0, 0.08, -0.4); g.add(b);
+    // A few small brown pine cones hanging on the canopy.
+    for (const [x, y, z] of [[0.16, 0.46, -0.12], [-0.14, 0.78, 0.10], [0.08, 1.04, 0.14]]) {
+      const cone = new THREE.Mesh(roundedBox(0.06, 0.10, 0.06, 0.02), M.pineCone);
+      cone.position.set(x, y, z);
+      canopy.push(cone);
     }
-    if (!neighbors.s) {
-      const a = new THREE.Mesh(railH, M.fence); a.position.set(0, 0.24,  0.4); g.add(a);
-      const b = new THREE.Mesh(railH, M.fence); b.position.set(0, 0.08,  0.4); g.add(b);
-    }
-    if (!neighbors.w) {
-      const a = new THREE.Mesh(railV, M.fence); a.position.set(-0.4, 0.24, 0); g.add(a);
-      const b = new THREE.Mesh(railV, M.fence); b.position.set(-0.4, 0.08, 0); g.add(b);
-    }
-    if (!neighbors.e) {
-      const a = new THREE.Mesh(railV, M.fence); a.position.set( 0.4, 0.24, 0); g.add(a);
-      const b = new THREE.Mesh(railV, M.fence); b.position.set( 0.4, 0.08, 0); g.add(b);
-    }
-
-    g.userData = { kind: 'fence' };
-    castReceive(g);
-    return g;
+    return buildTree('pine', [trunk, flare], canopy, 0.3);
   }
 
-  function makeCrop() {
-    const g = new THREE.Group();
-    const positions = [[-0.22, -0.22], [0.22, -0.22], [-0.22, 0.22], [0.22, 0.22]];
-    positions.forEach(([x, z], i) => {
-      const stem = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.08), M.cropStem);
-      stem.position.set(x, 0.06, z);
-      g.add(stem);
-      const leaf = new THREE.Mesh(roundedBox(0.18, 0.16, 0.18, 0.04), M.cropLeaf);
-      leaf.position.set(x, 0.16, z);
-      leaf.rotation.y = i * 0.4;
-      g.add(leaf);
-    });
-    g.userData = { kind: 'crop', bobPhase: Math.random() * Math.PI * 2 };
-    castReceive(g);
-    return g;
+  function makeBirch() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.7, 0.14), M.birchBark);
+    trunk.position.y = 0.35;
+    const trunkParts = [trunk];
+    // Bark stripes — varied widths and offsets for a hand-drawn look.
+    const stripeData = [
+      { y: 0.15, w: 0.18, h: 0.05 },
+      { y: 0.30, w: 0.14, h: 0.03 },
+      { y: 0.47, w: 0.17, h: 0.05 },
+      { y: 0.60, w: 0.13, h: 0.03 },
+    ];
+    for (const s of stripeData) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(s.w, s.h, 0.07), M.birchBarkD);
+      stripe.position.set(0, s.y, 0.075);
+      trunkParts.push(stripe);
+    }
+    // Tiny dead branch nub poking out.
+    const nub = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.04), M.birchBarkD);
+    nub.position.set(0.10, 0.42, 0);
+    trunkParts.push(nub);
+
+    const lower = new THREE.Mesh(roundedBox(0.50, 0.36, 0.50, 0.07), M.birchLeaf);
+    lower.position.y = 0.82;
+    const accent = new THREE.Mesh(roundedBox(0.34, 0.22, 0.34, 0.06), M.leavesLt);
+    accent.position.set(-0.10, 0.84, 0.10);
+    const upper = new THREE.Mesh(roundedBox(0.32, 0.28, 0.32, 0.05), M.birchLeaf);
+    upper.position.y = 1.16;
+    return buildTree('birch', trunkParts, [lower, accent, upper], 0.7);
   }
 
-  // -------- BARN (gambrel-roof building, configurable footprint) --------
-  // Footprint escala con la cantidad de celdas del cluster, igual que las casas:
-  //   length=1, width=1  →  granero compacto cuadrado (1 tile)
-  //   length=N, width=1  →  granero alargado (1xN tiles)
-  //   length=N, width=2  →  granero ancho (2xN tiles, gambrel orientado a lo largo)
-  // Dimensiones:
-  // - ancho W (eje X) = width === 1 ? 0.82 : (width * TILE - 0.18)
-  // - largo L (eje Z) = length * TILE - 0.18
-  // - alero bajo H1 = 0.55, quiebre del gambrel a H2 = 0.95, apex H3 = 1.20
-  function makeBarn(length = 1, width = 1) {
-    const g = new THREE.Group();
-    const W = width === 1 ? 0.82 : (width * TILE - 0.18);
-    const L = length * TILE - 0.18;
-    const halfW = W / 2, halfL = L / 2;
-    const H1 = 0.55, H2 = 0.95, H3 = 1.20;
-    const T  = 0.06;          // grosor del slab del techo
-    const OVERHANG = 0.12;    // alero front/back
+  function makeCherry() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.85, 0.16), M.cherryTrunk);
+    trunk.position.y = 0.425;
+    const flare = new THREE.Mesh(roundedBox(0.24, 0.08, 0.24, 0.04), M.trunkD);
+    flare.position.y = 0.04;
+    // Diagonal branch nub coming out partway up.
+    const branch = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.05), M.cherryTrunk);
+    branch.position.set(0.10, 0.62, 0);
+    branch.rotation.z = -0.35;
 
-    // Breakpoint horizontal del gambrel (donde cambia la pendiente).
-    // En el granero original era W/4; lo escalamos para anchos mayores.
-    const BREAK_X = W * 0.25;
-
-    // -------- paredes (caja redondeada hasta H1) --------
-    const walls = new THREE.Mesh(roundedBox(W, H1, L, 0.04), M.barnRed);
-    g.add(walls);
-
-    // Trim horizontal corriendo a lo largo del alero (cuatro lados a H1)
-    const trimLong = new THREE.BoxGeometry(W + 0.04, 0.04, 0.05);
-    const trimShort = new THREE.BoxGeometry(0.05, 0.04, L + 0.04);
-    const tF = new THREE.Mesh(trimLong, M.barnTrim);  tF.position.set(0, H1, halfL + 0.005); g.add(tF);
-    const tB = new THREE.Mesh(trimLong, M.barnTrim);  tB.position.set(0, H1, -halfL - 0.005); g.add(tB);
-    const tR = new THREE.Mesh(trimShort, M.barnTrim); tR.position.set( halfW + 0.005, H1, 0); g.add(tR);
-    const tL = new THREE.Mesh(trimShort, M.barnTrim); tL.position.set(-halfW - 0.005, H1, 0); g.add(tL);
-
-    // -------- frontones (paneles pentagonales en +z y -z) --------
-    // El frontón se construye un poco MÁS PEQUEÑO que el contorno del techo,
-    // empujando los vértices superiores hacia adentro. Pero además lo hacemos
-    // muy fino (extrude depth = 0.02) y lo metemos completamente dentro del
-    // cuerpo del granero, así no asoma por ningún lado bajo el techo.
-    const INSET = 0.05;
-    function offsetIn(prev, cur, next, amount) {
-      // Calcula la dirección de bisectriz hacia adentro en `cur` entre los
-      // segmentos prev→cur y cur→next, y devuelve cur desplazado por `amount`
-      // a lo largo de esa bisectriz.
-      const v1 = new THREE.Vector2(cur[0] - prev[0], cur[1] - prev[1]).normalize();
-      const v2 = new THREE.Vector2(next[0] - cur[0], next[1] - cur[1]).normalize();
-      // Normales hacia adentro (rotación 90° antihoraria de la dirección del borde)
-      const n1 = new THREE.Vector2(-v1.y, v1.x);
-      const n2 = new THREE.Vector2(-v2.y, v2.x);
-      const bis = n1.add(n2).normalize();
-      return [cur[0] + bis.x * amount, cur[1] + bis.y * amount];
+    const canopy = [];
+    const blobs = [
+      { x:  0.00, y: 0.82, z:  0.00, s: 0.66, h: 0.46, mat: M.cherryLeaf  },
+      { x:  0.18, y: 0.96, z:  0.10, s: 0.42, h: 0.34, mat: M.cherryLeafD },
+      { x: -0.16, y: 0.92, z: -0.12, s: 0.42, h: 0.32, mat: M.cherryLeaf  },
+      { x:  0.04, y: 1.14, z: -0.06, s: 0.32, h: 0.26, mat: M.cherryLeafD },
+      { x:  0.22, y: 0.74, z: -0.10, s: 0.28, h: 0.22, mat: M.cherryLeaf  }, // extra puff
+      { x: -0.20, y: 1.04, z:  0.08, s: 0.24, h: 0.20, mat: M.cherryLeafD }, // extra puff
+    ];
+    for (const b of blobs) {
+      const m = new THREE.Mesh(roundedBox(b.s, b.h, b.s, 0.08), b.mat);
+      m.position.set(b.x, b.y, b.z);
+      canopy.push(m);
     }
-
-    const apex      = [0, H3];
-    const breakR    = [ BREAK_X, H2];
-    const breakL    = [-BREAK_X, H2];
-    const eaveR     = [ halfW, H1];
-    const eaveL     = [-halfW, H1];
-    // Vértices en orden CCW empezando por la esquina inferior izquierda.
-    const ringRaw = [eaveL, breakL, apex, breakR, eaveR];
-    // Solo recortamos los vértices superiores (apex y break points). Los aleros
-    // los dejamos donde están porque la pared inferior los cubre y queremos
-    // que el frontón llegue exactamente hasta el alero.
-    const breakLIn  = offsetIn(eaveL, breakL, apex, INSET);
-    const apexIn    = offsetIn(breakL, apex, breakR, INSET);
-    const breakRIn  = offsetIn(apex, breakR, eaveR, INSET);
-
-    const gableShape = new THREE.Shape();
-    gableShape.moveTo(eaveL[0], eaveL[1]);
-    gableShape.lineTo(breakLIn[0], breakLIn[1]);
-    gableShape.lineTo(apexIn[0], apexIn[1]);
-    gableShape.lineTo(breakRIn[0], breakRIn[1]);
-    gableShape.lineTo(eaveR[0], eaveR[1]);
-    gableShape.closePath();
-    const gableGeo = new THREE.ExtrudeGeometry(gableShape, { depth: 0.04, bevelEnabled: false, curveSegments: 1 });
-
-    // Pentágono "tapón" del color del techo, del tamaño exacto del frontón
-    // recortado. Va pegado al frontón pero por fuera (más cerca del techo),
-    // para que cubra la franja roja que asoma entre el frontón y los slabs.
-    const gableCoverShape = new THREE.Shape();
-    gableCoverShape.moveTo(eaveL[0], eaveL[1]);
-    gableCoverShape.lineTo(breakLIn[0], breakLIn[1]);
-    gableCoverShape.lineTo(apexIn[0], apexIn[1]);
-    gableCoverShape.lineTo(breakRIn[0], breakRIn[1]);
-    gableCoverShape.lineTo(eaveR[0], eaveR[1]);
-    gableCoverShape.closePath();
-    const gableCoverGeo = new THREE.ExtrudeGeometry(gableCoverShape, { depth: 0.02, bevelEnabled: false, curveSegments: 1 });
-
-    // Construimos la parte del frontón que va por debajo del alero (rectángulo
-    // entre H1 y H2) en rojo para que coincida con la pared, y la parte del
-    // gambrel (encima de H2, donde se ven las líneas problemáticas) la pintamos
-    // del color del techo para que se confunda con el material del techo y
-    // ningún borde rojo asome bajo los slabs.
-    const gableShapeUpper = new THREE.Shape();
-    gableShapeUpper.moveTo(-BREAK_X, H2);
-    gableShapeUpper.lineTo(breakLIn[0], breakLIn[1]);
-    gableShapeUpper.lineTo(apexIn[0], apexIn[1]);
-    gableShapeUpper.lineTo(breakRIn[0], breakRIn[1]);
-    gableShapeUpper.lineTo( BREAK_X, H2);
-    gableShapeUpper.closePath();
-    const gableGeoUpper = new THREE.ExtrudeGeometry(gableShapeUpper, { depth: 0.04, bevelEnabled: false, curveSegments: 1 });
-
-    const gableFront = new THREE.Mesh(gableGeo, M.barnRed);
-    gableFront.position.z = halfL - 0.08;
-    g.add(gableFront);
-
-    const gableBack = new THREE.Mesh(gableGeo, M.barnRed);
-    gableBack.position.z = -halfL + 0.04;
-    g.add(gableBack);
-
-    // Tapón color techo justo afuera del frontón rojo, para que el rojo no se
-    // vea entre el frontón y los slabs del techo. Va levemente por fuera del
-    // frontón rojo en z, así su cara externa coincide con donde estaba el
-    // borde rojo problemático.
-    const gableCoverFront = new THREE.Mesh(gableCoverGeo, M.barnRoof);
-    gableCoverFront.position.z = halfL - 0.05;
-    g.add(gableCoverFront);
-
-    const gableCoverBack = new THREE.Mesh(gableCoverGeo, M.barnRoof);
-    gableCoverBack.position.z = -halfL + 0.03;
-    g.add(gableCoverBack);
-
-    // -------- techo de gambrel --------
-    // 4 slabs (2 por lado). Cada slab cubre un segmento del frontón.
-    // Los slabs se alargan ligeramente (EXTEND) más allá del segmento del
-    // pentágono que cubren, y se desplazan más de medio grosor hacia afuera
-    // (OFFSET), para garantizar que el borde rojo del frontón quede oculto
-    // bajo el techo en todos los anchos. Sin esto, en graneros anchos
-    // (width=2) la pendiente alta es muy vertical y deja ver el borde del
-    // pentágono entre los dos slabs del ápice.
-    const roofDepth = L + OVERHANG * 2;
-    const SLAB_EXTEND = 0.06;
-    const SLAB_OFFSET = T * 0.9;
-    function pitchSlab(x1, y1, x2, y2, mirror) {
-      const dx = x2 - x1, dy = y2 - y1;
-      const slabLen = Math.sqrt(dx * dx + dy * dy) + SLAB_EXTEND * 2;
-      const angle = Math.atan2(dy, dx);
-      const cx = (x1 + x2) / 2;
-      const cy = (y1 + y2) / 2;
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(slabLen, T, roofDepth), M.barnRoof);
-      let finalAngle = angle;
-      let finalCx = cx;
-      if (mirror) { finalAngle = Math.PI - angle; finalCx = -cx; }
-      slab.rotation.z = finalAngle;
-      const px = -Math.sin(finalAngle) * SLAB_OFFSET;
-      const py =  Math.cos(finalAngle) * SLAB_OFFSET;
-      slab.position.set(finalCx + px, cy + py, 0);
-      return slab;
+    // Tiny petal flecks scattered IN the canopy (darker pink for depth).
+    for (const [x, y, z] of [[0.20, 0.86, 0.20], [-0.18, 0.78, -0.20], [0.04, 1.22, 0.10]]) {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.03, 0.04), M.cherryLeafD);
+      f.position.set(x, y, z);
+      canopy.push(f);
     }
-
-    // Lado +x
-    g.add(pitchSlab( halfW, H1, BREAK_X, H2, false));
-    g.add(pitchSlab( BREAK_X, H2,     0, H3, false));
-    // Lado -x
-    g.add(pitchSlab( halfW, H1, BREAK_X, H2, true));
-    g.add(pitchSlab( BREAK_X, H2,     0, H3, true));
-
-    // Cumbrera oscura en el ápice. La hacemos un poco más ancha para que
-    // cubra cualquier gap entre los slabs del techo en el centro — esto es
-    // crítico para graneros anchos donde la pendiente alta es más vertical
-    // y los slabs no se solapan tan bien en el ápice.
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, roofDepth + 0.02), M.barnRoofD);
-    ridge.position.set(0, H3 + 0.02, 0);
-    g.add(ridge);
-
-    // -------- frente: puertas grandes con la X blanca --------
-    // Anchura de las puertas: la mayor parte del frente, dejando un margen
-    // a ambos lados para el marco blanco. El granero compacto y el alargado
-    // usan el mismo ancho frontal.
-    const doorW = 0.56;
-    const doorH = 0.5;
-    const doorZ = halfL + 0.025;
-
-    // Marco blanco alrededor de la puerta
-    const frameT = 0.05;
-    const frameOuterW = doorW + frameT * 2;
-    const frameOuterH = doorH + frameT;
-    const frameTop = new THREE.Mesh(new THREE.BoxGeometry(frameOuterW, frameT, 0.03), M.barnTrim);
-    frameTop.position.set(0, doorH + frameT / 2, doorZ + 0.005); g.add(frameTop);
-    const frameLeft = new THREE.Mesh(new THREE.BoxGeometry(frameT, frameOuterH, 0.03), M.barnTrim);
-    frameLeft.position.set(-doorW / 2 - frameT / 2, frameOuterH / 2, doorZ + 0.005); g.add(frameLeft);
-    const frameRight = new THREE.Mesh(new THREE.BoxGeometry(frameT, frameOuterH, 0.03), M.barnTrim);
-    frameRight.position.set(doorW / 2 + frameT / 2, frameOuterH / 2, doorZ + 0.005); g.add(frameRight);
-
-    // Dos hojas de puerta (rojo más oscuro)
-    const halfDoor = new THREE.BoxGeometry(doorW / 2 - 0.01, doorH, 0.04);
-    const doorL = new THREE.Mesh(halfDoor, M.barnRedD);
-    doorL.position.set(-doorW / 4, doorH / 2, doorZ); g.add(doorL);
-    const doorR = new THREE.Mesh(halfDoor, M.barnRedD);
-    doorR.position.set( doorW / 4, doorH / 2, doorZ); g.add(doorR);
-
-    // La "X" blanca clásica del granero — dos diagonales por hoja + travesaños
-    function addXOnPanel(centerX) {
-      const panelW = doorW / 2 - 0.04;
-      const diagLen = Math.sqrt(panelW * panelW + doorH * doorH);
-      const diagAngle = Math.atan2(doorH, panelW);
-      const trimZ = doorZ + 0.025;
-      const t1 = new THREE.Mesh(new THREE.BoxGeometry(diagLen, 0.035, 0.02), M.barnTrim);
-      t1.position.set(centerX, doorH / 2, trimZ); t1.rotation.z =  diagAngle; g.add(t1);
-      const t2 = new THREE.Mesh(new THREE.BoxGeometry(diagLen, 0.035, 0.02), M.barnTrim);
-      t2.position.set(centerX, doorH / 2, trimZ); t2.rotation.z = -diagAngle; g.add(t2);
-      const tTop = new THREE.Mesh(new THREE.BoxGeometry(panelW, 0.035, 0.02), M.barnTrim);
-      tTop.position.set(centerX, doorH - 0.04, trimZ); g.add(tTop);
-      const tBot = new THREE.Mesh(new THREE.BoxGeometry(panelW, 0.035, 0.02), M.barnTrim);
-      tBot.position.set(centerX, 0.04, trimZ); g.add(tBot);
-    }
-    addXOnPanel(-doorW / 4);
-    addXOnPanel( doorW / 4);
-
-    // -------- ventana del henil (círculo en la parte alta del frontón) --------
-    const henilY = (H2 + H3) / 2;
-    const henilFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.04, 14), M.barnTrim);
-    henilFrame.rotation.x = Math.PI / 2;
-    henilFrame.position.set(0, henilY, halfL + 0.005); g.add(henilFrame);
-    const henilGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.04, 14), M.windowB);
-    henilGlass.rotation.x = Math.PI / 2;
-    henilGlass.position.set(0, henilY, halfL + 0.015); g.add(henilGlass);
-    const henilCrossH = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.018, 0.025), M.barnTrim);
-    henilCrossH.position.set(0, henilY, halfL + 0.03); g.add(henilCrossH);
-    const henilCrossV = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.22, 0.025), M.barnTrim);
-    henilCrossV.position.set(0, henilY, halfL + 0.03); g.add(henilCrossV);
-
-    // Heno asomando por el henil
-    const hay = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.04), M.barnHay);
-    hay.position.set(0, henilY - 0.06, halfL + 0.035);
-    hay.rotation.z = 0.15;
-    g.add(hay);
-
-    // -------- ventanas laterales pequeñas --------
-    // Para granero de 1 celda: una ventana centrada por lado.
-    // Para granero de 2+ celdas: una ventana por celda (centrada en cada tile).
-    function addSideWindow(side) {
-      const x = side === 'r' ? halfW + 0.005 : -halfW - 0.005;
-      const rot = side === 'r' ? 0 : Math.PI;
-      const offsets = [];
-      if (length === 1) {
-        offsets.push(0);
-      } else {
-        for (let i = 0; i < length; i++) {
-          offsets.push(-((length - 1) / 2) + i);
-        }
-      }
-      for (const zOff of offsets) {
-        const w = Parts.window('side', 'small');
-        w.position.set(x, 0.32, zOff);
-        w.rotation.y = rot;
-        // Reemplazamos el marco oscuro por trim blanco
-        w.traverse(c => {
-          if (c.isMesh && c.material === M.woodTrim) c.material = M.barnTrim;
-        });
-        g.add(w);
-      }
-    }
-    addSideWindow('r');
-    addSideWindow('l');
-
-    castReceive(g);
-    g.userData = { kind: 'barn' };
-    return g;
+    return buildTree('cherry', [trunk, flare, branch], canopy, 0.85);
   }
 
-  // Composite barn — main wing (linear corrida) + 1+ single-cell perpendicular
-  // wings. Reutilizamos la misma topología que las casas (tryComposite).
-  function buildCompositeBarn(topology) {
-    const { mainOrientation, mainCells, branches, bbox } = topology;
-    const composite = new THREE.Group();
-    const bboxCX = (bbox.xMin + bbox.xMax) / 2;
-    const bboxCZ = (bbox.zMin + bbox.zMax) / 2;
+  function makeWillow() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.42, 0.20), M.trunk);
+    trunk.position.y = 0.21;
+    const flare = new THREE.Mesh(roundedBox(0.30, 0.08, 0.30, 0.04), M.trunkD);
+    flare.position.y = 0.04;
 
-    // Main wing
-    const mainLength = mainCells.length;
-    const first = mainCells[0], last = mainCells[mainCells.length - 1];
-    const mainCX = mainOrientation === 'z' ? first.x          : (first.x + last.x) / 2;
-    const mainCZ = mainOrientation === 'z' ? (first.z + last.z) / 2 : first.z;
-    const mainOX = mainCX - bboxCX;
-    const mainOZ = mainCZ - bboxCZ;
-
-    const mainWing = makeBarn(mainLength, 1);
-    if (mainOrientation === 'x') mainWing.rotation.y = Math.PI / 2;
-    mainWing.position.set(mainOX, 0, mainOZ);
-    composite.add(mainWing);
-
-    // Branches (siempre 1 celda)
-    const SHIFT = 0.18;
-    for (const br of branches) {
-      let wingX = br.x - bboxCX;
-      let wingZ = br.z - bboxCZ;
-      if      (br.axis === '+x') wingX -= SHIFT;
-      else if (br.axis === '-x') wingX += SHIFT;
-      else if (br.axis === '+z') wingZ -= SHIFT;
-      else                       wingZ += SHIFT;
-
-      const wingOrientation = (br.axis === '+x' || br.axis === '-x') ? 'x' : 'z';
-      const wing = makeBarn(1, 1);
-      if (wingOrientation === 'x') wing.rotation.y = Math.PI / 2;
-      const flip = (br.axis === '-x' || br.axis === '-z');
-      if (flip) wing.rotation.y += Math.PI;
-      wing.position.set(wingX, 0, wingZ);
-      composite.add(wing);
+    const canopy = [];
+    const main = new THREE.Mesh(roundedBox(0.78, 0.30, 0.78, 0.10), M.willowLeaf);
+    main.position.y = 0.62;
+    canopy.push(main);
+    // Darker shadow blob on the underside.
+    const under = new THREE.Mesh(roundedBox(0.58, 0.16, 0.58, 0.07), M.willowLeafD);
+    under.position.set(0.06, 0.50, -0.04);
+    canopy.push(under);
+    // 8 drooping tendrils (was 4) of varying lengths.
+    const tendrils = [
+      [ 0.32,  0.32, 0.26], [-0.32,  0.32, 0.22],
+      [ 0.32, -0.32, 0.28], [-0.32, -0.32, 0.20],
+      [ 0.36,  0.00, 0.18], [-0.36,  0.00, 0.24],
+      [ 0.00,  0.36, 0.16], [ 0.00, -0.36, 0.18],
+    ];
+    for (const [dx, dz, len] of tendrils) {
+      const drop = new THREE.Mesh(new THREE.BoxGeometry(0.07, len, 0.07), M.willowLeafD);
+      drop.position.set(dx, 0.58 - len / 2, dz);
+      canopy.push(drop);
     }
-
-    composite.userData = { kind: 'barn' };
-    return composite;
+    const tip = new THREE.Mesh(roundedBox(0.30, 0.18, 0.30, 0.06), M.leavesLt);
+    tip.position.y = 0.86;
+    canopy.push(tip);
+    return buildTree('willow', [trunk, flare], canopy, 0.42);
   }
 
-  function makeWindmill() {
-    const g = new THREE.Group();
+  // Bush: no trunk + tiny red berries scattered on top for life.
+  function makeBush() {
+    const main = new THREE.Mesh(roundedBox(0.46, 0.30, 0.46, 0.10), M.bushLeaf);
+    main.position.y = 0.15;
+    const lobe1 = new THREE.Mesh(roundedBox(0.26, 0.22, 0.26, 0.07), M.bushLeafD);
+    lobe1.position.set(0.12, 0.22, -0.10);
+    const lobe2 = new THREE.Mesh(roundedBox(0.22, 0.20, 0.22, 0.06), M.bushLeaf);
+    lobe2.position.set(-0.14, 0.20, 0.10);
+    const accent = new THREE.Mesh(roundedBox(0.14, 0.12, 0.14, 0.04), M.leavesLt);
+    accent.position.set(0.05, 0.29, 0.10);
+    const berries = [];
+    for (const [x, y, z] of [[0.10, 0.30, 0.08], [-0.10, 0.26, -0.05], [0.16, 0.18, -0.16]]) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 5), M.oakBerry);
+      b.position.set(x, y, z);
+      berries.push(b);
+    }
+    return buildTree('bush', [], [main, lobe1, lobe2, accent, ...berries], 0);
+  }
 
-    // Base de piedra — cilindro ligeramente cónico (más ancho abajo)
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 0.95, 14), M.millStone);
-    base.position.y = 0.475;
-    g.add(base);
+  function makeMaple() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), M.trunk);
+    trunk.position.y = 0.275;
+    const flare = new THREE.Mesh(roundedBox(0.28, 0.10, 0.28, 0.04), M.trunkD);
+    flare.position.y = 0.05;
 
-    // Bandas de piedra más oscura para textura
-    const band1 = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.32, 0.04, 14), M.millStoneD);
-    band1.position.y = 0.18;
-    g.add(band1);
-    const band2 = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.28, 0.04, 14), M.millStoneD);
-    band2.position.y = 0.62;
-    g.add(band2);
+    const lower = new THREE.Mesh(roundedBox(0.66, 0.42, 0.66, 0.09), M.mapleLeafD);
+    lower.position.y = 0.62;
+    // Mixed yellow accent — autumn variation inside the canopy.
+    const yellowAcc = new THREE.Mesh(roundedBox(0.38, 0.24, 0.38, 0.07), M.flowerYellow);
+    yellowAcc.position.set(-0.12, 0.66, 0.10);
+    const upper = new THREE.Mesh(roundedBox(0.44, 0.32, 0.44, 0.07), M.mapleLeaf);
+    upper.position.y = 1.00;
+    const redAcc = new THREE.Mesh(roundedBox(0.24, 0.18, 0.24, 0.05), M.mapleLeafD);
+    redAcc.position.set(0.14, 1.02, -0.08);
+    const tip = new THREE.Mesh(roundedBox(0.22, 0.18, 0.22, 0.05), M.mapleLeafD);
+    tip.position.y = 1.26;
+    // Falling leaf dots near the trunk base for autumn vibe.
+    const fallen = [];
+    for (const [x, z] of [[0.18, 0.20], [-0.22, 0.06], [0.08, -0.24]]) {
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.06), M.mapleLeaf);
+      leaf.position.set(x, 0.02, z);
+      fallen.push(leaf);
+    }
+    return buildTree('maple', [trunk, flare], [lower, yellowAcc, upper, redAcc, tip, ...fallen], 0.55);
+  }
 
-    // Ventanita en el cuerpo
-    const winFrame = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.03), M.woodTrim);
-    winFrame.position.set(0, 0.55, 0.265);
-    g.add(winFrame);
-    const winGlass = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.04), M.windowB);
-    winGlass.position.set(0, 0.55, 0.28);
-    g.add(winGlass);
-    const winCrossH = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.012, 0.04), M.woodTrim);
-    winCrossH.position.set(0, 0.55, 0.29);
-    g.add(winCrossH);
-    const winCrossV = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.12, 0.04), M.woodTrim);
-    winCrossV.position.set(0, 0.55, 0.29);
-    g.add(winCrossV);
-
-    // Puerta en la base
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.32, 0.04), M.door);
-    door.position.set(0, 0.16, 0.27);
-    g.add(door);
-    const doorArchL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.04), M.woodTrim);
-    doorArchL.position.set(-0.08, 0.16, 0.28); g.add(doorArchL);
-    const doorArchR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.04), M.woodTrim);
-    doorArchR.position.set( 0.08, 0.16, 0.28); g.add(doorArchR);
-    const doorArchT = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.04, 0.04), M.woodTrim);
-    doorArchT.position.set(0, 0.34, 0.28); g.add(doorArchT);
-    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), M.knob);
-    knob.position.set(0.06, 0.16, 0.30); g.add(knob);
-
-    // Techo cónico
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.34, 14), M.millRoof);
-    roof.position.y = 1.12;
-    g.add(roof);
-
-    // Eje horizontal donde se montan las aspas — sale del frente del techo
-    const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.18, 8), M.millFrame);
-    axle.rotation.x = Math.PI / 2;
-    axle.position.set(0, 1.0, 0.32);
-    g.add(axle);
-
-    // Las aspas van en un grupo propio para rotar como una pieza única
-    const blades = new THREE.Group();
-    blades.position.set(0, 1.0, 0.40);
-
-    // Buje central
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), M.millFrame);
-    hub.rotation.x = Math.PI / 2;
-    blades.add(hub);
-
-    // 4 aspas en cruz. Cada aspa = travesaño de madera + lona clara encima
+  function makePalm() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.1, 0.12), M.palmTrunk);
+    trunk.position.y = 0.55;
+    const trunkParts = [trunk];
+    // Trunk ring segments — palm trees have visible bands.
     for (let i = 0; i < 4; i++) {
-      const blade = new THREE.Group();
-      blade.rotation.z = i * Math.PI / 2;
-
-      // Travesaño de madera (eje del aspa)
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.62, 0.04), M.millFrame);
-      beam.position.y = 0.34;
-      blade.add(beam);
-
-      // Lona / tela del aspa — rectángulo ligeramente desplazado al lado
-      const sail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.02), M.millBlade);
-      sail.position.set(0.11, 0.36, 0.03);
-      blade.add(sail);
-
-      // Listones internos de la lona (líneas oscuras)
-      const slat1 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.012, 0.025), M.millFrame);
-      slat1.position.set(0.11, 0.24, 0.04); blade.add(slat1);
-      const slat2 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.012, 0.025), M.millFrame);
-      slat2.position.set(0.11, 0.48, 0.04); blade.add(slat2);
-
-      blades.add(blade);
+      const ring = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.03, 0.14), M.trunkD);
+      ring.position.y = 0.22 + i * 0.22;
+      trunkParts.push(ring);
     }
-    g.add(blades);
 
-    castReceive(g);
-    g.userData = {
-      kind: 'windmill',
-      blades,                                  // referencia para animar la rotación
-      spinSpeed: 0.7 + Math.random() * 0.3,    // ligera variación por molino
-    };
-    return g;
+    const canopy = [];
+    const FROND_COUNT = 7; // more fronds for a fuller crown
+    for (let i = 0; i < FROND_COUNT; i++) {
+      const a = (i / FROND_COUNT) * Math.PI * 2;
+      const mat = (i % 2) ? M.palmFrondD : M.palmFrond;
+      const frond = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.05, 0.10), mat);
+      frond.position.set(Math.cos(a) * 0.20, 1.12, Math.sin(a) * 0.20);
+      frond.rotation.y = -a;
+      frond.rotation.z = -0.42;
+      canopy.push(frond);
+      // Tip of each frond is brighter.
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.04, 0.07), M.leavesLt);
+      tip.position.set(Math.cos(a) * 0.55, 1.00, Math.sin(a) * 0.55);
+      tip.rotation.y = -a;
+      tip.rotation.z = -0.42;
+      canopy.push(tip);
+    }
+    const crown = new THREE.Mesh(roundedBox(0.18, 0.10, 0.18, 0.04), M.palmFrondD);
+    crown.position.y = 1.16;
+    canopy.push(crown);
+    // 3 coconut clusters hanging at the base of the fronds.
+    for (const [ax] of [[0], [2 * Math.PI / 3], [4 * Math.PI / 3]]) {
+      const c = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), M.trunkD);
+      c.position.set(Math.cos(ax) * 0.14, 1.00, Math.sin(ax) * 0.14);
+      canopy.push(c);
+    }
+    return buildTree('palm', trunkParts, canopy, 1.1);
   }
 
-  function makeTuft() {
-    const g = new THREE.Group();
-    const positions = [[0, 0], [0.08, 0.06], [-0.07, 0.04], [0.03, -0.08], [-0.04, -0.05]];
-    positions.forEach(([x, z]) => {
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1 + Math.random() * 0.04, 0.05), M.leaves);
-      blade.position.set(x, blade.geometry.parameters.height / 2, z);
-      g.add(blade);
-    });
-    g.userData = { kind: 'tuft' };
-    castReceive(g);
-    return g;
+  function makeAcacia() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.85, 0.14), M.trunk);
+    trunk.position.y = 0.425;
+    const flare = new THREE.Mesh(roundedBox(0.24, 0.08, 0.24, 0.04), M.trunkD);
+    flare.position.y = 0.04;
+    // Sub-branch forking off near the top — savanna acacia trunks fork.
+    const fork = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.30, 0.08), M.trunk);
+    fork.position.set(0.12, 0.78, 0);
+    fork.rotation.z = -0.5;
+
+    const umbrella = new THREE.Mesh(roundedBox(0.94, 0.18, 0.94, 0.08), M.acaciaLeaf);
+    umbrella.position.y = 0.96;
+    const under = new THREE.Mesh(roundedBox(0.66, 0.12, 0.66, 0.06), M.acaciaLeafD);
+    under.position.y = 0.86;
+    const hilight = new THREE.Mesh(roundedBox(0.34, 0.08, 0.34, 0.04), M.leavesLt);
+    hilight.position.set(0.18, 1.06, -0.10);
+    // Tiny yellow flower dots scattered on the canopy.
+    const flowers = [];
+    for (const [x, z] of [[0.30, 0.20], [-0.26, 0.22], [0.20, -0.28], [-0.32, -0.10]]) {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.05), M.flowerYellow);
+      f.position.set(x, 1.06, z);
+      flowers.push(f);
+    }
+    return buildTree('acacia', [trunk, flare, fork], [umbrella, under, hilight, ...flowers], 0.85);
+  }
+
+  function makeMagnolia() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.85, 0.16), M.cherryTrunk);
+    trunk.position.y = 0.425;
+    const flare = new THREE.Mesh(roundedBox(0.24, 0.08, 0.24, 0.04), M.trunkD);
+    flare.position.y = 0.04;
+    const branch = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.05), M.cherryTrunk);
+    branch.position.set(-0.10, 0.66, 0);
+    branch.rotation.z = 0.4;
+
+    const canopy = [];
+    const blobs = [
+      { x:  0.00, y: 0.82, z:  0.00, s: 0.66, h: 0.46, mat: M.magnoliaLeaf  },
+      { x:  0.18, y: 0.96, z:  0.10, s: 0.42, h: 0.34, mat: M.magnoliaLeafD },
+      { x: -0.16, y: 0.92, z: -0.12, s: 0.42, h: 0.32, mat: M.magnoliaLeaf  },
+      { x:  0.04, y: 1.14, z: -0.06, s: 0.32, h: 0.26, mat: M.magnoliaLeafD },
+      { x:  0.22, y: 0.78, z: -0.16, s: 0.26, h: 0.22, mat: M.magnoliaLeaf  },
+    ];
+    for (const b of blobs) {
+      const m = new THREE.Mesh(roundedBox(b.s, b.h, b.s, 0.08), b.mat);
+      m.position.set(b.x, b.y, b.z);
+      canopy.push(m);
+    }
+    // A few yellow pollen-like specks for warmth.
+    for (const [x, y, z] of [[0.18, 1.00, 0.12], [-0.20, 0.88, -0.16], [0.02, 1.22, 0.06]]) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.03, 0.04), M.flowerYellow);
+      p.position.set(x, y, z);
+      canopy.push(p);
+    }
+    return buildTree('magnolia', [trunk, flare, branch], canopy, 0.85);
+  }
+
+  // Cypress: narrow, tall, columnar (Italian cypress vibe).
+  function makeCypress() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.32, 0.10), M.trunk);
+    trunk.position.y = 0.16;
+    const flare = new THREE.Mesh(roundedBox(0.18, 0.06, 0.18, 0.03), M.trunkD);
+    flare.position.y = 0.03;
+
+    const canopy = [];
+    const tiers = [
+      { y: 0.32, w: 0.30, h: 0.42, mat: M.cypressLeaf  },
+      { y: 0.74, w: 0.26, h: 0.38, mat: M.cypressLeafD },
+      { y: 1.12, w: 0.18, h: 0.30, mat: M.cypressLeaf  },
+    ];
+    for (const t of tiers) {
+      const m = new THREE.Mesh(roundedBox(t.w, t.h, t.w, 0.04), t.mat);
+      m.position.y = t.y + t.h / 2;
+      canopy.push(m);
+    }
+    // Vertical dark stripes — texture suggesting tight foliage layers.
+    for (const [x, z] of [[0.13, 0.04], [-0.10, 0.10], [0.04, -0.13]]) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.95, 0.03), M.cypressLeafD);
+      stripe.position.set(x, 0.78, z);
+      canopy.push(stripe);
+    }
+    const tip = new THREE.Mesh(roundedBox(0.08, 0.10, 0.08, 0.02), M.leavesLt);
+    tip.position.y = 1.46;
+    canopy.push(tip);
+    return buildTree('cypress', [trunk, flare], canopy, 0.32);
+  }
+
+  // Apple: oak-like silhouette + apple dots in mixed red/yellow, plus a
+  // fallen apple at the base.
+  function makeApple() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), M.trunk);
+    trunk.position.y = 0.25;
+    const flare = new THREE.Mesh(roundedBox(0.28, 0.10, 0.28, 0.04), M.trunkD);
+    flare.position.y = 0.05;
+
+    const canopy = [];
+    const main = new THREE.Mesh(roundedBox(0.62, 0.46, 0.62, 0.09), M.appleLeaf);
+    main.position.y = 0.55;
+    canopy.push(main);
+    const shadow = new THREE.Mesh(roundedBox(0.42, 0.20, 0.42, 0.06), M.leavesDk);
+    shadow.position.set(-0.06, 0.40, 0.06);
+    canopy.push(shadow);
+    const top = new THREE.Mesh(roundedBox(0.36, 0.28, 0.36, 0.06), M.appleLeaf);
+    top.position.y = 0.94;
+    canopy.push(top);
+    const hilight = new THREE.Mesh(roundedBox(0.22, 0.14, 0.22, 0.04), M.leavesLt);
+    hilight.position.set(0.12, 0.96, -0.10);
+    canopy.push(hilight);
+
+    // 7 fruits — mostly red, two yellow for variety.
+    const dots = [
+      { x:  0.22, y: 0.60, z:  0.22, mat: M.appleFruit },
+      { x: -0.20, y: 0.55, z:  0.18, mat: M.appleFruit },
+      { x:  0.18, y: 0.72, z: -0.20, mat: M.flowerYellow },
+      { x: -0.16, y: 0.80, z: -0.08, mat: M.appleFruit },
+      { x:  0.00, y: 0.96, z:  0.10, mat: M.appleFruit },
+      { x: -0.22, y: 0.62, z: -0.18, mat: M.flowerYellow },
+      { x:  0.10, y: 0.40, z:  0.18, mat: M.appleFruit },
+    ];
+    for (const d of dots) {
+      const apple = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), d.mat);
+      apple.position.set(d.x, d.y, d.z);
+      canopy.push(apple);
+    }
+    // A fallen apple lying near the trunk base.
+    const fallen = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), M.appleFruit);
+    fallen.position.set(0.22, 0.05, 0.22);
+    canopy.push(fallen);
+    return buildTree('apple', [trunk, flare], canopy, 0.5);
+  }
+
+  // Mushroom tree: pale stem with skirt ring + red cap with gills + white spots.
+  function makeMushroom() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), M.mushroomStem);
+    trunk.position.y = 0.25;
+    // "Skirt" ring on the stem (classic mushroom annulus).
+    const ring = new THREE.Mesh(roundedBox(0.24, 0.04, 0.24, 0.02), M.mushroomSpot);
+    ring.position.y = 0.38;
+    const trunkParts = [trunk, ring];
+
+    const canopy = [];
+    // Visible pale gills under the cap.
+    const gills = new THREE.Mesh(roundedBox(0.68, 0.06, 0.68, 0.08), M.mushroomSpot);
+    gills.position.y = 0.50;
+    canopy.push(gills);
+    const cap = new THREE.Mesh(roundedBox(0.74, 0.36, 0.74, 0.18), M.mushroomCap);
+    cap.position.y = 0.68;
+    canopy.push(cap);
+    // Darker shadow ring around the rim.
+    const rim = new THREE.Mesh(roundedBox(0.70, 0.05, 0.70, 0.10), M.trunkD);
+    rim.position.y = 0.54;
+    canopy.push(rim);
+
+    const spots = [
+      [ 0.16, 0.80,  0.12], [-0.18, 0.80, -0.10],
+      [ 0.04, 0.84, -0.22], [-0.10, 0.82,  0.20],
+      [ 0.22, 0.74,  0.00], [-0.02, 0.86,  0.08],
+    ];
+    for (const [x, y, z] of spots) {
+      const s = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), M.mushroomSpot);
+      s.position.set(x, y, z);
+      canopy.push(s);
+    }
+    return buildTree('mushroom', trunkParts, canopy, 0.5);
   }
 
   // -------- world data --------
@@ -2213,346 +1658,6 @@
     }
   }
 
-  // -------- adjacency helpers --------
-  function getFenceNeighbors(x, z) {
-    return {
-      n: z > 0          && world[x][z - 1].kind === 'fence',
-      s: z < GRID - 1   && world[x][z + 1].kind === 'fence',
-      e: x < GRID - 1   && world[x + 1][z].kind === 'fence',
-      w: x > 0          && world[x - 1][z].kind === 'fence',
-    };
-  }
-
-  // Composite del granero: encuentra la corrida lineal más larga del cluster
-  // como main wing, y trata cada celda restante como una rama single-cell
-  // adyacente al main. A diferencia de tryComposite (casas), permite que las
-  // ramas se toquen entre sí — basta con que cada una toque alguna celda del
-  // main. Devuelve null si no encuentra un main wing válido o si alguna celda
-  // del cluster no toca el main.
-  function tryBarnComposite(cluster) {
-    if (cluster.length < 2) return null;
-
-    const xs = cluster.map(c => c.x), zs = cluster.map(c => c.z);
-    const xMin = Math.min(...xs), xMax = Math.max(...xs);
-    const zMin = Math.min(...zs), zMax = Math.max(...zs);
-    const cellSet = new Set(cluster.map(c => c.x + ',' + c.z));
-
-    // Buscamos la corrida lineal contigua más larga (en x o en z) dentro del
-    // cluster. Tiene que tener al menos longitud 2 (sino no es composite).
-    let bestRun = null;
-    function consider(orientation, cells) {
-      if (cells.length < 2) return;
-      if (!bestRun || cells.length > bestRun.cells.length) {
-        bestRun = { orientation, cells };
-      }
-    }
-    // Corridas en x (mismo z, x consecutivos)
-    for (let z = zMin; z <= zMax; z++) {
-      let run = [];
-      for (let x = xMin; x <= xMax + 1; x++) {
-        if (x <= xMax && cellSet.has(x + ',' + z)) {
-          run.push({ x, z });
-        } else {
-          consider('x', run);
-          run = [];
-        }
-      }
-    }
-    // Corridas en z (mismo x, z consecutivos)
-    for (let x = xMin; x <= xMax; x++) {
-      let run = [];
-      for (let z = zMin; z <= zMax + 1; z++) {
-        if (z <= zMax && cellSet.has(x + ',' + z)) {
-          run.push({ x, z });
-        } else {
-          consider('z', run);
-          run = [];
-        }
-      }
-    }
-    if (!bestRun) return null;
-
-    // Las celdas que no están en el main son branches. Cada branch DEBE ser
-    // adyacente a alguna celda del main (sino el composite no tiene sentido).
-    const mainSet = new Set(bestRun.cells.map(c => c.x + ',' + c.z));
-    const branches = [];
-    for (const c of cluster) {
-      if (mainSet.has(c.x + ',' + c.z)) continue;
-      const adjacentMain = bestRun.cells.find(mc =>
-        Math.abs(mc.x - c.x) + Math.abs(mc.z - c.z) === 1
-      );
-      if (!adjacentMain) return null;
-      let axis;
-      if      (c.x === adjacentMain.x + 1) axis = '+x';
-      else if (c.x === adjacentMain.x - 1) axis = '-x';
-      else if (c.z === adjacentMain.z + 1) axis = '+z';
-      else                                 axis = '-z';
-      branches.push({ x: c.x, z: c.z, axis });
-    }
-
-    const sorted = [...cluster].sort((a, b) => a.x - b.x || a.z - b.z);
-    return {
-      mainOrientation: bestRun.orientation,
-      mainCells: bestRun.cells,
-      branches,
-      bbox: { xMin, xMax, zMin, zMax },
-      anchorX: sorted[0].x,
-      anchorZ: sorted[0].z,
-    };
-  }
-
-  // Cluster del granero — mismas topologías que las casas:
-  //   solo:      1 celda
-  //   linear:    corrida 1xN o Nx1 (lineal pura, sin vecinos perpendiculares)
-  //   square:    2x2 sólido
-  //   composite: main wing lineal + ramas single-cell perpendiculares (L o T)
-  //
-  // CUALQUIER otra topología (3x2, 4x2, L-shape grande con ramas de 2+ celdas,
-  // etc.) hace fallback a "solo" para todas las celdas. Esto es deliberado —
-  // mantenemos las formas válidas chicas y predecibles.
-  function findBarnCluster(x, z) {
-    // 1) Probar corrida lineal pura primero (igual que las casas)
-    let xMin = x, xMax = x;
-    while (xMin > 0          && world[xMin - 1][z].kind === 'barn') xMin--;
-    while (xMax < GRID - 1   && world[xMax + 1][z].kind === 'barn') xMax++;
-    let zMin = z, zMax = z;
-    while (zMin > 0          && world[x][zMin - 1].kind === 'barn') zMin--;
-    while (zMax < GRID - 1   && world[x][zMax + 1].kind === 'barn') zMax++;
-    const xLen = xMax - xMin + 1, zLen = zMax - zMin + 1;
-
-    if (xLen > 1 && zLen === 1) {
-      let pure = true;
-      for (let i = xMin; i <= xMax && pure; i++) {
-        if ((z > 0        && world[i][z - 1].kind === 'barn') ||
-            (z < GRID - 1 && world[i][z + 1].kind === 'barn')) pure = false;
-      }
-      if (pure) return { kind: 'linear', isAnchor: x === xMin, length: xLen,
-                          orientation: 'x', anchorX: xMin, anchorZ: z };
-    }
-    if (zLen > 1 && xLen === 1) {
-      let pure = true;
-      for (let j = zMin; j <= zMax && pure; j++) {
-        if ((x > 0        && world[x - 1][j].kind === 'barn') ||
-            (x < GRID - 1 && world[x + 1][j].kind === 'barn')) pure = false;
-      }
-      if (pure) return { kind: 'linear', isAnchor: z === zMin, length: zLen,
-                          orientation: 'z', anchorX: x, anchorZ: zMin };
-    }
-
-    // 2) Lineal falló → flood fill del cluster y probar 2x2 sólido o composite
-    const cluster = bfsBarnCluster(x, z);
-
-    // 2a) Square 2x2 (igual que las casas)
-    const square = trySquare(cluster);
-    if (square) {
-      return { kind: 'square',
-               isAnchor: x === square.anchorX && z === square.anchorZ,
-               anchorX: square.anchorX, anchorZ: square.anchorZ };
-    }
-
-    // 2b) Composite con main wing lineal + ramas. Reglas más permisivas que
-    //     las casas: las ramas pueden tocar otras ramas mientras todas estén
-    //     adyacentes al main. Esto permite formas como 2x2+1, U, escalones,
-    //     etc., siempre que cada celda no-main toque alguna celda del main.
-    const composite = tryBarnComposite(cluster);
-    if (composite) {
-      return { kind: 'composite',
-               isAnchor: x === composite.anchorX && z === composite.anchorZ,
-               anchorX: composite.anchorX, anchorZ: composite.anchorZ,
-               topology: composite };
-    }
-
-    // 3) Topología no soportada → cada celda como solo
-    return { kind: 'solo', isAnchor: true, anchorX: x, anchorZ: z };
-  }
-
-  // Detect a "composite" topology — a long main wing plus 1+ single-cell
-  // perpendicular branches (L-shape, T-shape, +-shape). Returns null if the
-  // cluster doesn't fit this shape (e.g. solid 2x2 square, multi-cell branches).
-  function tryComposite(cluster) {
-    if (cluster.length < 2) return null;
-    const xs = cluster.map(c => c.x), zs = cluster.map(c => c.z);
-    const xMin = Math.min(...xs), xMax = Math.max(...xs);
-    const zMin = Math.min(...zs), zMax = Math.max(...zs);
-
-    const rowCounts = {}, colCounts = {};
-    for (const c of cluster) {
-      rowCounts[c.z] = (rowCounts[c.z] || 0) + 1;
-      colCounts[c.x] = (colCounts[c.x] || 0) + 1;
-    }
-    const maxRowCount = Math.max(...Object.values(rowCounts));
-    const maxColCount = Math.max(...Object.values(colCounts));
-
-    let mainOrientation, mainAxisCoord, mainCells;
-    if (maxColCount >= maxRowCount && maxColCount >= 2) {
-      mainOrientation = 'z';
-      let bestX = null;
-      for (const x of Object.keys(colCounts).map(Number).sort((a, b) => a - b)) {
-        if (colCounts[x] === maxColCount) { bestX = x; break; }
-      }
-      mainAxisCoord = bestX;
-      mainCells = cluster.filter(c => c.x === bestX).sort((a, b) => a.z - b.z);
-    } else if (maxRowCount >= 2) {
-      mainOrientation = 'x';
-      let bestZ = null;
-      for (const z of Object.keys(rowCounts).map(Number).sort((a, b) => a - b)) {
-        if (rowCounts[z] === maxRowCount) { bestZ = z; break; }
-      }
-      mainAxisCoord = bestZ;
-      mainCells = cluster.filter(c => c.z === bestZ).sort((a, b) => a.x - b.x);
-    } else {
-      return null;
-    }
-
-    // Main wing must be a contiguous run.
-    for (let i = 1; i < mainCells.length; i++) {
-      const prev = mainCells[i - 1], cur = mainCells[i];
-      if (mainOrientation === 'z' && cur.z !== prev.z + 1) return null;
-      if (mainOrientation === 'x' && cur.x !== prev.x + 1) return null;
-    }
-
-    // Side cells = everything not in the main run. Each must be a single-cell
-    // branch attached to a main cell with no neighbouring side cell (no L-tail
-    // or 2-cell branches in this version).
-    const sideCells = cluster.filter(c =>
-      mainOrientation === 'z' ? c.x !== mainAxisCoord : c.z !== mainAxisCoord
-    );
-    const branches = [];
-    for (const sc of sideCells) {
-      const adjacentMain = mainCells.find(mc =>
-        Math.abs(mc.x - sc.x) + Math.abs(mc.z - sc.z) === 1
-      );
-      if (!adjacentMain) return null;
-      const adjacentSide = sideCells.find(o =>
-        o !== sc && Math.abs(o.x - sc.x) + Math.abs(o.z - sc.z) === 1
-      );
-      if (adjacentSide) return null;
-      let axis;
-      if      (sc.x === adjacentMain.x + 1) axis = '+x';
-      else if (sc.x === adjacentMain.x - 1) axis = '-x';
-      else if (sc.z === adjacentMain.z + 1) axis = '+z';
-      else                                  axis = '-z';
-      branches.push({ x: sc.x, z: sc.z, axis });
-    }
-
-    // Anchor: the cluster cell with smallest (x, then z). Used so only one
-    // cell renders the composite mesh; others render nothing.
-    const sorted = [...cluster].sort((a, b) => a.x - b.x || a.z - b.z);
-    const anchorX = sorted[0].x, anchorZ = sorted[0].z;
-
-    return {
-      mainOrientation,
-      mainCells,
-      branches,
-      bbox: { xMin, xMax, zMin, zMax },
-      anchorX,
-      anchorZ,
-    };
-  }
-
-  // Walk ± along x and z from (x,z) over contiguous houses. Tries linear first,
-  // then composite (L/T-shapes), then falls back to solo. Returns:
-  //   { kind: 'linear',    isAnchor, length, orientation, anchorX, anchorZ }
-  //   { kind: 'composite', isAnchor, topology }
-  //   { kind: 'solo',      isAnchor: true,   anchorX, anchorZ }
-  function findHouseCluster(x, z) {
-    let xMin = x, xMax = x;
-    while (xMin > 0          && world[xMin - 1][z].kind === 'house') xMin--;
-    while (xMax < GRID - 1   && world[xMax + 1][z].kind === 'house') xMax++;
-    let zMin = z, zMax = z;
-    while (zMin > 0          && world[x][zMin - 1].kind === 'house') zMin--;
-    while (zMax < GRID - 1   && world[x][zMax + 1].kind === 'house') zMax++;
-    const xLen = xMax - xMin + 1, zLen = zMax - zMin + 1;
-
-    if (xLen > 1 && zLen === 1) {
-      let pure = true;
-      for (let i = xMin; i <= xMax && pure; i++) {
-        if ((z > 0        && world[i][z - 1].kind === 'house') ||
-            (z < GRID - 1 && world[i][z + 1].kind === 'house')) pure = false;
-      }
-      if (pure) return { kind: 'linear', isAnchor: x === xMin, length: xLen, orientation: 'x', anchorX: xMin, anchorZ: z };
-    }
-    if (zLen > 1 && xLen === 1) {
-      let pure = true;
-      for (let j = zMin; j <= zMax && pure; j++) {
-        if ((x > 0        && world[x - 1][j].kind === 'house') ||
-            (x < GRID - 1 && world[x + 1][j].kind === 'house')) pure = false;
-      }
-      if (pure) return { kind: 'linear', isAnchor: z === zMin, length: zLen, orientation: 'z', anchorX: x, anchorZ: zMin };
-    }
-
-    // Linear failed → try square (2x2) first, then L/T composite.
-    const cluster = bfsHouseCluster(x, z);
-
-    const square = trySquare(cluster);
-    if (square) {
-      return {
-        kind: 'square',
-        isAnchor: x === square.anchorX && z === square.anchorZ,
-        anchorX: square.anchorX,
-        anchorZ: square.anchorZ,
-      };
-    }
-
-    const composite = tryComposite(cluster);
-    if (composite) {
-      return {
-        kind: 'composite',
-        isAnchor: x === composite.anchorX && z === composite.anchorZ,
-        anchorX: composite.anchorX,
-        anchorZ: composite.anchorZ,
-        topology: composite,
-      };
-    }
-
-    return { kind: 'solo', isAnchor: true, anchorX: x, anchorZ: z };
-  }
-
-  // Detect a 2x2 solid square cluster — 4 cells forming a perfect 2x2 block,
-  // anchored at the (xMin, zMin) corner. Returns null otherwise.
-  function trySquare(cluster) {
-    if (cluster.length !== 4) return null;
-    const xs = cluster.map(c => c.x), zs = cluster.map(c => c.z);
-    const xMin = Math.min(...xs), xMax = Math.max(...xs);
-    const zMin = Math.min(...zs), zMax = Math.max(...zs);
-    if (xMax - xMin !== 1 || zMax - zMin !== 1) return null;
-    const cells = new Set(cluster.map(c => c.x + ',' + c.z));
-    for (let i = xMin; i <= xMax; i++) {
-      for (let j = zMin; j <= zMax; j++) {
-        if (!cells.has(i + ',' + j)) return null;
-      }
-    }
-    return { anchorX: xMin, anchorZ: zMin };
-  }
-
-  // 4-neighbour flood fill over connected houses, used to find every cell
-  // potentially affected when a placement adds/removes a connection.
-  function bfsHouseCluster(x, z) {
-    return bfsKindCluster(x, z, 'house');
-  }
-  function bfsBarnCluster(x, z) {
-    return bfsKindCluster(x, z, 'barn');
-  }
-  function bfsKindCluster(x, z, kind) {
-    const result = [];
-    const seen = new Set();
-    const queue = [{ x, z }];
-    while (queue.length) {
-      const c = queue.shift();
-      const k = c.x + ',' + c.z;
-      if (seen.has(k)) continue;
-      seen.add(k);
-      if (c.x < 0 || c.x >= GRID || c.z < 0 || c.z >= GRID) continue;
-      if (world[c.x][c.z].kind !== kind) continue;
-      result.push(c);
-      queue.push({ x: c.x + 1, z: c.z });
-      queue.push({ x: c.x - 1, z: c.z });
-      queue.push({ x: c.x, z: c.z + 1 });
-      queue.push({ x: c.x, z: c.z - 1 });
-    }
-    return result;
-  }
-
   // -------- low-level renderers (build the actual meshes from world state) --------
   function renderCellTile(x, z, opts) {
     const { animate = true, delay = 0 } = opts || {};
@@ -2589,128 +1694,70 @@
     }
 
     const kind = world[x][z].kind;
-    if (!kind) return;
+    if (kind !== 'tree') return;            // forest-only — anything else is a no-op
 
-    let mesh = null;
-    let posX = null, posZ = null;
-    let setGridUserData = true;
-
-    if      (kind === 'tree')     mesh = makeTree();
-    else if (kind === 'tuft')     mesh = makeTuft();
-    else if (kind === 'crop')     mesh = makeCrop();
-    else if (kind === 'windmill') mesh = makeWindmill();
-    else if (kind === 'fence')    mesh = makeFence(getFenceNeighbors(x, z));
-    else if (kind === 'barn') {
-      // Sin sistema de cluster — cada granero ocupa exactamente 1 tile.
-      mesh = makeBarn(1, 1);
-    }
-    else if (kind === 'house') {
-      const cluster = findHouseCluster(x, z);
-      if (!cluster.isAnchor) return;          // non-anchor cluster cells render nothing
-      const floors = world[x][z].floors || 1;
-      if (cluster.kind === 'solo') {
-        mesh = makeHouse(floors);
-      } else if (cluster.kind === 'linear') {
-        mesh = makeStretchedHouse(cluster.length, cluster.orientation, floors);
-        // Position at cluster CENTRE (not the anchor cell), so the visible house
-        // spans the run cleanly. Skip gx/gz so pickTile falls through to whichever
-        // tile is actually under the cursor.
-        const a = tilePos(cluster.anchorX, cluster.anchorZ);
-        posX = a.x; posZ = a.z;
-        if (cluster.orientation === 'x') posX += (cluster.length - 1) * TILE / 2;
-        else                              posZ += (cluster.length - 1) * TILE / 2;
-        setGridUserData = false;
-      } else if (cluster.kind === 'composite') {
-        mesh = buildCompositeHouse(cluster.topology, floors);
-        // Position at cluster bounding-box centre so wings fall in place.
-        const t = cluster.topology;
-        posX = (t.bbox.xMin + t.bbox.xMax) / 2 - GRID / 2 + 0.5;
-        posZ = (t.bbox.zMin + t.bbox.zMax) / 2 - GRID / 2 + 0.5;
-        setGridUserData = false;
-      } else if (cluster.kind === 'square') {
-        mesh = buildSquareHouse(floors);
-        // Centre the 2x2 mesh between the four cells.
-        posX = (cluster.anchorX + 0.5) - GRID / 2 + 0.5;
-        posZ = (cluster.anchorZ + 0.5) - GRID / 2 + 0.5;
-        setGridUserData = false;
-      }
-    } else return;
-
-    if (!mesh) return;
-    if (posX === null) {
-      const p = tilePos(x, z);
-      posX = p.x; posZ = p.z;
-    }
-    mesh.position.set(posX, TOP_H, posZ);
-    if (setGridUserData) {
-      mesh.userData.gx = x;
-      mesh.userData.gz = z;
-    }
+    const cell = world[x][z];
+    const mesh = makeTree(cell.species);
+    const { xz, trunkStretch } = maturityScale(cell.maturity || 0);
+    mesh.scale.set(xz, xz, xz);
+    // Only the trunk subgroup stretches in Y; the canopy translates upward by
+    // the same world-distance so it stays glued to the new trunk top.
+    const tu = mesh.userData;
+    if (tu.trunk)  tu.trunk.scale.y = trunkStretch;
+    if (tu.canopy) tu.canopy.position.y = tu.trunkTop * (trunkStretch - 1);
+    const p = tilePos(x, z);
+    mesh.position.set(p.x, TOP_H, p.z);
+    mesh.userData.gx = x;
+    mesh.userData.gz = z;
     mesh.userData.baseY = TOP_H;
     worldGroup.add(mesh);
     entry.object = mesh;
     if (animate) animateDrop(mesh, 2.0, 0.5, delay, easeOutBack);
   }
 
+  // Two-phase tree growth:
+  //   Phase 1 (m = 0..4):  sapling → fully mature. Uniform scale ramps up.
+  //   Phase 2 (m = 5..10): only the trunk stretches in Y (gentle). The forest
+  //                        plateaus at MAX_MATURITY rather than growing
+  //                        forever — so the "fully grown" state is reachable.
+  // Cozy scale: trees feel like decorations, not towers. Phase-2 stretch is
+  // gentle and capped quickly so the forest plateaus at a homely max height.
+  const MATURITY_BASE_SCALES = [0.55, 0.7, 0.85, 1.0, 1.15];
+  const MATURITY_BASE_MAX    = MATURITY_BASE_SCALES.length - 1; // = 4
+  const TRUNK_STRETCH_STEP   = 0.10;   // each phase-2 step adds 10% trunk height
+  const MAX_MATURITY         = 7;      // ~1.3× trunk × 1.15 base = ~1.5× at the cap
+
+  function maturityScale(m) {
+    if (m <= MATURITY_BASE_MAX) {
+      return { xz: MATURITY_BASE_SCALES[m], trunkStretch: 1 };
+    }
+    const extra = m - MATURITY_BASE_MAX;
+    return {
+      xz: MATURITY_BASE_SCALES[MATURITY_BASE_MAX],
+      trunkStretch: 1 + extra * TRUNK_STRETCH_STEP,
+    };
+  }
+
   function setCell(x, z, opts) {
-    const { terrain, kind = null, floors, tileDelay = 0, objectDelay = 0, animate = true, forceTile = false } = opts;
-    const prev = world[x][z] || { terrain: null, kind: null, floors: 1 };
+    const { terrain, kind = null, species, maturity, tileDelay = 0, objectDelay = 0, animate = true, forceTile = false } = opts;
+    const prev = world[x][z] || { terrain: null, kind: null };
     const terrainChanged = prev.terrain !== terrain;
     const kindChanged    = (prev.kind || null) !== (kind || null);
-    // floors default: when placing a fresh kind, start at 1; when preserving the
-    // same kind without specifying, keep the previous value.
-    const newFloors = (floors !== undefined) ? floors
-                    : (kindChanged ? 1 : (prev.floors || 1));
-    const floorsChanged = (prev.floors || 1) !== newFloors;
-    world[x][z] = { terrain, kind: kind || null, floors: newFloors };
-
-    // For house clusters, every cell shares the floors count. Propagate to all.
-    if (kind === 'house' && floorsChanged) {
-      for (const c of bfsHouseCluster(x, z)) {
-        if (c.x !== x || c.z !== z) world[c.x][c.z].floors = newFloors;
-      }
-    }
+    const newSpecies = kind === 'tree'
+      ? (species !== undefined ? species : (kindChanged ? 'oak' : prev.species))
+      : undefined;
+    const newMaturity = kind === 'tree'
+      ? (maturity !== undefined ? maturity : (kindChanged ? 0 : (prev.maturity || 0)))
+      : undefined;
+    const speciesChanged  = (prev.species || null)  !== (newSpecies  || null);
+    const maturityChanged = (prev.maturity || 0)    !== (newMaturity || 0);
+    world[x][z] = { terrain, kind: kind || null, species: newSpecies, maturity: newMaturity };
 
     if (terrainChanged || forceTile) {
       renderCellTile(x, z, { animate, delay: tileDelay });
     }
-    if (!kindChanged && !floorsChanged) return;
-
-    // The "primary" cell is whichever cell's mesh visually represents the change.
-    // For house placements that join/extend a cluster, that's the cluster anchor —
-    // not the click cell, since the click cell may render nothing.
-    let primaryX = x, primaryZ = z;
-    if (kind === 'house') {
-      const c = findHouseCluster(x, z);
-      primaryX = c.anchorX; primaryZ = c.anchorZ;
-    }
-
-    // Collect every cell whose rendered mesh might need to change: this cell,
-    // its 4 neighbours, AND every house connected to those (so a cluster
-    // split across multiple cells refreshes correctly).
-    const toRefresh = new Map();
-    toRefresh.set(x + ',' + z, { x, z });
-    if (world[x][z].kind === 'house') {
-      for (const c of bfsHouseCluster(x, z)) toRefresh.set(c.x + ',' + c.z, c);
-    }
-    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = x + dx, nz = z + dz;
-      if (nx < 0 || nx >= GRID || nz < 0 || nz >= GRID) continue;
-      const nk = world[nx][nz].kind;
-      if (nk === 'fence') {
-        toRefresh.set(nx + ',' + nz, { x: nx, z: nz });
-      } else if (nk === 'house') {
-        for (const c of bfsHouseCluster(nx, nz)) toRefresh.set(c.x + ',' + c.z, c);
-      }
-    }
-
-    for (const c of toRefresh.values()) {
-      const isPrimary = c.x === primaryX && c.z === primaryZ;
-      renderCellObject(c.x, c.z, {
-        animate: animate && isPrimary,
-        delay:   isPrimary ? objectDelay : 0,
-      });
-    }
+    if (!kindChanged && !speciesChanged && !maturityChanged) return;
+    renderCellObject(x, z, { animate, delay: objectDelay });
   }
 
   function disposeGroup(group) {
@@ -2720,8 +1767,9 @@
   }
 
   // -------- initial scene (matches the reference image) --------
+  // Lay an empty grass field. Trees only appear via auto-growth (driven by
+  // Claude Code token usage); nothing is preset.
   function loadInitialScene() {
-    // Wipe any existing meshes + animation state so a Reset re-plays the drop.
     for (const key in cellMeshes) {
       const e = cellMeshes[key];
       if (e.tile) { worldGroup.remove(e.tile); disposeGroup(e.tile); }
@@ -2733,447 +1781,42 @@
         world[x][z] = { terrain: null, kind: null, floors: 1 };
     dropAnims.length = 0;
 
-    // Build the layout in one shot so each cell only animates once.
-    const layout = {};
-    for (let x = 0; x < GRID; x++)
-      for (let z = 0; z < GRID; z++)
-        layout[x + ',' + z] = { terrain: 'grass', kind: null };
-
-    layout['2,3'] = { terrain: 'grass', kind: 'house' };
-    for (let z = 4; z < GRID; z++) layout['2,' + z] = { terrain: 'path', kind: null };
-    layout['0,5'] = { terrain: 'grass', kind: 'tree' };
-    layout['5,1'] = { terrain: 'grass', kind: 'tree' };
-    for (let cx = 5; cx <= 6; cx++)
-      for (let cz = 4; cz <= 5; cz++)
-        layout[cx + ',' + cz] = { terrain: 'dirt', kind: 'crop' };
-    layout['4,4'] = { terrain: 'grass', kind: 'fence' };
-    layout['4,5'] = { terrain: 'grass', kind: 'fence' };
-    layout['5,3'] = { terrain: 'grass', kind: 'fence' };
-    layout['6,3'] = { terrain: 'grass', kind: 'fence' };
-    layout['1,6'] = { terrain: 'grass', kind: 'tuft' };
-    layout['4,6'] = { terrain: 'grass', kind: 'tuft' };
-    layout['0,2'] = { terrain: 'grass', kind: 'tuft' };
-    layout['6,7'] = { terrain: 'grass', kind: 'tuft' };
-
-    // Diagonal sweep — small (x+z) lands first, far corner lands last.
-    // Objects land slightly after their tile so it feels like layers stacking.
+    // Diagonal stagger: tiles drop in from the near corner to the far corner.
     const TILE_STAGGER = 0.035;
-    const OBJECT_OFFSET = 0.22;
     for (let x = 0; x < GRID; x++) {
       for (let z = 0; z < GRID; z++) {
-        const cell = layout[x + ',' + z];
-        const baseDelay = (x + z) * TILE_STAGGER;
         setCell(x, z, {
-          terrain: cell.terrain,
-          kind: cell.kind,
-          tileDelay: baseDelay,
-          objectDelay: baseDelay + OBJECT_OFFSET,
+          terrain: 'grass', kind: null,
+          tileDelay: (x + z) * TILE_STAGGER,
         });
       }
     }
   }
 
-  // -------- hover indicator --------
-  const hoverGeo = roundedSlab(TILE * 1.0, 0.04, 0.07);
-  const hoverMesh = new THREE.Mesh(hoverGeo, M.hover);
-  hoverMesh.position.y = TOP_H + 0.01;
-  hoverMesh.visible = false;
-  scene.add(hoverMesh);
 
-  let currentHover = null;
-
-  // -------- raycaster --------
-  const raycaster = new THREE.Raycaster();
-  const ndc = new THREE.Vector2();
-
-  function pickTile(clientX, clientY) {
-    ndc.x = (clientX / window.innerWidth) * 2 - 1;
-    ndc.y = -(clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(ndc, camera);
-    const hits = raycaster.intersectObjects(worldGroup.children, true);
-    for (const h of hits) {
-      let n = h.object;
-      while (n && (n.userData.gx === undefined)) n = n.parent;
-      if (n && n.userData.gx !== undefined) return { x: n.userData.gx, z: n.userData.gz };
-    }
-    return null;
-  }
-
-  // -------- tools --------
-  const TOOLS = [
-    { id: 'grass',  label: 'Grass',  terrain: 'grass', color: '#9ec74b' },
-    { id: 'path',   label: 'Path',   terrain: 'path',  color: '#e8d5a8' },
-    { id: 'dirt',   label: 'Dirt',   terrain: 'dirt',  color: '#5a3b27' },
-    { id: 'water',  label: 'Water',  terrain: 'water', color: '#4a90c2' },
-    { id: 'house',  label: 'House',  kind: 'house', color: '#3a72c8' },
-    { id: 'barn',   label: 'Barn',   kind: 'barn',  color: '#a83828' },
-    { id: 'tree',   label: 'Tree',   kind: 'tree',  color: '#6fb442' },
-    { id: 'fence',  label: 'Fence',  kind: 'fence', color: '#8a5a3b' },
-    { id: 'crop',   label: 'Crop',   kind: 'crop',  terrainOverride: 'dirt', color: '#86c544' },
-    { id: 'tuft',   label: 'Tuft',   kind: 'tuft',  color: '#86b53e' },
-    { id: 'mill',   label: 'Mill',   kind: 'windmill', color: '#e8dfc8' },
-    { id: 'erase',  label: 'Erase',  erase: true, color: 'transparent', eraser: true },
-  ];
-
-  let selectedTool = TOOLS[8]; // start on Crop — matches the first goal
-
-  function buildToolbar() {
-    const bar = document.getElementById('toolbar');
-    bar.innerHTML = '';
-    TOOLS.forEach((t, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'tool';
-      btn.dataset.id = t.id;
-      const swatch = document.createElement('div');
-      swatch.className = 'swatch' + (t.eraser ? ' eraser' : '');
-      if (!t.eraser) swatch.style.background = t.color;
-      btn.appendChild(swatch);
-      const lbl = document.createElement('span');
-      lbl.textContent = t.label;
-      btn.appendChild(lbl);
-      const k = document.createElement('kbd');
-      k.textContent = i < 9 ? String(i + 1) : 'E';
-      btn.appendChild(k);
-      btn.addEventListener('click', () => selectTool(t));
-      if (t === selectedTool) btn.classList.add('active');
-      bar.appendChild(btn);
-    });
-  }
-
-  // Sin toolbar inferior — el catálogo es la UI principal.
-  function buildToolbar() {}
-
-  // -------- catálogo: panel lateral con previews 3D --------
-  // Categorías para organizar el panel
-  const CATEGORIES = [
-    { id: 'terrain',    label: 'Terrain',     ids: ['grass', 'path', 'dirt', 'water'] },
-    { id: 'buildings',  label: 'Buildings',   ids: ['house', 'barn', 'mill'] },
-    { id: 'vegetation', label: 'Vegetation',  ids: ['tree', 'crop', 'tuft'] },
-    { id: 'other',      label: 'Other',       ids: ['fence', 'erase'] },
-  ];
-
-  // Usamos UN único WebGLRenderer offscreen para todos los previews.
-  // preserveDrawingBuffer=true es CRÍTICO: sin esto, cuando hacemos
-  // ctx.drawImage(previewRenderer.domElement, ...) el navegador puede haber
-  // limpiado el buffer entre el render y el copy, dejando los canvas de los
-  // items en blanco.
-  const previewRenderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true,
-    preserveDrawingBuffer: true,
-  });
-  previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  previewRenderer.setSize(120, 120);
-  previewRenderer.outputEncoding = THREE.sRGBEncoding;
-
-  const previewItems = [];   // [{ tool, scene, camera, group, canvas, ctx }]
-
-  function makePreviewScene(tool) {
-    const scn = new THREE.Scene();
-
-    // Luz fuerte para que se vean los objetos sin sombras complicadas.
-    // Los previews son pequeños, mejor sobre-iluminar.
-    const hemi = new THREE.HemisphereLight(0xffffff, 0xb39879, 0.8);
-    scn.add(hemi);
-    const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-    sun.position.set(3, 5, 2);
-    scn.add(sun);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.4);
-    fill.position.set(-2, 3, -2);
-    scn.add(fill);
-
-    // Cada preview tiene una tile de hierba como suelo, idéntica al juego
-    const baseTile = makeTile('grass');
-    baseTile.position.y = 0;
-    scn.add(baseTile);
-
-    // El mesh del item, encima del tile. Para terrenos puros (grass/path/dirt/
-    // water), el tile YA es el preview, así que no añadimos nada encima.
-    const group = new THREE.Group();
-    group.position.y = TOP_H;
-    let placedMesh = null;
-
-    if (tool.kind === 'tree')          placedMesh = makeTree();
-    else if (tool.kind === 'tuft')     placedMesh = makeTuft();
-    else if (tool.kind === 'crop')     placedMesh = makeCrop();
-    else if (tool.kind === 'fence')    placedMesh = makeFence({});
-    else if (tool.kind === 'windmill') placedMesh = makeWindmill();
-    else if (tool.kind === 'barn')     placedMesh = makeBarn(1, 1);
-    else if (tool.kind === 'house')    placedMesh = makeHouse(1);
-    else if (tool.terrain) {
-      // Terreno: el tile del preview es el item, así que reemplazamos el base
-      scn.remove(baseTile);
-      const newTile = makeTile(tool.terrain);
-      scn.add(newTile);
-    }
-
-    if (placedMesh) group.add(placedMesh);
-    scn.add(group);
-
-    // Cámara en perspectiva isométrica, mirando al origen. Encuadre más
-    // cerrado para que el objeto ocupe gran parte del disco.
-    const cam = new THREE.PerspectiveCamera(28, 1, 0.1, 50);
-    const r = 2.8;
-    const az = Math.PI * 0.25, po = Math.PI * 0.38;
-    cam.position.set(
-      r * Math.sin(po) * Math.cos(az),
-      r * Math.cos(po) + 0.3,
-      r * Math.sin(po) * Math.sin(az)
-    );
-    cam.lookAt(0, 0.35, 0);
-
-    return { scene: scn, camera: cam, group };
-  }
-
-  // -------- Sims-style bottom dock --------
-  // Tabs select a category; items for the active category are visible, the
-  // rest are display:none. Every item keeps its 3D preview canvas alive so
-  // switching tabs feels instant.
-  let activeCategory = 'buildings';
-
-  function buildCatalog() {
-    const tabsEl = document.getElementById('dockTabs');
-    const itemsEl = document.getElementById('dockItems');
-    if (!tabsEl || !itemsEl) return;
-    tabsEl.innerHTML = '';
-    itemsEl.innerHTML = '';
-    previewItems.length = 0;
-
-    for (const cat of CATEGORIES) {
-      const tab = document.createElement('button');
-      tab.className = 'dock-tab';
-      tab.textContent = cat.label;
-      tab.dataset.cat = cat.id;
-      tab.addEventListener('click', () => switchCategory(cat.id));
-      tabsEl.appendChild(tab);
-    }
-
-    for (const cat of CATEGORIES) {
-      for (const id of cat.ids) {
-        const tool = TOOLS.find(t => t.id === id);
-        if (!tool) continue;
-
-        const item = document.createElement('button');
-        item.className = 'dock-item' + (tool.eraser ? ' eraser' : '');
-        item.dataset.id = tool.id;
-        item.dataset.cat = cat.id;
-        if (tool === selectedTool) item.classList.add('active');
-
-        const disc = document.createElement('div');
-        disc.className = 'disc';
-        const canvas = document.createElement('canvas');
-        canvas.width = 120;
-        canvas.height = 120;
-        disc.appendChild(canvas);
-        item.appendChild(disc);
-
-        const name = document.createElement('span');
-        name.className = 'name';
-        name.textContent = tool.label;
-        item.appendChild(name);
-
-        // Cost chip (top-right): price in coins; turns red when unaffordable.
-        const cost = COSTS[tool.kind];
-        if (cost) {
-          const chip = document.createElement('span');
-          chip.className = 'cost';
-          chip.dataset.cost = cost;
-          chip.textContent = cost + '🪙';
-          item.appendChild(chip);
-        }
-
-        // Limit chip (top-left): currently only trees show "have/cap".
-        // The chip element is always present so updateDockLimits can fill it.
-        if (tool.kind === 'tree') {
-          const limit = document.createElement('span');
-          limit.className = 'limit tree-limit';
-          limit.textContent = '0/0';
-          item.appendChild(limit);
-        }
-
-        item.addEventListener('click', () => selectTool(tool));
-        itemsEl.appendChild(item);
-
-        if (!tool.eraser) {
-          const { scene: scn, camera: cam, group } = makePreviewScene(tool);
-          const ctx = canvas.getContext('2d');
-          previewItems.push({ tool, scene: scn, camera: cam, group, canvas, ctx });
-        }
-      }
-    }
-
-    switchCategory(activeCategory);
-  }
-
-  function switchCategory(catId) {
-    activeCategory = catId;
-    document.querySelectorAll('.dock-tab').forEach(el => {
-      el.classList.toggle('active', el.dataset.cat === catId);
-    });
-    document.querySelectorAll('.dock-item').forEach(el => {
-      el.style.display = (el.dataset.cat === catId) ? '' : 'none';
-    });
-  }
-
-  // The dock is always visible, so we always render previews. The shared
-  // offscreen renderer is reused once per item per frame.
-  function tickCatalogPreviews(t) {
-    for (const item of previewItems) {
-      item.group.rotation.y = t * 0.4;
-      previewRenderer.render(item.scene, item.camera);
-      const src = previewRenderer.domElement;
-      item.ctx.clearRect(0, 0, item.canvas.width, item.canvas.height);
-      try {
-        item.ctx.drawImage(src, 0, 0, item.canvas.width, item.canvas.height);
-      } catch (err) { /* ignore intermittent WebGL state errors */ }
-    }
-  }
-
-  function updateCatalogActive() {
-    document.querySelectorAll('.dock-item').forEach(el => {
-      el.classList.toggle('active', el.dataset.id === selectedTool.id);
-    });
-    // Auto-switch tabs so the active item is visible after a keyboard shortcut
-    const activeEl = document.querySelector('.dock-item.active');
-    if (activeEl && activeEl.dataset.cat && activeEl.dataset.cat !== activeCategory) {
-      switchCategory(activeEl.dataset.cat);
-    }
-  }
-
-  function selectTool(t) {
-    selectedTool = t;
-    updateCatalogActive();
-    hoverMesh.material = t.erase ? M.hoverErase : M.hover;
-  }
-
-  // -------- click → place / erase --------
-  let lastClickPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-
-  function applyTool(x, z) {
-    // Don't touch the world during combat — clicks shoot, not place.
-    if (typeof COMBAT !== 'undefined' && COMBAT.active) return;
-    const cell = world[x][z];
-    const key = x + ',' + z;
-
-    // Harvest-first: a click on a ready cell collects, regardless of tool —
-    // except the eraser, which is meant to destroy whatever's there.
-    if (!selectedTool.erase && isReady(key)) {
-      harvestAt(x, z, lastClickPos.x, lastClickPos.y);
-      return;
-    }
-
-    if (selectedTool.erase) {
-      if (cell.kind) {
-        unregisterHarvest(x, z);
-        setCell(x, z, { terrain: cell.terrain, kind: null });
-      } else if (cell.terrain !== 'grass') {
-        setCell(x, z, { terrain: 'grass', kind: null });
-      }
-      updateHud(); checkGoals();
-      return;
-    }
-
-    // Don't re-plant on top of a growing harvestable cell — show timer instead.
-    // This stops accidental re-clicks from wasting coins on a cell that's
-    // already mid-cycle.
-    if (cell.kind && HARVEST[cell.kind] && harvestState.has(key)) {
-      const st = harvestState.get(key);
-      const cfg = HARVEST[cell.kind];
-      const remain = Math.max(0, Math.ceil(cfg.growSec - (performance.now() / 1000 - st.plantedAt)));
-      showFloatAt(lastClickPos.x, lastClickPos.y, remain + 's…', '#8a847a');
-      return;
-    }
-
-    if (selectedTool.kind) {
-      // Hard cap on trees (Sims-style: limited by housing) so the loop
-      // requires balancing forestry against settlement.
-      if (selectedTool.kind === 'tree' && countKind('tree') >= treeCap()) {
-        showToast('Tree limit ' + treeCap() + ' — build more houses!', '🌳');
-        return;
-      }
-      if (!canAfford(selectedTool)) {
-        showToast('Not enough 🪙 — harvest crops!', '⚠️');
-        return;
-      }
-      payFor(selectedTool);
-      const newTerrain = selectedTool.terrainOverride || cell.terrain;
-      setCell(x, z, { terrain: newTerrain, kind: selectedTool.kind });
-      onPlace(selectedTool, x, z, lastClickPos.x, lastClickPos.y);
-      updateHud(); checkGoals();
-      return;
-    }
-    if (selectedTool.terrain) {
-      setCell(x, z, { terrain: selectedTool.terrain, kind: cell.kind, floors: cell.floors });
-    }
-  }
-
-  // -------- input: drag-to-orbit + click-to-place --------
-  let pointerDown = null;     // {x, y}
+  // -------- input: drag-to-orbit, scroll-to-zoom (passive game: no clicks) --------
+  let pointerDown = null;
   let lastPointer = null;
-  let didDrag = false;
-  const DRAG_THRESHOLD = 5;
 
   renderer.domElement.addEventListener('pointerdown', e => {
-    // En modo walk dejamos pasar para que el sistema de "look drag" del modo
-    // walk lo maneje. Pero también permitimos colocar items: si el toque no
-    // se mueve (no es un drag), al soltarlo aplicamos la herramienta sobre el
-    // tile que apunta el personaje.
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     pointerDown = { x: e.clientX, y: e.clientY };
     lastPointer = { x: e.clientX, y: e.clientY };
-    didDrag = false;
     renderer.domElement.classList.add('dragging');
     renderer.domElement.setPointerCapture(e.pointerId);
   });
 
   renderer.domElement.addEventListener('pointermove', e => {
-    if (fpsActive) return; // En FPS el hover se actualiza en tickFps
-    // hover update always
-    const cell = pickTile(e.clientX, e.clientY);
-    if (cell) {
-      const p = tilePos(cell.x, cell.z);
-      hoverMesh.position.set(p.x, TOP_H + 0.02, p.z);
-      hoverMesh.visible = true;
-      currentHover = cell;
-    } else {
-      hoverMesh.visible = false;
-      currentHover = null;
-    }
-
-    if (pointerDown) {
-      const dx = e.clientX - pointerDown.x;
-      const dy = e.clientY - pointerDown.y;
-      if (!didDrag && Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) didDrag = true;
-      if (didDrag) {
-        const ddx = e.clientX - lastPointer.x;
-        const ddy = e.clientY - lastPointer.y;
-        targetAzimuth -= ddx * 0.005;
-        targetPolar = Math.max(0.18, Math.min(1.25, targetPolar - ddy * 0.004));
-      }
-      lastPointer = { x: e.clientX, y: e.clientY };
-    }
+    if (!pointerDown) return;
+    const ddx = e.clientX - lastPointer.x;
+    const ddy = e.clientY - lastPointer.y;
+    targetAzimuth -= ddx * 0.005;
+    targetPolar = Math.max(0.18, Math.min(1.25, targetPolar - ddy * 0.004));
+    lastPointer = { x: e.clientX, y: e.clientY };
   });
 
-  renderer.domElement.addEventListener('pointerup', e => {
+  renderer.domElement.addEventListener('pointerup', () => {
     renderer.domElement.classList.remove('dragging');
-    if (fpsActive) {
-      // En modo walk: si el toque fue un tap (no drag) y hay tile bajo el
-      // personaje, aplicamos la herramienta seleccionada en el tile DELANTE
-      // del personaje (a 1 paso adelante).
-      if (pointerDown && Math.abs(e.clientX - pointerDown.x) + Math.abs(e.clientY - pointerDown.y) < DRAG_THRESHOLD) {
-        if (currentHover) {
-          lastClickPos = { x: e.clientX, y: e.clientY };
-          applyTool(currentHover.x, currentHover.z);
-        }
-      }
-      pointerDown = null;
-      lastPointer = null;
-      return;
-    }
-    if (pointerDown && !didDrag && currentHover) {
-      lastClickPos = { x: e.clientX, y: e.clientY };
-      applyTool(currentHover.x, currentHover.z);
-    }
     pointerDown = null;
     lastPointer = null;
   });
@@ -3184,112 +1827,75 @@
   });
 
   renderer.domElement.addEventListener('wheel', e => {
-    if (fpsActive) return; // wheel del modo walk se maneja aparte
     e.preventDefault();
     const delta = Math.max(-100, Math.min(100, e.deltaY));
-    targetViewSize = Math.max(5, Math.min(22, targetViewSize + delta * 0.015));
+    targetViewSize = Math.max(4, Math.min(15, targetViewSize + delta * 0.015));
   }, { passive: false });
 
-  // keyboard shortcuts (sólo cuando NO estamos en modo FPS)
-  window.addEventListener('keydown', e => {
-    if (fpsActive) return;
-    if (e.target.tagName === 'INPUT') return;
-    const k = e.key.toLowerCase();
-    if (k >= '1' && k <= '9') {
-      const idx = parseInt(k, 10) - 1;
-      if (TOOLS[idx]) selectTool(TOOLS[idx]);
-    } else if (k === 'e') selectTool(TOOLS[11]);
-    else if (k === 'r') doReset();
-    else if (k === 'c') doClear();
-  });
 
-  // Helper: solo añade el listener si el elemento existe
-  function on(id, event, handler) {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener(event, handler);
+
+  // -------- butterflies --------
+  // A handful of butterflies on elliptical orbits over the forest. Each one
+  // has its own centre, radii, speed, and bobbing height, so the group never
+  // looks synchronised.
+  const butterflies = [];
+  const BUTTERFLY_MATS = [M.butterflyA, M.butterflyB, M.butterflyC, M.butterflyD];
+
+  function makeButterfly() {
+    const g = new THREE.Group();
+    const mat = BUTTERFLY_MATS[Math.floor(Math.random() * BUTTERFLY_MATS.length)];
+    const wingL = new THREE.Mesh(roundedBox(0.10, 0.015, 0.08, 0.03), mat);
+    const wingR = new THREE.Mesh(roundedBox(0.10, 0.015, 0.08, 0.03), mat);
+    // Wings hinge along the body (x = 0).
+    wingL.geometry.translate(-0.05, 0, 0);
+    wingR.geometry.translate( 0.05, 0, 0);
+    g.add(wingL);
+    g.add(wingR);
+    g.userData = { wingL, wingR };
+    return g;
   }
 
-  on('reset', 'click', doReset);
-  on('clear', 'click', doClear);
-
-  function doReset() {
-    loadInitialScene();
-    if (typeof resetEcon === 'function') resetEcon();
-  }
-  function doClear() {
-    const TILE_STAGGER = 0.022;
-    for (let x = 0; x < GRID; x++)
-      for (let z = 0; z < GRID; z++)
-        setCell(x, z, {
-          terrain: 'grass',
-          kind: null,
-          tileDelay: (x + z) * TILE_STAGGER,
-          forceTile: true,
-        });
-    if (typeof resetEcon === 'function') resetEcon();
-  }
-
-  // -------- chimney smoke --------
-  const smokeMat = new THREE.MeshBasicMaterial({ color: 0xd4cfc2, transparent: true, opacity: 0.65, depthWrite: false });
-  const smokeGeo = new THREE.SphereGeometry(0.06, 6, 6);
-  const smokeParticles = [];
-
-  function spawnSmoke(houseObj) {
-    const tops = houseObj.userData.chimneyTops
-      || (houseObj.userData.chimneyTop ? [houseObj.userData.chimneyTop] : []);
-    for (const top of tops) {
-      const s = new THREE.Mesh(smokeGeo, smokeMat.clone());
-      s.position.set(
-        houseObj.position.x + top.x + (Math.random() - 0.5) * 0.02,
-        houseObj.position.y + top.y,
-        houseObj.position.z + top.z + (Math.random() - 0.5) * 0.02
-      );
-      s.userData = {
-        life: 0,
-        maxLife: 2.4 + Math.random() * 0.6,
-        vy: 0.45 + Math.random() * 0.2,
-        vx: (Math.random() - 0.5) * 0.15,
-        vz: (Math.random() - 0.5) * 0.15,
-      };
-      scene.add(s);
-      smokeParticles.push(s);
+  function spawnButterflies(n = 5) {
+    for (let i = 0; i < n; i++) {
+      const b = makeButterfly();
+      const u = b.userData;
+      u.cx = (Math.random() - 0.5) * GRID * 0.3;
+      u.cz = (Math.random() - 0.5) * GRID * 0.3;
+      u.rx = 1.8 + Math.random() * 2.2;
+      u.rz = 1.8 + Math.random() * 2.2;
+      u.speed = 0.18 + Math.random() * 0.18;
+      u.phase = Math.random() * Math.PI * 2;
+      u.heightBase = 2.2 + Math.random() * 1.2;
+      u.heightAmp  = 0.3 + Math.random() * 0.4;
+      u.flapPhase  = Math.random() * Math.PI * 2;
+      scene.add(b);
+      butterflies.push(b);
     }
   }
 
-  function updateSmoke(dt) {
-    for (let i = smokeParticles.length - 1; i >= 0; i--) {
-      const s = smokeParticles[i];
-      s.userData.life += dt;
-      const t = s.userData.life / s.userData.maxLife;
-      s.position.y += s.userData.vy * dt;
-      s.position.x += s.userData.vx * dt;
-      s.position.z += s.userData.vz * dt;
-      s.material.opacity = (1 - t) * 0.65;
-      const sc = 1 + t * 1.4;
-      s.scale.set(sc, sc, sc);
-      if (t >= 1) {
-        scene.remove(s);
-        s.material.dispose();
-        smokeParticles.splice(i, 1);
-      }
+  function tickButterflies(t) {
+    for (const b of butterflies) {
+      const u = b.userData;
+      const a = t * u.speed + u.phase;
+      b.position.x = u.cx + Math.cos(a) * u.rx;
+      b.position.z = u.cz + Math.sin(a) * u.rz;
+      b.position.y = u.heightBase + Math.sin(t * 1.8 + u.phase) * u.heightAmp;
+      b.rotation.y = -a + Math.PI / 2;
+      const flap = Math.sin(t * 16 + u.flapPhase) * 0.7;
+      u.wingL.rotation.y =  flap;
+      u.wingR.rotation.y = -flap;
     }
   }
 
   // -------- animation loop --------
   let prevT = 0;
-  let smokeTimer = 0;
   function animate(now) {
     requestAnimationFrame(animate);
     const t = now / 1000;
     const dt = prevT ? Math.min(t - prevT, 0.05) : 0;
     prevT = t;
 
-    // Suavizado de cámara: interpola valores renderizados hacia los targets.
-    // Usamos exponential smoothing dependiente de dt para que el resultado
-    // sea independiente del framerate. El factor efectivo en cada frame es
-    // 1 - exp(-damping_rate * dt), que tiende al damping constante cuando
-    // dt ≈ 1/60. snap final cuando estamos suficientemente cerca para evitar
-    // que el render se rerenderice indefinidamente por diferencias ínfimas.
+    // Camera smoothing — exponential damping that's framerate-independent.
     const orbitRate = -Math.log(1 - ORBIT_DAMPING) * 60;
     const zoomRate  = -Math.log(1 - ZOOM_DAMPING)  * 60;
     const orbitK = 1 - Math.exp(-orbitRate * dt);
@@ -3307,48 +1913,22 @@
     else if (viewSize !== targetViewSize) { viewSize = targetViewSize; onResize(); }
     if (cameraDirty) updateCamera();
 
-    // tile/object drop-in animations (load + placement)
+    // Tile/object drop-in animations (replay on load, fresh plantings).
     if (dropAnims.length) tickDropAnims(dt);
 
-    // sway trees / bob crops / wiggle tufts
+    // Tree sway — only kind we render now.
     for (const key in cellMeshes) {
       const obj = cellMeshes[key].object;
       if (!obj) continue;
-      const k = obj.userData.kind;
-      if (k === 'tree') {
+      if (obj.userData.kind === 'tree') {
         obj.rotation.z = Math.sin(t * 0.85 + obj.userData.swayPhase) * 0.022;
         obj.rotation.x = Math.cos(t * 0.65 + obj.userData.swayPhase) * 0.012;
-      } else if (k === 'crop') {
-        if (!obj.userData.landing)
-          obj.position.y = obj.userData.baseY + Math.sin(t * 1.6 + obj.userData.bobPhase) * 0.03;
-      } else if (k === 'tuft') {
-        obj.rotation.z = Math.sin(t * 1.2 + (obj.userData.gx + obj.userData.gz)) * 0.05;
-      } else if (k === 'windmill') {
-        // Las aspas giran sobre su propio eje Z local (perpendicular al techo)
-        obj.userData.blades.rotation.z = t * obj.userData.spinSpeed;
       }
     }
 
-    // chimney smoke — skip while the house is still landing (origin would be airborne)
-    smokeTimer += dt;
-    if (smokeTimer > 0.18) {
-      smokeTimer = 0;
-      for (const key in cellMeshes) {
-        const o = cellMeshes[key].object;
-        if (o && o.userData.kind === 'house' && !o.userData.landing) spawnSmoke(o);
-      }
-    }
-    updateSmoke(dt);
+    tickButterflies(t);
 
-    // Switch camera based on mode: combat/walk uses the third-person fpsCam,
-    // otherwise the orbital build camera.
-    if (fpsActive) tickFps(dt);
-    if (typeof tickCombat === 'function') tickCombat(dt);
-    const renderCam = fpsActive ? fpsCam : camera;
-    renderer.render(scene, renderCam);
-
-    tickCatalogPreviews(t);
-    if (typeof tickHarvest === 'function') tickHarvest(t);
+    renderer.render(scene, camera);
   }
 
   // -------- resize --------
@@ -3359,783 +1939,16 @@
     persCam.aspect = aspect;
     persCam.updateProjectionMatrix();
 
-    fpsCam.aspect = aspect;
-    fpsCam.updateProjectionMatrix();
-
     renderer.setSize(w, h);
     updateCamera();
   }
   window.addEventListener('resize', onResize);
 
-  // -------- modo FPS: lógica de control --------
-  // Verifica si una posición (cx, cz) en mundo colisiona con algún edificio o
-  // valla. Tratamos cada celda como un AABB cuya extensión depende del kind:
-  //   - house, barn, mill, tree (tronco), fence: bloqueantes
-  //   - terrain water: bloqueante (no se camina sobre agua)
-  //   - todo lo demás: caminable
-  // Recibe coordenadas mundo y devuelve true si hay colisión.
-  function fpsCollides(cx, cz) {
-    // De coordenadas mundo a grid: invertimos tilePos()
-    const gx = Math.floor(cx + GRID / 2);
-    const gz = Math.floor(cz + GRID / 2);
-    // Fuera del mapa: bloqueamos para que el jugador no se vaya al infinito
-    if (gx < 0 || gx >= GRID || gz < 0 || gz >= GRID) return true;
 
-    const cell = world[gx][gz];
-    if (cell.terrain === 'water') return true;
-
-    const k = cell.kind;
-    if (!k) return false;
-
-    // Para edificios y árboles, tratamos toda la celda como bloqueada (con un
-    // pequeño margen para que la pared no esté justo en el borde del tile).
-    if (k === 'house' || k === 'barn' || k === 'windmill') return true;
-    if (k === 'tree') {
-      // El tronco es chico — bloqueamos solo si estamos cerca del centro del tile
-      const cellCx = gx - GRID / 2 + 0.5;
-      const cellCz = gz - GRID / 2 + 0.5;
-      const dx = cx - cellCx, dz = cz - cellCz;
-      return Math.sqrt(dx * dx + dz * dz) < 0.30;
-    }
-    if (k === 'fence') return true;
-    // crop, tuft: caminable
-    return false;
-  }
-
-  // Mueve el jugador `dx, dz` con sliding contra colisiones. La técnica es
-  // mover cada eje por separado: si el movimiento en X colisiona, anulamos solo
-  // ese componente y dejamos pasar el Z. Esto permite deslizarse a lo largo de
-  // las paredes en lugar de quedarse pegado.
-  function fpsTryMove(dx, dz) {
-    const r = fpsState.radius;
-    let nx = fpsState.pos.x + dx;
-    // Probamos las 4 esquinas del bounding circle para el nuevo X
-    if (!fpsCollides(nx + r, fpsState.pos.z + r) &&
-        !fpsCollides(nx + r, fpsState.pos.z - r) &&
-        !fpsCollides(nx - r, fpsState.pos.z + r) &&
-        !fpsCollides(nx - r, fpsState.pos.z - r)) {
-      fpsState.pos.x = nx;
-    }
-    let nz = fpsState.pos.z + dz;
-    if (!fpsCollides(fpsState.pos.x + r, nz + r) &&
-        !fpsCollides(fpsState.pos.x + r, nz - r) &&
-        !fpsCollides(fpsState.pos.x - r, nz + r) &&
-        !fpsCollides(fpsState.pos.x - r, nz - r)) {
-      fpsState.pos.z = nz;
-    }
-  }
-
-  // Encuentra un tile inicial caminable cercano al centro. Spawneamos al
-  // jugador ahí cuando entra al modo FPS.
-  function findFpsSpawn() {
-    // Probamos tiles en espiral desde el centro
-    const cx = Math.floor(GRID / 2), cz = Math.floor(GRID / 2);
-    for (let r = 0; r < GRID; r++) {
-      for (let dx = -r; dx <= r; dx++) {
-        for (let dz = -r; dz <= r; dz++) {
-          if (Math.abs(dx) !== r && Math.abs(dz) !== r) continue;
-          const x = cx + dx, z = cz + dz;
-          if (x < 0 || x >= GRID || z < 0 || z >= GRID) continue;
-          const cell = world[x][z];
-          if (cell.terrain !== 'water' && !cell.kind) {
-            return { x, z };
-          }
-        }
-      }
-    }
-    return { x: cx, z: cz };
-  }
-
-  function enterFps() {
-    if (fpsActive) return;
-    fpsActive = true;
-    const spawn = findFpsSpawn();
-    const p = tilePos(spawn.x, spawn.z);
-    fpsState.pos.set(p.x, TOP_H, p.z);
-    fpsState.yaw = 0;
-    fpsState.velocityY = 0;
-    fpsState.onGround = true;
-    fpsState.camYaw = 0;
-    fpsState.camPitch = 0.55;
-    player.visible = true;
-
-    document.getElementById('fpsOverlay').classList.add('active');
-    document.getElementById('walk').classList.add('on');
-    hoverMesh.visible = false;
-
-    // Joystick + botón de salto en touch
-    if ('ontouchstart' in window) {
-      document.getElementById('fpsJoystick').classList.add('show');
-      document.getElementById('fpsJumpBtn').classList.add('show');
-    }
-  }
-
-  function exitFps() {
-    if (!fpsActive) return;
-    fpsActive = false;
-    player.visible = false;
-    document.getElementById('fpsOverlay').classList.remove('active');
-    document.getElementById('walk').classList.remove('on');
-    document.getElementById('fpsJoystick').classList.remove('show');
-    document.getElementById('fpsJumpBtn').classList.remove('show');
-    // Reset input
-    fpsState.keys.w = fpsState.keys.a = fpsState.keys.s = fpsState.keys.d = false;
-    fpsState.keys.shift = false;
-    fpsState.touchMove.x = fpsState.touchMove.y = 0;
-  }
-
-  function toggleFps() { fpsActive ? exitFps() : enterFps(); }
-
-  function tryJump() {
-    if (fpsActive && fpsState.onGround) {
-      fpsState.velocityY = fpsState.jumpSpeed;
-      fpsState.onGround = false;
-    }
-  }
-
-  document.getElementById('walk').addEventListener('click', toggleFps);
-
-  // Keyboard del modo walk
-  window.addEventListener('keydown', e => {
-    if (!fpsActive) return;
-    const k = e.key.toLowerCase();
-    if (k === 'escape') { exitFps(); return; }
-    if (k === 'w') fpsState.keys.w = true;
-    if (k === 'a') fpsState.keys.a = true;
-    if (k === 's') fpsState.keys.s = true;
-    if (k === 'd') fpsState.keys.d = true;
-    if (k === 'shift') fpsState.keys.shift = true;
-    if (k === ' ' || e.code === 'Space') {
-      e.preventDefault();
-      tryJump();
-    }
-  });
-  window.addEventListener('keyup', e => {
-    if (!fpsActive) return;
-    const k = e.key.toLowerCase();
-    if (k === 'w') fpsState.keys.w = false;
-    if (k === 'a') fpsState.keys.a = false;
-    if (k === 's') fpsState.keys.s = false;
-    if (k === 'd') fpsState.keys.d = false;
-    if (k === 'shift') fpsState.keys.shift = false;
-  });
-
-  // Mouse para orbitar la cámara alrededor del personaje (drag con botón
-  // izquierdo). NO usamos pointer lock — es más cómodo el drag suelto.
-  // Esto es independiente del touch para que ambos funcionen.
-  let camDragging = false;
-  let camDragLast = null;
-  renderer.domElement.addEventListener('mousedown', e => {
-    if (!fpsActive) return;
-    if (e.button !== 0) return;
-    camDragging = true;
-    camDragLast = { x: e.clientX, y: e.clientY };
-    renderer.domElement.classList.add('dragging');
-  });
-  window.addEventListener('mousemove', e => {
-    if (!fpsActive || !camDragging) return;
-    const dx = e.clientX - camDragLast.x;
-    const dy = e.clientY - camDragLast.y;
-    fpsState.camYaw   -= dx * fpsState.lookSensitivity;
-    fpsState.camPitch -= dy * fpsState.lookSensitivity * 0.6;
-    fpsState.camPitch = Math.max(0.15, Math.min(1.30, fpsState.camPitch));
-    camDragLast = { x: e.clientX, y: e.clientY };
-  });
-  window.addEventListener('mouseup', () => {
-    camDragging = false;
-    renderer.domElement.classList.remove('dragging');
-  });
-
-  // Zoom in/out con la rueda (acerca/aleja la cámara del personaje)
-  renderer.domElement.addEventListener('wheel', e => {
-    if (!fpsActive) return;
-    e.preventDefault();
-    const delta = Math.max(-50, Math.min(50, e.deltaY));
-    fpsState.camDistance = Math.max(1.5, Math.min(6, fpsState.camDistance + delta * 0.005));
-  }, { passive: false, capture: true });
-
-  // Botón de salto en mobile
-  const jumpBtn = document.getElementById('fpsJumpBtn');
-  jumpBtn.addEventListener('pointerdown', e => { e.preventDefault(); tryJump(); });
-
-  // -------- touch controls del modo walk --------
-  (function setupFpsTouch() {
-    const joy = document.getElementById('fpsJoystick');
-    const knob = document.getElementById('fpsJoystickKnob');
-    let joyPointer = null;
-    let joyCenter = null;
-
-    joy.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      joyPointer = e.pointerId;
-      const r = joy.getBoundingClientRect();
-      joyCenter = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-      joy.setPointerCapture(e.pointerId);
-    });
-    joy.addEventListener('pointermove', e => {
-      if (e.pointerId !== joyPointer) return;
-      const dx = e.clientX - joyCenter.x;
-      const dy = e.clientY - joyCenter.y;
-      const maxR = 42;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const cx = dist > maxR ? dx * maxR / dist : dx;
-      const cy = dist > maxR ? dy * maxR / dist : dy;
-      knob.style.transform = `translate(${cx}px, ${cy}px)`;
-      fpsState.touchMove.x = cx / maxR;
-      fpsState.touchMove.y = cy / maxR;
-    });
-    function release(e) {
-      if (e.pointerId !== joyPointer) return;
-      joyPointer = null;
-      knob.style.transform = '';
-      fpsState.touchMove.x = 0;
-      fpsState.touchMove.y = 0;
-    }
-    joy.addEventListener('pointerup', release);
-    joy.addEventListener('pointercancel', release);
-
-    // Mirar con touch — arrastrar en el canvas (fuera del joystick) gira la cámara.
-    let lookPointer = null;
-    let lookLast = null;
-    renderer.domElement.addEventListener('pointerdown', e => {
-      if (!fpsActive || e.pointerType !== 'touch') return;
-      if (lookPointer !== null) return;
-      lookPointer = e.pointerId;
-      lookLast = { x: e.clientX, y: e.clientY };
-    });
-    renderer.domElement.addEventListener('pointermove', e => {
-      if (!fpsActive || e.pointerId !== lookPointer) return;
-      const dx = e.clientX - lookLast.x;
-      const dy = e.clientY - lookLast.y;
-      fpsState.camYaw   -= dx * fpsState.lookSensitivity * 1.5;
-      fpsState.camPitch -= dy * fpsState.lookSensitivity * 1.0;
-      fpsState.camPitch = Math.max(0.15, Math.min(1.30, fpsState.camPitch));
-      lookLast = { x: e.clientX, y: e.clientY };
-    });
-    function releaseLook(e) {
-      if (e.pointerId === lookPointer) { lookPointer = null; lookLast = null; }
-    }
-    renderer.domElement.addEventListener('pointerup', releaseLook);
-    renderer.domElement.addEventListener('pointercancel', releaseLook);
-  })();
-
-  // Loop del modo walk: input → movimiento → salto → cámara → animación
-  function tickFps(dt) {
-    if (!fpsActive) return;
-
-    // 1) Dirección de movimiento en input space (-1..1 por eje)
-    let mx = 0, mz = 0;
-    if (fpsState.keys.w) mz -= 1;
-    if (fpsState.keys.s) mz += 1;
-    if (fpsState.keys.a) mx -= 1;
-    if (fpsState.keys.d) mx += 1;
-    mx += fpsState.touchMove.x;
-    mz += fpsState.touchMove.y;
-    const mag = Math.sqrt(mx * mx + mz * mz);
-    if (mag > 1) { mx /= mag; mz /= mag; }
-    const moving = mag > 0.05;
-
-    // 2) Movimiento relativo a la CÁMARA (no al personaje). El input W siempre
-    // apunta "hacia donde mira la cámara". Esto es lo más intuitivo en juegos
-    // de tercera persona modernos.
-    const cosC = Math.cos(fpsState.camYaw), sinC = Math.sin(fpsState.camYaw);
-    const dx = (mx * cosC - mz * sinC);
-    const dz = (mx * sinC + mz * cosC);
-
-    if (moving) {
-      const speed = fpsState.moveSpeed * (fpsState.keys.shift ? fpsState.runMul : 1);
-      fpsTryMove(dx * speed * dt, dz * speed * dt);
-      // El personaje gira hacia su dirección de movimiento (suavemente)
-      const targetYaw = Math.atan2(dx, dz);
-      let delta = targetYaw - fpsState.yaw;
-      while (delta >  Math.PI) delta -= Math.PI * 2;
-      while (delta < -Math.PI) delta += Math.PI * 2;
-      fpsState.yaw += delta * Math.min(1, dt * 12);
-    }
-
-    // 3) Gravedad + salto
-    fpsState.velocityY += fpsState.gravity * dt;
-    fpsState.height += fpsState.velocityY * dt;
-    if (fpsState.height <= 0) {
-      fpsState.height = 0;
-      fpsState.velocityY = 0;
-      fpsState.onGround = true;
-    } else {
-      fpsState.onGround = false;
-    }
-
-    // 4) Animación: caminar y saltar
-    if (moving && fpsState.onGround) {
-      fpsState.walkPhase += dt * 9;
-    } else {
-      fpsState.walkPhase *= Math.max(0, 1 - dt * 4);
-    }
-    const swing = Math.sin(fpsState.walkPhase) * 0.7;
-    const ud = player.userData;
-    if (fpsState.onGround) {
-      // Piernas y brazos oscilan alternados desde la cadera/hombro
-      ud.legL.rotation.x =  swing;
-      ud.legR.rotation.x = -swing;
-      ud.armL.rotation.x = -swing * 0.8;
-      ud.armR.rotation.x =  swing * 0.8;
-    } else {
-      // En el aire: piernas dobladas adelante, brazos elevados
-      ud.legL.rotation.x = -0.5;
-      ud.legR.rotation.x = -0.5;
-      ud.armL.rotation.x = -1.2;
-      ud.armR.rotation.x = -1.2;
-    }
-    const bob = (fpsState.onGround && moving) ? Math.abs(Math.cos(fpsState.walkPhase)) * 0.03 : 0;
-
-    // 5) Aplicar transform al mesh del personaje
-    player.position.set(fpsState.pos.x, fpsState.pos.y + fpsState.height + bob, fpsState.pos.z);
-    player.rotation.y = fpsState.yaw + Math.PI; // el personaje "mira" hacia -z por construcción, sumamos π
-    // La sombra queda en el suelo aunque el personaje salte (compensa la altura)
-    ud.shadow.position.y = 0.005 - fpsState.height - bob;
-    // La sombra también se achica cuanto más alto está
-    const shadowScale = Math.max(0.3, 1 - fpsState.height * 0.4);
-    ud.shadow.scale.set(shadowScale, shadowScale, shadowScale);
-
-    // 6) Cámara orbital sobre el personaje
-    const camR = fpsState.camDistance;
-    const focusX = player.position.x;
-    const focusY = player.position.y + 0.6;          // mira al pecho/cabeza
-    const focusZ = player.position.z;
-    fpsCam.position.set(
-      focusX + camR * Math.sin(fpsState.camPitch) * Math.cos(fpsState.camYaw + Math.PI / 2),
-      focusY + camR * Math.cos(fpsState.camPitch),
-      focusZ + camR * Math.sin(fpsState.camPitch) * Math.sin(fpsState.camYaw + Math.PI / 2)
-    );
-    fpsCam.lookAt(focusX, focusY, focusZ);
-
-    // 7) Tile "objetivo": el que está DELANTE del personaje (a 1 tile de
-    //    distancia en la dirección a la que mira). Si está fuera del mapa,
-    //    usamos el tile DEBAJO del personaje.
-    const lookDist = 1.0;
-    const ahead = {
-      x: fpsState.pos.x + Math.sin(fpsState.yaw) * lookDist,
-      z: fpsState.pos.z + Math.cos(fpsState.yaw) * lookDist,
-    };
-    let gx = Math.floor(ahead.x + GRID / 2);
-    let gz = Math.floor(ahead.z + GRID / 2);
-    if (gx < 0 || gx >= GRID || gz < 0 || gz >= GRID) {
-      gx = Math.floor(fpsState.pos.x + GRID / 2);
-      gz = Math.floor(fpsState.pos.z + GRID / 2);
-    }
-    if (gx >= 0 && gx < GRID && gz >= 0 && gz < GRID) {
-      const tp = tilePos(gx, gz);
-      hoverMesh.position.set(tp.x, TOP_H + 0.02, tp.z);
-      hoverMesh.visible = true;
-      currentHover = { x: gx, z: gz };
-    } else {
-      hoverMesh.visible = false;
-      currentHover = null;
-    }
-  }
-
-  // =====================================================================
-  // Economy (FarmVille-style):
-  //   - 🪙 coins are the single currency.
-  //   - ⭐ XP accumulates from harvests; reaching the level threshold awards
-  //     a coin bonus and bumps level. No hard unlocks — level is flavor.
-  //   - Every placeable "kind" with a HARVEST entry grows for N seconds then
-  //     becomes ready (a coin/fruit emoji sprite hovers over it). A click on
-  //     a ready cell collects, ignoring the currently selected tool.
-  //   - Crops are one-shot (become dirt). Trees / houses / mills / barns
-  //     reset their timer and keep producing.
-  // =====================================================================
-  const ECON = { coins: 30, xp: 0, level: 1 };
-
-  // Cost in coins to place each kind. Terrain + tuft are free.
-  const COSTS = {
-    crop: 2, tree: 8, fence: 1,
-    house: 20, windmill: 50, barn: 80,
-  };
-
-  // Harvest spec per kind. growSec: seconds until ready. coins/xp: reward
-  // on harvest. consume: if true, the placement is destroyed on harvest
-  // (e.g. crops become dirt). label: floating text on collection.
-  const HARVEST = {
-    crop:     { growSec: 25,  coins: 6,  xp: 2,  consume: true,  emoji: '🌾', label: '+6 🪙' },
-    tree:     { growSec: 60,  coins: 12, xp: 4,                  emoji: '🍎', label: '+12 🪙' },
-    house:    { growSec: 45,  coins: 5,  xp: 2,                  emoji: '🪙', label: '+5 🪙' },
-    windmill: { growSec: 90,  coins: 30, xp: 10,                 emoji: '🌾', label: '+30 🪙' },
-    barn:     { growSec: 120, coins: 50, xp: 15,                 emoji: '🥛', label: '+50 🪙' },
-  };
-
-  // Per-cell harvest state: key 'x,z' → { kind, plantedAt }
-  // plantedAt is in seconds (performance.now() / 1000).
-  const harvestState = new Map();
-  // key → THREE.Sprite hovering over the cell when ready
-  const readySprites = new Map();
-  // key → { sprite, lastSec, progress } shown while the cell is still growing
-  const timerSprites = new Map();
-
-  // Shared emoji sprite textures (one per kind).
-  function makeEmojiTexture(emoji) {
-    const c = document.createElement('canvas');
-    c.width = 128; c.height = 128;
-    const g = c.getContext('2d');
-    g.font = '92px serif';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    // soft white halo so the emoji reads against any backdrop
-    g.shadowColor = 'rgba(255,255,255,0.95)';
-    g.shadowBlur = 14;
-    g.fillText(emoji, 64, 68);
-    g.shadowBlur = 0;
-    g.fillText(emoji, 64, 68);
-    return new THREE.CanvasTexture(c);
-  }
-  const READY_TEX = {};
-  for (const k in HARVEST) READY_TEX[k] = makeEmojiTexture(HARVEST[k].emoji);
-
-  function makeReadySprite(kind) {
-    const mat = new THREE.SpriteMaterial({
-      map: READY_TEX[kind] || READY_TEX.crop,
-      transparent: true,
-      depthTest: false,   // always on top
-    });
-    const sp = new THREE.Sprite(mat);
-    sp.scale.set(0.55, 0.55, 0.55);
-    sp.renderOrder = 999;
-    return sp;
-  }
-
-  // Timer pill: dark rounded background with "Xs" text + thin progress bar
-  // underneath. We redraw the canvas only when the integer second OR a
-  // visible progress step (10% increments) changes — saves on texture
-  // uploads while still feeling alive.
-  function drawTimerCanvas(canvas, secs, progress01) {
-    const g = canvas.getContext('2d');
-    const w = canvas.width, h = canvas.height;
-    g.clearRect(0, 0, w, h);
-    // Pill
-    const pillW = 110, pillH = 44, px = (w - pillW) / 2, py = 6;
-    g.fillStyle = 'rgba(42, 39, 34, 0.88)';
-    g.beginPath();
-    const r = 22;
-    g.moveTo(px + r, py);
-    g.arcTo(px + pillW, py, px + pillW, py + pillH, r);
-    g.arcTo(px + pillW, py + pillH, px, py + pillH, r);
-    g.arcTo(px, py + pillH, px, py, r);
-    g.arcTo(px, py, px + pillW, py, r);
-    g.closePath();
-    g.fill();
-    // Inset progress bar
-    const barW = pillW - 22, barH = 6, bx = px + 11, by = py + pillH - 12;
-    g.fillStyle = 'rgba(255,255,255,0.18)';
-    g.fillRect(bx, by, barW, barH);
-    g.fillStyle = '#6fb442';
-    g.fillRect(bx, by, barW * progress01, barH);
-    // Text
-    g.fillStyle = '#fff';
-    g.font = '600 22px Inter, system-ui, -apple-system, sans-serif';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.fillText(secs + 's', w / 2, py + 16);
-  }
-
-  function makeTimerSprite() {
-    const c = document.createElement('canvas');
-    c.width = 160; c.height = 64;
-    const tex = new THREE.CanvasTexture(c);
-    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
-    const sp = new THREE.Sprite(mat);
-    // ~2.5:1 aspect; smaller than ready emoji so multiple cells read clearly
-    sp.scale.set(0.95, 0.38, 1);
-    sp.renderOrder = 998;
-    sp.userData.canvas = c;
-    sp.userData.texture = tex;
-    return sp;
-  }
-
-  function clearTimerSprite(key) {
-    const t = timerSprites.get(key);
-    if (!t) return;
-    worldGroup.remove(t.sprite);
-    if (t.sprite.material) {
-      if (t.sprite.material.map) t.sprite.material.map.dispose();
-      t.sprite.material.dispose();
-    }
-    timerSprites.delete(key);
-  }
-
-  function countKind(k) {
-    let n = 0;
-    for (let x = 0; x < GRID; x++)
-      for (let z = 0; z < GRID; z++)
-        if (world[x][z].kind === k) n++;
-    return n;
-  }
-
-  // Trees are not unlimited: each house unlocks 2 tree slots on top of a
-  // small starting allowance. This forces the player to invest in housing
-  // before scaling apple income — and prevents the screen from becoming a
-  // pure forest.
-  const TREE_BASE_CAP = 3;
-  const TREE_PER_HOUSE = 2;
-  function treeCap() { return TREE_BASE_CAP + countKind('house') * TREE_PER_HOUSE; }
-
-  // Total villagers = sum over houses of 4 × floors. Pure flavor stat shown
-  // in the HUD; the actual economy runs on coins/XP, not population.
-  function popCount() {
-    let n = 0;
-    for (let x = 0; x < GRID; x++)
-      for (let z = 0; z < GRID; z++) {
-        const c = world[x][z];
-        if (c.kind === 'house') n += 4 * (c.floors || 1);
-      }
-    return n;
-  }
-
-  // Total harvests collected this session — used as a session stat for goals.
-  let totalHarvests = 0;
-  // XP needed to reach (current level + 1). Slightly superlinear so each
-  // level takes a touch longer than the last without feeling grindy.
-  function xpForNext() { return 10 + 8 * ECON.level + 2 * ECON.level * ECON.level; }
-
-  function tickHarvest(t) {
-    // Pause growth visuals while in combat — the harvest sprites/pills would
-    // clutter the screen during a firefight. Internal state keeps ticking
-    // because plantedAt is relative time, so growth picks up where it left.
-    if (typeof COMBAT !== 'undefined' && COMBAT.active) return;
-    // t is in seconds (now / 1000) from the main animate loop.
-    for (const [key, st] of harvestState) {
-      const cfg = HARVEST[st.kind];
-      if (!cfg) continue;
-      const elapsed = t - st.plantedAt;
-      const ready = elapsed >= cfg.growSec;
-      const [xs, zs] = key.split(',').map(Number);
-      const phase = (xs * 17 + zs * 31) * 0.13;
-
-      if (ready) {
-        // Drop the countdown pill if any, show the harvest emoji sprite.
-        if (timerSprites.has(key)) clearTimerSprite(key);
-        let sp = readySprites.get(key);
-        if (!sp) {
-          sp = makeReadySprite(st.kind);
-          const p = tilePos(xs, zs);
-          sp.position.set(p.x, 0, p.z);
-          // pickTile() walks parents looking for userData.gx — give it to the
-          // sprite so a click on the icon hits the cell.
-          sp.userData.gx = xs;
-          sp.userData.gz = zs;
-          worldGroup.add(sp);
-          readySprites.set(key, sp);
-        }
-        sp.position.y = 1.15 + Math.sin(t * 3 + phase) * 0.09;
-      } else {
-        // Still growing → countdown pill above the tile.
-        if (readySprites.has(key)) clearReadySprite(key); // safety
-        let entry = timerSprites.get(key);
-        if (!entry) {
-          const sp = makeTimerSprite();
-          const p = tilePos(xs, zs);
-          sp.position.set(p.x, 1.15, p.z);
-          // Same picking trick: clicks on the pill resolve to the cell so
-          // applyTool can show the "Xs…" floating hint.
-          sp.userData.gx = xs;
-          sp.userData.gz = zs;
-          worldGroup.add(sp);
-          entry = { sprite: sp, lastSec: -1, lastProgStep: -1 };
-          timerSprites.set(key, entry);
-        }
-        const remain = Math.max(0, cfg.growSec - elapsed);
-        const showSec = Math.max(1, Math.ceil(remain));
-        const progress01 = Math.min(1, Math.max(0, elapsed / cfg.growSec));
-        // Step progress in 5% increments to avoid redrawing every frame.
-        const progStep = Math.round(progress01 * 20);
-        if (entry.lastSec !== showSec || entry.lastProgStep !== progStep) {
-          drawTimerCanvas(entry.sprite.userData.canvas, showSec, progress01);
-          entry.sprite.userData.texture.needsUpdate = true;
-          entry.lastSec = showSec;
-          entry.lastProgStep = progStep;
-        }
-        // Very subtle bob — the pill is informational so we don't want it
-        // dancing as much as the "ready" emoji.
-        entry.sprite.position.y = 1.15 + Math.sin(t * 2 + phase) * 0.04;
-      }
-    }
-  }
-
-  function clearReadySprite(key) {
-    const sp = readySprites.get(key);
-    if (!sp) return;
-    worldGroup.remove(sp);
-    if (sp.material) sp.material.dispose();
-    readySprites.delete(key);
-  }
-
-  function isReady(key) {
-    const st = harvestState.get(key);
-    if (!st) return false;
-    const cfg = HARVEST[st.kind];
-    if (!cfg) return false;
-    return (performance.now() / 1000 - st.plantedAt) >= cfg.growSec;
-  }
-
-  function registerHarvest(x, z, kind) {
-    if (!HARVEST[kind]) return;
-    const key = x + ',' + z;
-    clearReadySprite(key);
-    clearTimerSprite(key);
-    harvestState.set(key, { kind, plantedAt: performance.now() / 1000 });
-  }
-
-  function unregisterHarvest(x, z) {
-    const key = x + ',' + z;
-    clearReadySprite(key);
-    clearTimerSprite(key);
-    harvestState.delete(key);
-  }
-
-  // Sync harvestState ↔ world: when the initial scene loads or cells are
-  // erased outside applyTool, the harvest map can drift. Rebuild it here
-  // so a Reset starts every existing kind on a fresh growth cycle.
-  function syncHarvestStateFromWorld() {
-    for (const key of Array.from(harvestState.keys())) {
-      clearReadySprite(key);
-      clearTimerSprite(key);
-    }
-    harvestState.clear();
-    const now = performance.now() / 1000;
-    for (let x = 0; x < GRID; x++) {
-      for (let z = 0; z < GRID; z++) {
-        const k = world[x][z].kind;
-        if (k && HARVEST[k]) {
-          harvestState.set(x + ',' + z, { kind: k, plantedAt: now });
-        }
-      }
-    }
-  }
-
-  function harvestAt(x, z, sx, sy) {
-    const key = x + ',' + z;
-    const st = harvestState.get(key);
-    if (!st) return false;
-    const cfg = HARVEST[st.kind];
-    const now = performance.now() / 1000;
-    if (now - st.plantedAt < cfg.growSec) return false;
-
-    // Award rewards + visual feedback
-    ECON.coins += cfg.coins;
-    bumpRes('resCoins');
-    showFloatAt(sx, sy, cfg.label, '#d4a017');
-    gainXp(cfg.xp);
-    totalHarvests++;
-
-    if (cfg.consume) {
-      // Crop: vanish, leaving dirt behind so re-planting is one click.
-      unregisterHarvest(x, z);
-      setCell(x, z, { terrain: 'dirt', kind: null });
-    } else {
-      // Repeating: reset the timer and clear the ready sprite — next frame
-      // tickHarvest will spawn a fresh countdown pill.
-      st.plantedAt = now;
-      clearReadySprite(key);
-      clearTimerSprite(key);
-    }
-
-    updateHud();
-    checkGoals();
-    saveState();
-    return true;
-  }
-
-  function gainXp(amount) {
-    ECON.xp += amount;
-    let leveled = false;
-    while (ECON.xp >= xpForNext()) {
-      ECON.xp -= xpForNext();
-      ECON.level++;
-      leveled = true;
-      const bonus = ECON.level * 10;
-      ECON.coins += bonus;
-      showToast('Level ' + ECON.level + '! +' + bonus + ' 🪙', '⭐');
-    }
-    if (leveled) bumpRes('resLevel');
-    bumpRes('resXp');
-  }
-
-  function bumpRes(id) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.remove('bump');
-    void el.offsetWidth; // force reflow to restart anim
-    el.classList.add('bump');
-  }
-
-  function updateHud() {
-    const coinsEl = document.getElementById('resCoins');
-    if (coinsEl) coinsEl.querySelector('.val').textContent = ECON.coins;
-
-    const lvlEl = document.getElementById('resLevel');
-    if (lvlEl) lvlEl.querySelector('.val').textContent = ECON.level;
-
-    const popEl = document.getElementById('resPop');
-    if (popEl) popEl.querySelector('.val').textContent = popCount();
-
-    const need = xpForNext();
-    const xpVal = document.getElementById('xpVal');
-    const xpNext = document.getElementById('xpNext');
-    const xpFill = document.getElementById('xpBarFill');
-    if (xpVal) xpVal.textContent = ECON.xp;
-    if (xpNext) xpNext.textContent = need;
-    if (xpFill) xpFill.style.width = (100 * ECON.xp / need) + '%';
-
-    updateCatalogCosts();
-  }
-
-  function updateCatalogCosts() {
-    document.querySelectorAll('.dock-item .cost').forEach(chip => {
-      const c = parseInt(chip.dataset.cost, 10);
-      chip.classList.toggle('cant', ECON.coins < c);
-    });
-    // Tree slot indicator on the tree card
-    const haveTrees = countKind('tree');
-    const cap = treeCap();
-    document.querySelectorAll('.tree-limit').forEach(el => {
-      el.textContent = haveTrees + '/' + cap;
-      el.classList.toggle('full', haveTrees >= cap);
-    });
-  }
-
-  function canAfford(tool) {
-    const cost = COSTS[tool.kind] || 0;
-    return ECON.coins >= cost;
-  }
-
-  function payFor(tool) {
-    const cost = COSTS[tool.kind] || 0;
-    if (cost > 0) {
-      ECON.coins -= cost;
-      bumpRes('resCoins');
-    }
-  }
-
-  function onPlace(tool, x, z, sx, sy) {
-    // Register growth timer for harvestable kinds
-    if (HARVEST[tool.kind]) {
-      registerHarvest(x, z, tool.kind);
-      const cfg = HARVEST[tool.kind];
-      showFloatAt(sx, sy, 'planted · ' + cfg.growSec + 's', '#6fb442');
-    }
-  }
-
-  function showFloatAt(x, y, text, color) {
-    const el = document.createElement('div');
-    el.className = 'float-text';
-    el.textContent = text;
-    if (color) el.style.color = color;
-    el.style.left = x + 'px';
-    el.style.top  = (y - 10) + 'px';
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 1000);
-  }
-
+  // Tiny toast helper — used by the auto-growth poller to surface new plants.
   function showToast(text, icon) {
     const host = document.getElementById('toasts');
+    if (!host || !host.appendChild) return;
     const el = document.createElement('div');
     el.className = 'toast';
     el.innerHTML = (icon ? '<span class="icon">' + icon + '</span>' : '') + text;
@@ -4143,551 +1956,306 @@
     setTimeout(() => el.remove(), 3200);
   }
 
-  // -------- Missions: linear chain with rewards + hints --------
-  // Each mission completes when progress() reaches target. The completion
-  // grants `reward.coins` and `reward.xp`, and the next mission unlocks.
-  // The panel shows the current mission expanded + the next 2 dimmed so the
-  // player always sees what's coming.
-  const MISSIONS = [
-    { id: 'plant_crop',
-      icon: '🌾', name: 'Plant your first crop',
-      hint: 'Open the Vegetation tab in the dock and click Crop, then tap a tile.',
-      target: 1, progress: () => countKind('crop'),
-      reward: { coins: 20, xp: 5 } },
-    { id: 'harvest_3',
-      icon: '🪙', name: 'Harvest 3 times',
-      hint: 'Wait for the 🌾 icon to float above a crop, then click it.',
-      target: 3, progress: () => totalHarvests,
-      reward: { coins: 30, xp: 10 } },
-    { id: 'plant_tree',
-      icon: '🌳', name: 'Plant your first tree',
-      hint: 'Trees produce apples 🍎 every minute. They cost 8 🪙.',
-      target: 1, progress: () => countKind('tree'),
-      reward: { coins: 15, xp: 5 } },
-    { id: 'build_house',
-      icon: '🏠', name: 'Build a house',
-      hint: 'Houses cost 20 🪙 and unlock 2 more tree slots each.',
-      target: 1, progress: () => countKind('house'),
-      reward: { coins: 50, xp: 15 } },
-    { id: 'level3',
-      icon: '⭐', name: 'Reach level 3',
-      hint: 'Keep harvesting to earn XP. Every harvest gives ⭐.',
-      target: 3, progress: () => ECON.level,
-      reward: { coins: 50, xp: 0 } },
-    { id: 'harvest_10',
-      icon: '🌾', name: 'Harvest 10 times in total',
-      hint: 'Crops are quick (25s) — plant a row of them.',
-      target: 10, progress: () => totalHarvests,
-      reward: { coins: 60, xp: 15 } },
-    { id: 'build_mill',
-      icon: '🌬️', name: 'Build a windmill',
-      hint: 'Mills cost 50 🪙 and pay 30 🪙 every 90s. Save up!',
-      target: 1, progress: () => countKind('windmill'),
-      reward: { coins: 80, xp: 25 } },
-    { id: 'plant_5_trees',
-      icon: '🌳', name: 'Plant 5 trees',
-      hint: 'You need at least 1 house to plant more than 3 trees.',
-      target: 5, progress: () => countKind('tree'),
-      reward: { coins: 60, xp: 20 } },
-    { id: 'level5',
-      icon: '⭐', name: 'Reach level 5',
-      hint: 'Mills and barns give big XP — chase those harvests.',
-      target: 5, progress: () => ECON.level,
-      reward: { coins: 100, xp: 0 } },
-    { id: 'build_barn',
-      icon: '🏚️', name: 'Build a barn',
-      hint: 'Barns cost 80 🪙 and pay 50 🪙 every 2 minutes.',
-      target: 1, progress: () => countKind('barn'),
-      reward: { coins: 150, xp: 40 } },
-    { id: 'pop_12',
-      icon: '👥', name: 'Reach 12 villagers',
-      hint: 'Each house = 4 villagers. Build more (or stack floors).',
-      target: 12, progress: () => popCount(),
-      reward: { coins: 120, xp: 30 } },
-    { id: 'harvest_30',
-      icon: '🪙', name: 'Harvest 30 times',
-      hint: 'Keep that loop running.',
-      target: 30, progress: () => totalHarvests,
-      reward: { coins: 150, xp: 50 } },
-    { id: 'coins_500',
-      icon: '💰', name: 'Save up 500 coins',
-      hint: 'Mills and barns are your big earners.',
-      target: 500, progress: () => ECON.coins,
-      reward: { coins: 200, xp: 50 } },
-    { id: 'level8',
-      icon: '⭐', name: 'Reach level 8',
-      hint: 'Almost there!',
-      target: 8, progress: () => ECON.level,
-      reward: { coins: 200, xp: 0 } },
-    { id: 'level10',
-      icon: '👑', name: 'Reach level 10 — Master Builder',
-      hint: 'The final milestone. Your town is thriving.',
-      target: 10, progress: () => ECON.level,
-      reward: { coins: 500, xp: 0 } },
-    { id: 'done',
-      icon: '👑', name: 'You built a thriving farm!',
-      hint: 'Keep building for fun — there are no more missions to complete.',
-      target: 1, progress: () => 1,
-      reward: { coins: 0, xp: 0 } },
-  ];
-
-  // Back-compat: legacy name in save schema.
-  let goalIdx = 0;
-
-  function checkGoals() {
-    // Try to advance through any missions whose target is already satisfied.
-    // We loop because completing a "+coins" mission can immediately satisfy
-    // a "save up X coins" mission, etc.
-    let advanced = false;
-    while (goalIdx < MISSIONS.length - 1) {
-      const m = MISSIONS[goalIdx];
-      if (m.progress() < m.target) break;
-      const r = m.reward || { coins: 0, xp: 0 };
-      if (r.coins) { ECON.coins += r.coins; bumpRes('resCoins'); }
-      if (r.xp)    gainXp(r.xp);
-      showToast(m.name + ' ✓  +' + (r.coins || 0) + ' 🪙', m.icon);
-      goalIdx++;
-      advanced = true;
-    }
-    renderMissions();
-    if (advanced) { updateHud(); saveState(); }
-  }
-
-  // Render up to 3 missions: current + next 2 (locked). When the last is
-  // reached we just show it on its own. Hint is visible only on the active
-  // mission to keep the panel compact.
-  function renderMissions() {
-    const list = document.getElementById('missionsList');
-    const counter = document.getElementById('missionsCounter');
-    if (!list || !counter) return;
-    counter.textContent = goalIdx + ' / ' + (MISSIONS.length - 1);
-
-    const slice = [];
-    for (let i = 0; i < 3; i++) {
-      const m = MISSIONS[goalIdx + i];
-      if (m) slice.push({ m, locked: i > 0 });
-    }
-
-    list.innerHTML = '';
-    slice.forEach(({ m, locked }, i) => {
-      const el = document.createElement('div');
-      el.className = 'mission ' + (locked ? 'locked' : 'active');
-      const p = Math.min(m.target, m.progress());
-      const pct = Math.round(100 * p / m.target);
-      const r = m.reward || {};
-      const rewardChip = (r.coins || r.xp)
-        ? '<span class="mission-reward">+' + (r.coins || 0) + '🪙' + (r.xp ? ' +' + r.xp + '⭐' : '') + '</span>'
-        : '';
-      const lockIcon = locked ? '<span class="lock-icon">🔒</span>' : '';
-      el.innerHTML =
-        '<div class="mission-row">' +
-          '<div class="mission-icon">' + m.icon + '</div>' +
-          '<div class="mission-body">' +
-            '<div class="mission-name">' + escapeHtml(m.name) + '</div>' +
-            (locked ? '' :
-              '<div class="mission-hint">' + escapeHtml(m.hint || '') + '</div>' +
-              '<div class="mission-bar"><div class="mission-bar-fill" style="width:' + pct + '%"></div></div>' +
-              '<div class="mission-meta">' +
-                '<span class="mission-progress">' + p + ' / ' + m.target + '</span>' +
-                rewardChip +
-              '</div>') +
-          '</div>' +
-          lockIcon +
-        '</div>';
-      list.appendChild(el);
-    });
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => (
-      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-    ));
-  }
-
-  // Save / load: serialize coins/xp/level/goalIdx and the harvest timers
-  // (relative to "seconds ago") so a refresh doesn't reset growth progress.
-  const SAVE_KEY = 'tinyworld_v2';
-  function saveState() {
-    try {
-      const now = performance.now() / 1000;
-      const timers = [];
-      for (const [key, st] of harvestState) {
-        timers.push([key, st.kind, now - st.plantedAt]);
-      }
-      localStorage.setItem(SAVE_KEY, JSON.stringify({
-        coins: ECON.coins, xp: ECON.xp, level: ECON.level,
-        goalIdx, totalHarvests, timers,
-      }));
-    } catch (e) {}
-  }
-
-  function loadState() {
-    try {
-      const s = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
-      if (typeof s.coins === 'number') ECON.coins = s.coins;
-      if (typeof s.xp    === 'number') ECON.xp    = s.xp;
-      if (typeof s.level === 'number') ECON.level = s.level;
-      if (typeof s.goalIdx === 'number') goalIdx = s.goalIdx;
-      if (typeof s.totalHarvests === 'number') totalHarvests = s.totalHarvests;
-      if (Array.isArray(s.timers)) {
-        const now = performance.now() / 1000;
-        for (const [key, kind, elapsed] of s.timers) {
-          if (HARVEST[kind]) {
-            harvestState.set(key, { kind, plantedAt: now - elapsed });
-          }
-        }
-      }
-    } catch (e) {}
-  }
-
-  function resetEcon() {
-    ECON.coins = 30; ECON.xp = 0; ECON.level = 1;
-    goalIdx = 0; totalHarvests = 0;
-    for (const key of Array.from(readySprites.keys())) clearReadySprite(key);
-    for (const key of Array.from(timerSprites.keys())) clearTimerSprite(key);
-    harvestState.clear();
-    syncHarvestStateFromWorld();
-    updateHud();
-    checkGoals();
-    saveState();
-  }
-
   // =====================================================================
-  // Combat mode: walk + shoot + waves of enemies.
-  // Reuses the existing third-person walk system (`fpsActive`, `tickFps`,
-  // `fpsCam`). Adds shooting on click, enemies that path toward the player,
-  // wave progression, HP, and a game-over screen.
+  // Auto-growth driven by Claude Code token usage.
+  //
+  // The local Node server (server.js) reads ~/.claude/projects/<cwd>/*.jsonl
+  // and exposes a /api/usage endpoint with cumulative token counts split by
+  // type (input / output / cacheCreate / cacheRead). We poll every few
+  // seconds. Tokens are credited into per-channel debt counters; whenever a
+  // channel's debt crosses its "cost per plant", we plant one vegetation
+  // tile of that channel's preferred species on a random empty grass cell.
+  //
+  // We persist the growth log + last-seen total in localStorage so that a
+  // page refresh keeps the city you've grown, and new tokens keep extending
+  // it instead of replanting from scratch.
   // =====================================================================
-  const COMBAT = {
-    active: false,
-    gameOver: false,
-    hp: 5, maxHp: 5,
-    score: 0, kills: 0,
-    wave: 1,
-    waveTarget: 5,        // kills needed to advance wave
-    waveDone: 0,
-    spawnTimer: 0.5,
-    spawnEvery: 2.2,
-    enemies: [],
-    projectiles: [],
-    hitCooldown: 0,       // i-frames after being touched
+  const GROW = {
+    SAVE_KEY: 'cityGrow_v1',
+    POLL_MS:  5000,
+    CHANNELS: {
+      // Each channel maps a token type to a pool of species and a cost. Cache
+      // reads are abundant (cheap, low cost), output is precious (high cost,
+      // showy trees). Tuning these knobs reshapes the city's character.
+      // cacheRead is by far the most abundant token type in a typical Claude
+      // turn (often 10-100× output). With a low cost it floods the map with
+      // bushes; bumping it to 25k means bushes/mushrooms stay a minor accent
+      // instead of monopolising the ground.
+      output:      { costPerPlant: 1500,  pool: ['oak', 'cherry', 'maple', 'magnolia', 'apple'],   weight: 1.0 },
+      cacheCreate: { costPerPlant: 4000,  pool: ['pine', 'willow', 'acacia', 'palm', 'cypress'],  weight: 0.9 },
+      cacheRead:   { costPerPlant: 25000, pool: ['bush', 'mushroom'],                             weight: 1.0 },
+      input:       { costPerPlant: 500,   pool: ['birch'],                                        weight: 1.0 },
+    },
+    state: null,
+    pollHandle: null,
   };
 
-  // Geometry/material caches so we don't allocate per shot/per enemy.
-  const _projGeom = new THREE.SphereGeometry(0.07, 8, 8);
-  const _projMat  = new THREE.MeshBasicMaterial({ color: 0xffe55c });
-  const _enemyBodyGeom = new THREE.BoxGeometry(0.45, 0.60, 0.45);
-  const _enemyEyeGeom  = new THREE.SphereGeometry(0.05, 6, 6);
-  const _enemyEyeMat   = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const _enemyPupilGeom= new THREE.SphereGeometry(0.025, 6, 6);
-  const _enemyPupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-
-  function makeEnemyMesh(tinted) {
-    const mat = new THREE.MeshLambertMaterial({
-      color: tinted ? 0x6b2a82 : 0xc94848,
-    });
-    const body = new THREE.Mesh(_enemyBodyGeom, mat);
-    body.castShadow = true;
-    const e1 = new THREE.Mesh(_enemyEyeGeom, _enemyEyeMat);
-    const e2 = new THREE.Mesh(_enemyEyeGeom, _enemyEyeMat);
-    e1.position.set(-0.10, 0.16, 0.23);
-    e2.position.set( 0.10, 0.16, 0.23);
-    body.add(e1); body.add(e2);
-    const p1 = new THREE.Mesh(_enemyPupilGeom, _enemyPupilMat);
-    const p2 = new THREE.Mesh(_enemyPupilGeom, _enemyPupilMat);
-    p1.position.set(-0.10, 0.16, 0.27);
-    p2.position.set( 0.10, 0.16, 0.27);
-    body.add(p1); body.add(p2);
-    return body;
+  function loadGrowState() {
+    try {
+      const raw = localStorage.getItem(GROW.SAVE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  }
+  function saveGrowState() {
+    try { localStorage.setItem(GROW.SAVE_KEY, JSON.stringify(GROW.state)); } catch {}
   }
 
-  function spawnEnemy() {
-    // Pick a random edge cell so enemies emerge from the perimeter.
-    const edge = Math.floor(Math.random() * 4);
-    const off = Math.floor(Math.random() * GRID);
-    let x = 0, z = 0;
-    if (edge === 0) { x = 0;        z = off; }
-    else if (edge === 1) { x = GRID-1; z = off; }
-    else if (edge === 2) { x = off;    z = 0; }
-    else                 { x = off;    z = GRID-1; }
-    const p = tilePos(x, z);
-    // Tougher elites every few waves
-    const elite = COMBAT.wave >= 3 && Math.random() < 0.2;
-    const mesh = makeEnemyMesh(elite);
-    mesh.position.set(p.x, TOP_H + 0.30, p.z);
-    scene.add(mesh);
-    COMBAT.enemies.push({
-      mesh,
-      hp: elite ? 3 : 1 + Math.floor((COMBAT.wave - 1) / 3),
-      speed: (elite ? 1.0 : 1.5) + COMBAT.wave * 0.08,
-      bobPhase: Math.random() * Math.PI * 2,
-    });
-  }
-
-  // Aim direction: the camera's forward vector, flattened to the horizontal
-  // plane. This is the "look forward" axis from third-person camera, which
-  // matches the crosshair the player sees.
-  const _aimDir = new THREE.Vector3();
-  function getAimDir() {
-    fpsCam.getWorldDirection(_aimDir);
-    _aimDir.y = 0;
-    if (_aimDir.lengthSq() < 1e-6) _aimDir.set(0, 0, -1);
-    _aimDir.normalize();
-    return _aimDir;
-  }
-
-  function spawnProjectile() {
-    if (!COMBAT.active || COMBAT.gameOver || !fpsActive) return;
-    const dir = getAimDir();
-    const sp = new THREE.Mesh(_projGeom, _projMat);
-    // Start in front of the player so we don't immediately collide with
-    // the player mesh.
-    sp.position.set(
-      fpsState.pos.x + dir.x * 0.45,
-      TOP_H + 0.55,
-      fpsState.pos.z + dir.z * 0.45
-    );
-    sp.userData = { vx: dir.x * 22, vz: dir.z * 22, life: 1.4 };
-    scene.add(sp);
-    COMBAT.projectiles.push(sp);
-    // Tiny muzzle flash effect via float text
-    if (typeof showFloatAt === 'function') {
-      // skip — too noisy
+  function replayGrowthLog() {
+    const log = GROW.state && GROW.state.log;
+    if (!Array.isArray(log) || !log.length) return;
+    for (const entry of log) {
+      const { x, z, species, maturity = 0 } = entry;
+      if (x < 0 || x >= GRID || z < 0 || z >= GRID) continue;
+      const cell = world[x][z];
+      // Skip if a non-tree kind got placed here since (defensive — shouldn't
+      // happen in pure auto-growth, but cheap to check).
+      if (cell && cell.kind && cell.kind !== 'tree') continue;
+      if (cell && cell.terrain !== 'grass') continue;
+      setCell(x, z, {
+        terrain: 'grass', kind: 'tree', species, maturity,
+        animate: false,
+      });
     }
   }
 
-  function flashDamage() {
-    const v = document.getElementById('damageVignette');
-    v.classList.add('flash');
-    setTimeout(() => v.classList.remove('flash'), 220);
-  }
-
-  function bumpHeart(idx) {
-    const list = document.querySelectorAll('#hearts .heart');
-    const h = list[idx];
-    if (!h) return;
-    h.classList.remove('bump');
-    void h.offsetWidth;
-    h.classList.add('bump');
-  }
-
-  function updateCombatHud() {
-    const hearts = document.getElementById('hearts');
-    if (hearts) {
-      hearts.innerHTML = '';
-      for (let i = 0; i < COMBAT.maxHp; i++) {
-        const h = document.createElement('span');
-        h.className = 'heart' + (i < COMBAT.hp ? '' : ' lost');
-        h.textContent = '❤️';
-        hearts.appendChild(h);
+  function findRandomEmptyGrassCell() {
+    const candidates = [];
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (c && c.terrain === 'grass' && !c.kind) candidates.push([x, z]);
       }
     }
-    const w = document.getElementById('waveVal');  if (w) w.textContent = COMBAT.wave;
-    const k = document.getElementById('killsVal'); if (k) k.textContent = COMBAT.waveDone + '/' + COMBAT.waveTarget;
-    const s = document.getElementById('scoreVal'); if (s) s.textContent = COMBAT.score;
+    if (!candidates.length) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
   }
 
-  function advanceWave() {
-    COMBAT.wave++;
-    COMBAT.waveDone = 0;
-    COMBAT.waveTarget = 5 + Math.floor(COMBAT.wave * 1.8);
-    COMBAT.spawnEvery = Math.max(0.55, 2.2 - COMBAT.wave * 0.12);
-    COMBAT.spawnTimer = 1.2; // short breather between waves
-    showToast('Wave ' + COMBAT.wave + ' — incoming!', '⚔️');
-    updateCombatHud();
-  }
-
-  function tickCombat(dt) {
-    if (!COMBAT.active || COMBAT.gameOver) return;
-
-    // Spawn budget: while we still owe this wave more enemies, drip them
-    // in at intervals. The wave advances when all spawned ones are killed.
-    if (COMBAT.waveDone < COMBAT.waveTarget) {
-      const spawnedThisWave = COMBAT.waveDone + COMBAT.enemies.length;
-      if (spawnedThisWave < COMBAT.waveTarget) {
-        COMBAT.spawnTimer -= dt;
-        if (COMBAT.spawnTimer <= 0) {
-          spawnEnemy();
-          COMBAT.spawnTimer = COMBAT.spawnEvery;
+  // Pick a tree that isn't fully mature yet. Find the lowest maturity present
+  // and pick randomly among those — so the forest matures roughly evenly,
+  // even as MAX_MATURITY climbs into the dozens.
+  function findRandomImmatureTree() {
+    let minM = Infinity;
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (!c || c.kind !== 'tree') continue;
+        const m = c.maturity || 0;
+        if (m < MAX_MATURITY && m < minM) minM = m;
+      }
+    }
+    if (minM === Infinity) return null;
+    const candidates = [];
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (c && c.kind === 'tree' && (c.maturity || 0) === minM) {
+          candidates.push([x, z]);
         }
       }
     }
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
 
-    // Update enemies: walk toward player; on contact, damage player.
-    const px = fpsState.pos.x, pz = fpsState.pos.z;
-    for (const en of COMBAT.enemies) {
-      const dx = px - en.mesh.position.x;
-      const dz = pz - en.mesh.position.z;
-      const d = Math.hypot(dx, dz);
-      if (d > 0.001) {
-        en.mesh.position.x += (dx / d) * en.speed * dt;
-        en.mesh.position.z += (dz / d) * en.speed * dt;
-        en.mesh.rotation.y = Math.atan2(dx, dz);
-      }
-      // Subtle bob so they don't look static
-      en.bobPhase += dt * 6;
-      en.mesh.position.y = TOP_H + 0.30 + Math.abs(Math.sin(en.bobPhase)) * 0.05;
+  // Bushes and mushrooms are "undergrowth" — they get displaced when a real
+  // tree wants to take their spot. Real trees never get displaced.
+  const UNDERGROWTH = new Set(['bush', 'mushroom']);
 
-      if (d < 0.55 && COMBAT.hitCooldown <= 0) {
-        COMBAT.hp--;
-        COMBAT.hitCooldown = 0.9;
-        flashDamage();
-        // Knock the enemy back so it doesn't camp on the player
-        en.mesh.position.x -= (dx / d) * 0.6;
-        en.mesh.position.z -= (dz / d) * 0.6;
-        bumpHeart(COMBAT.hp);
-        updateCombatHud();
-        if (COMBAT.hp <= 0) { onGameOver(); return; }
-      }
-    }
-    COMBAT.hitCooldown = Math.max(0, COMBAT.hitCooldown - dt);
-
-    // Update projectiles: move, age, check enemy hits.
-    const alive = [];
-    for (const p of COMBAT.projectiles) {
-      p.userData.life -= dt;
-      if (p.userData.life <= 0) { scene.remove(p); continue; }
-      p.position.x += p.userData.vx * dt;
-      p.position.z += p.userData.vz * dt;
-
-      let hit = null;
-      for (const en of COMBAT.enemies) {
-        const dx = p.position.x - en.mesh.position.x;
-        const dz = p.position.z - en.mesh.position.z;
-        if (dx*dx + dz*dz < 0.30*0.30) { hit = en; break; }
-      }
-      if (hit) {
-        hit.hp--;
-        scene.remove(p);
-        if (hit.hp <= 0) {
-          scene.remove(hit.mesh);
-          if (hit.mesh.material) hit.mesh.material.dispose();
-          COMBAT.enemies = COMBAT.enemies.filter(e => e !== hit);
-          COMBAT.kills++;
-          COMBAT.waveDone++;
-          COMBAT.score += 10 * COMBAT.wave;
-          updateCombatHud();
-          if (COMBAT.waveDone >= COMBAT.waveTarget && COMBAT.enemies.length === 0) {
-            advanceWave();
-          }
-        } else {
-          // Hit flash via material tint — quick and dirty.
-          hit.mesh.material.emissive = new THREE.Color(0xffffff);
-          setTimeout(() => {
-            if (hit.mesh.material) hit.mesh.material.emissive = new THREE.Color(0x000000);
-          }, 80);
+  function findRandomUndergrowthCell() {
+    const candidates = [];
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (c && c.kind === 'tree' && UNDERGROWTH.has(c.species)) {
+          candidates.push([x, z]);
         }
-        continue;
       }
-      alive.push(p);
     }
-    COMBAT.projectiles = alive;
+    if (!candidates.length) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
   }
 
-  function clearCombatEntities() {
-    for (const en of COMBAT.enemies) {
-      scene.remove(en.mesh);
-      if (en.mesh.material) en.mesh.material.dispose();
+  function plantOne(species) {
+    // Phase 1: empty grass available → plant a fresh sapling.
+    const empty = findRandomEmptyGrassCell();
+    if (empty) {
+      const [x, z] = empty;
+      setCell(x, z, {
+        terrain: 'grass', kind: 'tree', species, maturity: 0,
+        animate: true,
+      });
+      GROW.state.log.push({ x, z, species, maturity: 0 });
+      return true;
     }
-    for (const p of COMBAT.projectiles) scene.remove(p);
-    COMBAT.enemies = [];
-    COMBAT.projectiles = [];
-  }
-
-  function setHarvestSpritesVisible(v) {
-    if (typeof readySprites !== 'undefined') {
-      for (const sp of readySprites.values()) sp.visible = v;
+    // Phase 2: if we're planting a real tree (not undergrowth), displace a
+    // bush/mushroom — real trees overtake the floor cover.
+    if (!UNDERGROWTH.has(species)) {
+      const undergrowthSpot = findRandomUndergrowthCell();
+      if (undergrowthSpot) {
+        const [x, z] = undergrowthSpot;
+        setCell(x, z, {
+          terrain: 'grass', kind: 'tree', species, maturity: 0,
+          animate: true,
+        });
+        GROW.state.log.push({ x, z, species, maturity: 0 });
+        return true;
+      }
     }
-    if (typeof timerSprites !== 'undefined') {
-      for (const entry of timerSprites.values()) entry.sprite.visible = v;
+    // Phase 3: no empties, no undergrowth to displace → mature an existing
+    // tree instead. Keeps the forest responding even after the map saturates.
+    const tree = findRandomImmatureTree();
+    if (!tree) return false;
+    const [x, z] = tree;
+    const cell = world[x][z];
+    const newMat = Math.min((cell.maturity || 0) + 1, MAX_MATURITY);
+    setCell(x, z, {
+      terrain: 'grass', kind: 'tree', species: cell.species, maturity: newMat,
+      animate: true,
+    });
+    GROW.state.log.push({ x, z, species: cell.species, maturity: newMat });
+    return true;
+  }
+
+  function spendChannel(channelName) {
+    const ch = GROW.CHANNELS[channelName];
+    const s  = GROW.state.debt;
+    let planted = 0;
+    while (s[channelName] >= ch.costPerPlant) {
+      const sp = ch.pool[Math.floor(Math.random() * ch.pool.length)];
+      const ok = plantOne(sp);
+      if (!ok) { s[channelName] = 0; break; } // map is full, drop debt
+      s[channelName] -= ch.costPerPlant;
+      planted++;
+      // Hard cap per tick to avoid an avalanche when first-load catches up.
+      if (planted >= 4) break;
     }
+    return planted;
   }
 
-  function startCombat() {
-    if (COMBAT.active) return;
-    COMBAT.active = true;
-    COMBAT.gameOver = false;
-    COMBAT.hp = COMBAT.maxHp;
-    COMBAT.score = 0; COMBAT.kills = 0;
-    COMBAT.wave = 1;
-    COMBAT.waveTarget = 5; COMBAT.waveDone = 0;
-    COMBAT.spawnTimer = 0.6;
-    COMBAT.spawnEvery = 2.2;
-    COMBAT.hitCooldown = 1.0; // grace period at start
-    clearCombatEntities();
-    setHarvestSpritesVisible(false);
-    document.body.classList.add('combat');
-    if (typeof enterFps === 'function') enterFps();
-    updateCombatHud();
-    showToast('Wave 1 — survive the swarm!', '⚔️');
-  }
+  async function pollUsage() {
+    let data;
+    try {
+      const res = await fetch('/api/usage', { cache: 'no-store' });
+      if (!res.ok) return;
+      data = await res.json();
+    } catch { return; } // server not running — silent fail, game still playable
 
-  function endCombat() {
-    COMBAT.active = false;
-    COMBAT.gameOver = false;
-    clearCombatEntities();
-    setHarvestSpritesVisible(true);
-    document.body.classList.remove('combat');
-    document.getElementById('gameOver').classList.remove('show');
-    if (typeof exitFps === 'function') exitFps();
-  }
+    const last = GROW.state.last;
+    const delta = {
+      input:       Math.max(0, (data.input       || 0) - (last.input       || 0)),
+      output:      Math.max(0, (data.output      || 0) - (last.output      || 0)),
+      cacheCreate: Math.max(0, (data.cacheCreate || 0) - (last.cacheCreate || 0)),
+      cacheRead:   Math.max(0, (data.cacheRead   || 0) - (last.cacheRead   || 0)),
+    };
 
-  function onGameOver() {
-    COMBAT.gameOver = true;
-    document.getElementById('finalWave').textContent  = COMBAT.wave;
-    document.getElementById('finalKills').textContent = COMBAT.kills;
-    document.getElementById('finalScore').textContent = COMBAT.score;
-    document.getElementById('gameOver').classList.add('show');
-  }
-
-  // UI wiring
-  on('combatBtn',  'click', startCombat);
-  on('combatExit', 'click', endCombat);
-  on('restart',    'click', () => {
-    document.getElementById('gameOver').classList.remove('show');
-    // restart by re-entering combat
-    clearCombatEntities();
-    COMBAT.gameOver = false;
-    COMBAT.hp = COMBAT.maxHp;
-    COMBAT.score = 0; COMBAT.kills = 0;
-    COMBAT.wave = 1;
-    COMBAT.waveTarget = 5; COMBAT.waveDone = 0;
-    COMBAT.spawnTimer = 0.6;
-    COMBAT.spawnEvery = 2.2;
-    COMBAT.hitCooldown = 1.0;
-    updateCombatHud();
-    showToast('Wave 1 — go!', '⚔️');
-  });
-  on('exitCombat', 'click', endCombat);
-
-  // Shoot on pointerdown anywhere on the canvas while in combat.
-  // This fires alongside the build-mode pointerdown which is gated by
-  // fpsActive (it only does drag/orbit), so no double-action occurs.
-  renderer.domElement.addEventListener('pointerdown', e => {
-    if (COMBAT.active && !COMBAT.gameOver && fpsActive) {
-      if (e.button === 0 || e.pointerType !== 'mouse') spawnProjectile();
+    // First poll: dumping all historical tokens (potentially millions) at
+    // once would saturate the map instantly. Instead, plant a small welcome
+    // batch from each channel — enough to prove the system works and give
+    // the player a populated city — then set the baseline to current totals
+    // so future deltas are pure incremental growth.
+    if (!GROW.state.seeded) {
+      GROW.state.seeded = true;
+      const WELCOME_PER_CHANNEL = 3;
+      for (const k of Object.keys(GROW.CHANNELS)) {
+        GROW.state.debt[k] = GROW.CHANNELS[k].costPerPlant * WELCOME_PER_CHANNEL;
+        spendChannel(k);
+        GROW.state.debt[k] = 0;
+      }
+      GROW.state.last = {
+        input: data.input || 0, output: data.output || 0,
+        cacheCreate: data.cacheCreate || 0, cacheRead: data.cacheRead || 0,
+      };
+      saveGrowState();
+      return;
     }
-  });
 
-  // Esc exits combat (also caught by the existing keydown for non-FPS,
-  // but Escape in FPS triggers exitFps which we wrap to also clean up).
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && COMBAT.active) endCombat();
-  });
+    let totalPlanted = 0;
+    for (const k of Object.keys(GROW.CHANNELS)) {
+      GROW.state.debt[k] = (GROW.state.debt[k] || 0) + delta[k];
+      totalPlanted += spendChannel(k);
+    }
+
+    GROW.state.last = {
+      input: data.input || 0, output: data.output || 0,
+      cacheCreate: data.cacheCreate || 0, cacheRead: data.cacheRead || 0,
+    };
+    if (totalPlanted > 0 && typeof showToast === 'function') {
+      showToast('+' + totalPlanted + ' planted', '🌱');
+    }
+    saveGrowState();
+  }
+
+  function initGrowth() {
+    GROW.state = loadGrowState() || {
+      seeded: false,
+      last: { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 },
+      debt: { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 },
+      log:  [],
+    };
+    // Ensure shape after schema bumps.
+    GROW.state.log = GROW.state.log || [];
+    GROW.state.debt = GROW.state.debt || { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 };
+    GROW.state.last = GROW.state.last || { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 };
+
+    replayGrowthLog();
+    pollUsage();
+    GROW.pollHandle = setInterval(pollUsage, GROW.POLL_MS);
+  }
+
+  // -------- debug buttons --------
+  // Simulate one "typical Claude turn" worth of tokens per click: ~one plant
+  // per channel. The injected tokens go straight into the debt counters, so
+  // the per-poll cap of 4 plants per channel still applies (just like real
+  // usage). Use ×10 for a burst that fills the map quickly.
+  function debugAddTokens(mult = 1) {
+    if (!GROW.state) return;
+    GROW.state.debt.output      += 1500 * mult;
+    GROW.state.debt.cacheCreate += 4000 * mult;
+    GROW.state.debt.cacheRead   += 8000 * mult;
+    GROW.state.debt.input       += 500  * mult;
+    let total = 0;
+    // For ×10 we call spendChannel multiple times so the 4-per-call cap
+    // doesn't strand most of the injected debt.
+    const passes = Math.max(1, Math.ceil(mult));
+    for (let i = 0; i < passes; i++) {
+      for (const k of Object.keys(GROW.CHANNELS)) total += spendChannel(k);
+    }
+    if (total > 0) showToast('+' + total + ' grew (debug)', '🐛');
+    else           showToast('forest fully mature', '🌲');
+    saveGrowState();
+  }
+
+  function debugClearForest() {
+    // Wipe localStorage growth state and the rendered trees, leaving an
+    // empty grass field.
+    try { localStorage.removeItem(GROW.SAVE_KEY); } catch {}
+    GROW.state = {
+      seeded: true,
+      last: GROW.state ? GROW.state.last : { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 },
+      debt: { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 },
+      log:  [],
+    };
+    saveGrowState();
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        if (world[x][z] && world[x][z].kind === 'tree') {
+          setCell(x, z, { terrain: 'grass', kind: null, animate: false });
+        }
+      }
+    }
+    showToast('forest cleared', '↺');
+  }
+
+  document.getElementById('debugPlant').addEventListener('click', () => debugAddTokens(1));
+  document.getElementById('debugBurst').addEventListener('click', () => debugAddTokens(10));
+  document.getElementById('debugClear').addEventListener('click', debugClearForest);
 
   // -------- boot --------
-  buildToolbar();
-  if (typeof buildCatalog === 'function') buildCatalog();
-  selectTool(TOOLS[8]);
   targetViewSize = viewSize;
   loadInitialScene();
+  spawnButterflies(5);
   onResize();
-  // Seed harvest timers for every kind that's part of the starter scene
-  // before loadState overrides them with the player's saved progress.
-  syncHarvestStateFromWorld();
-  loadState();
-  updateHud();
-  checkGoals();
+  initGrowth();
   requestAnimationFrame(animate);
   </script>
 </body>
