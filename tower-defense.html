@@ -2304,6 +2304,19 @@
       return;
     }
     const p = tilePos(cell.x, cell.z);
+    // Hovering over an existing tower while a build tool is active: clicking
+    // opens that tower's info panel (it does NOT try to place). Preview its
+    // current range in gold instead of the placement range so the feedback
+    // matches what the click will do.
+    const existingTower = world[cell.x][cell.z].tower;
+    if (existingTower) {
+      hoverMesh.material = M.hoverGood;
+      hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
+      hoverMesh.visible = true;
+      setRangeIndicator(getStats(existingTower).range, p.x, p.z, 0xffd44a);
+      rangeFill.material.opacity = 0.14;
+      return;
+    }
     const valid = canPlaceTower(cell.x, cell.z) && STATE.gold >= cfg.cost;
     hoverMesh.material = valid ? M.hoverGood : M.hoverInvalid;
     hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
@@ -2317,22 +2330,31 @@
   function handleClick(clientX, clientY) {
     const cell = pickTile(clientX, clientY);
     if (!cell) return;
+    const tower = world[cell.x][cell.z].tower;
 
+    // Sell tool always sells whatever's under the cursor.
     if (STATE.selectedTool === 'sell') {
       sellTower(cell.x, cell.z);
       return;
     }
+
+    // Clicking an existing tower ALWAYS opens its info panel — even if a
+    // placement tool is currently selected from the dock. This lets the player
+    // inspect / upgrade / re-target an already-placed tower without having to
+    // first deselect their build tool.
+    if (tower) {
+      selectTower(tower);
+      return;
+    }
+
+    // Empty grass cell with a build tool: try to place.
     if (STATE.selectedTool) {
       placeTower(STATE.selectedTool, cell.x, cell.z);
       return;
     }
-    // No tool: clicking a tower selects it for the info panel
-    const tower = world[cell.x][cell.z].tower;
-    if (tower) {
-      selectTower(tower);
-    } else {
-      closeInfoPanel();
-    }
+
+    // No tool and empty cell: close the panel.
+    closeInfoPanel();
   }
 
   // -------- dock UI with 3D previews --------
