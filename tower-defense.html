@@ -283,23 +283,81 @@
     color: var(--muted);
   }
   .info-stat b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .info-actions { display: flex; gap: 6px; margin-top: 4px; }
+  .info-actions { display: flex; gap: 6px; margin-top: 6px; }
   .info-btn {
     flex: 1;
     background: var(--panel);
     border: 1px solid var(--line);
-    padding: 7px 10px;
+    padding: 8px 10px;
     border-radius: 8px;
     font-family: inherit;
     font-size: 12px;
     font-weight: 500;
     color: var(--ink);
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background 0.12s, transform 0.08s;
   }
   .info-btn:hover { background: #faf5ea; }
+  .info-btn:active { transform: translateY(1px); }
   .info-btn.sell { background: #c84848; color: #fff; border-color: transparent; }
   .info-btn.sell:hover { background: #b03c3c; }
+  .info-btn.upgrade { background: #6fb442; color: #fff; border-color: transparent; }
+  .info-btn.upgrade:hover { background: #5fa033; }
+  .info-btn.upgrade:disabled, .info-btn.sell:disabled {
+    background: #c8c2b4; cursor: not-allowed; color: #fff; opacity: 0.8;
+  }
+  .info-btn.upgrade:disabled.maxed { background: #d4a017; opacity: 1; }
+
+  /* Header + level pip badge */
+  .info-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-right: 22px;
+  }
+  .info-level {
+    font-size: 13px; color: #d4a017; letter-spacing: 2px; font-weight: 600;
+    white-space: nowrap;
+  }
+  .info-close-x {
+    position: absolute; top: 8px; right: 8px;
+    width: 24px; height: 24px; padding: 0;
+    background: transparent; border: none;
+    font-size: 18px; color: var(--muted); line-height: 1;
+    cursor: pointer; border-radius: 6px;
+    transition: background 0.12s, color 0.12s;
+  }
+  .info-close-x:hover { background: var(--line-soft); color: var(--ink); }
+
+  /* Targeting priority button grid */
+  .info-section-label {
+    font-size: 10.5px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+    margin-top: 6px; margin-bottom: 2px;
+  }
+  .target-modes {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  }
+  .target-mode {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 6px 7px;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    text-align: left;
+    line-height: 1.1;
+  }
+  .target-mode:hover { background: #faf5ea; }
+  .target-mode.active {
+    background: #fff8e6;
+    border-color: #d4a017;
+    color: #8a6610;
+    font-weight: 600;
+    box-shadow: 0 2px 8px -4px rgba(212, 160, 23, 0.45);
+  }
 
   /* ---------- Modals (game over / victory) ---------- */
   .modal {
@@ -496,13 +554,27 @@
   </div>
 
   <aside class="info-panel" id="infoPanel">
-    <h3 id="infoName">Tower</h3>
+    <button class="info-close-x" id="infoClose" title="Close (Esc)">×</button>
+    <div class="info-header">
+      <h3 id="infoName">Tower</h3>
+      <div class="info-level" id="infoLevel" title="Tower level">★☆☆</div>
+    </div>
     <div class="info-stat"><span>Damage</span><b id="infoDmg">—</b></div>
     <div class="info-stat"><span>Range</span><b id="infoRange">—</b></div>
     <div class="info-stat"><span>Fire rate</span><b id="infoRate">—</b></div>
     <div class="info-stat"><span>Kills</span><b id="infoKills">0</b></div>
+
+    <div class="info-section-label">Target priority</div>
+    <div class="target-modes" id="targetModes">
+      <button class="target-mode active" data-mode="first" title="Enemy furthest along the path">⬅ First</button>
+      <button class="target-mode" data-mode="last"  title="Most recently spawned">Last ➡</button>
+      <button class="target-mode" data-mode="strong" title="Highest HP enemy">💪 Strong</button>
+      <button class="target-mode" data-mode="weak"  title="Lowest HP enemy">🍃 Weak</button>
+      <button class="target-mode" data-mode="close" title="Nearest enemy to tower">📍 Close</button>
+    </div>
+
     <div class="info-actions">
-      <button class="info-btn" id="infoClose">Close</button>
+      <button class="info-btn upgrade" id="infoUpgrade">⬆ Upgrade · <span id="infoUpgradeCost">0</span> 🪙</button>
       <button class="info-btn sell" id="infoSell">Sell · <span id="infoRefund">0</span> 🪙</button>
     </div>
   </aside>
@@ -1267,15 +1339,46 @@
   hoverMesh.visible = false;
   worldGroup.add(hoverMesh);
 
-  // Range ring preview (when placing a tower)
+  // Range ring preview (when placing or inspecting a tower). Two layers:
+  //  - rangeFill: translucent disc covering the affected area (helps the player
+  //    judge which tiles will be in range before clicking).
+  //  - rangeRing: thin pulsing aro at the edge for crisp boundary feedback.
+  const rangeFill = new THREE.Mesh(
+    new THREE.CircleGeometry(1.0, 48),
+    new THREE.MeshBasicMaterial({ color: 0xffd44a, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide })
+  );
+  rangeFill.rotation.x = -Math.PI / 2;
+  rangeFill.position.y = TOP_H + 0.035;
+  rangeFill.visible = false;
+  worldGroup.add(rangeFill);
+
   const rangeRing = new THREE.Mesh(
-    new THREE.RingGeometry(0.98, 1.02, 48),
+    new THREE.RingGeometry(0.94, 1.0, 48),
     M.rangeRing
   );
   rangeRing.rotation.x = -Math.PI / 2;
   rangeRing.position.y = TOP_H + 0.04;
   rangeRing.visible = false;
   worldGroup.add(rangeRing);
+
+  // Set both rangeFill and rangeRing geometries to match a given tower range,
+  // and place them at (px, pz). Disposes the previous geometry to avoid leaks.
+  function setRangeIndicator(range, px, pz, fillColor) {
+    rangeFill.geometry.dispose();
+    rangeFill.geometry = new THREE.CircleGeometry(range, 48);
+    rangeFill.position.set(px, TOP_H + 0.035, pz);
+    rangeFill.material.color.setHex(fillColor != null ? fillColor : 0xffd44a);
+    rangeFill.visible = true;
+    rangeRing.geometry.dispose();
+    rangeRing.geometry = new THREE.RingGeometry(range - 0.06, range, 48);
+    rangeRing.position.set(px, TOP_H + 0.04, pz);
+    rangeRing.material.color.setHex(fillColor != null ? fillColor : 0xffd44a);
+    rangeRing.visible = true;
+  }
+  function hideRangeIndicator() {
+    rangeFill.visible = false;
+    rangeRing.visible = false;
+  }
 
   // -------- towers config --------
   const TOWERS = {
@@ -1382,6 +1485,10 @@
         it.classList.toggle('disabled', STATE.gold < cost);
       }
     });
+
+    // Keep the info panel buttons (Upgrade affordability, refund total) in sync
+    // with the current gold whenever it changes.
+    if (STATE.selectedTower) refreshInfoPanel();
   }
 
   // -------- toasts --------
@@ -1470,6 +1577,200 @@
     });
   }
 
+  // -------- tower leveling & stats --------
+  const MAX_LEVEL = 3;
+  const LEVEL_MULT = {
+    damage:   [1.0, 1.6, 2.4],
+    range:    [1.0, 1.18, 1.35],
+    fireRate: [1.0, 1.30, 1.60],
+  };
+  // L1→L2 cost = base; L2→L3 cost = base × 1.8 (rounded). Stored as factors
+  // applied to the tower's base cost.
+  const UPGRADE_COST_FACTOR = [1.0, 1.8];
+  const REFUND_RATIO = 0.6;
+
+  function getStats(tower) {
+    const c = tower.config;
+    const i = (tower.level || 1) - 1;
+    return {
+      damage:   Math.max(1, Math.round(c.damage * LEVEL_MULT.damage[i])),
+      range:    c.range * LEVEL_MULT.range[i],
+      fireRate: c.fireRate * LEVEL_MULT.fireRate[i],
+      splash:   c.splash ? c.splash * LEVEL_MULT.range[i] : 0,
+      pierce:   c.pierce ? c.pierce + i : 0,
+    };
+  }
+  function getUpgradeCost(tower) {
+    if (tower.level >= MAX_LEVEL) return Infinity;
+    return Math.round(tower.config.cost * UPGRADE_COST_FACTOR[tower.level - 1]);
+  }
+  function getSellRefund(tower) {
+    return Math.floor(tower.totalSpent * REFUND_RATIO);
+  }
+
+  // Per-kind top Y where the level badge sits above the model.
+  const TOWER_TOP_Y = { archer: 1.05, cannon: 0.60, wizard: 1.40 };
+
+  // Build & attach the visual upgrade decorations on a tower based on its
+  // current level. Called on placement (level 1) and after each upgrade.
+  function applyLevelVisuals(tower) {
+    if (tower._levelGroup) {
+      tower.group.remove(tower._levelGroup);
+      tower._levelGroup.traverse(c => { if (c.geometry && c.geometry.dispose) c.geometry.dispose(); });
+      tower._levelGroup = null;
+    }
+    if (tower.level < 2) return; // level 1 is the plain model
+
+    const kind = tower.group.userData.kind;
+    const topY = TOWER_TOP_Y[kind] != null ? TOWER_TOP_Y[kind] : 1.0;
+    const g = new THREE.Group();
+
+    // Row of gold star pips above the tower indicates current level.
+    const starsRow = new THREE.Group();
+    starsRow.position.y = topY + 0.32;
+    const spacing = 0.10;
+    const totalW = (tower.level - 1) * spacing;
+    for (let i = 0; i < tower.level; i++) {
+      const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.045, 0), M.gold);
+      star.position.x = -totalW / 2 + i * spacing;
+      star.userData._isLevelStar = true;
+      starsRow.add(star);
+    }
+    starsRow.userData._isLevelStarRow = true;
+    g.add(starsRow);
+
+    // Level 2+: gold pennant on a small pole.
+    if (tower.level >= 2) {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.22, 6), M.cannonDark);
+      pole.position.y = topY + 0.11;
+      g.add(pole);
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.06, 0.02), M.gold);
+      flag.position.set(0.06, topY + 0.18, 0);
+      g.add(flag);
+    }
+
+    // Level 3: gold circlet with spikes wrapped around the top of the tower.
+    if (tower.level >= 3) {
+      const crown = new THREE.Group();
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.013, 6, 16), M.gold);
+      band.rotation.x = Math.PI / 2;
+      crown.add(band);
+      for (let i = 0; i < 6; i++) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.08, 4), M.gold);
+        const a = i * Math.PI * 2 / 6;
+        // Cone points up by default — spikes radiate around the band like a coronet.
+        spike.position.set(Math.cos(a) * 0.11, 0.04, Math.sin(a) * 0.11);
+        crown.add(spike);
+      }
+      crown.position.y = topY + 0.06;
+      g.add(crown);
+    }
+
+    g.traverse(c => { if (c.isMesh) { c.castShadow = false; c.receiveShadow = false; } });
+    tower.group.add(g);
+    tower._levelGroup = g;
+  }
+
+  function upgradeTower(tower) {
+    if (tower.level >= MAX_LEVEL) return false;
+    const cost = getUpgradeCost(tower);
+    if (STATE.gold < cost) { showToast('Not enough gold to upgrade', '🪙'); return false; }
+    STATE.gold -= cost;
+    tower.totalSpent += cost;
+    tower.level++;
+    applyLevelVisuals(tower);
+    const p = tilePos(tower.x, tower.z);
+    showFloatAt(p.x, TOP_H + 0.9, p.z, `★ Lv ${tower.level}`, '#d4a017');
+    showToast(`${tower.config.label} → level ${tower.level}`, '⬆');
+    updateHud();
+    refreshInfoPanel();
+    if (STATE.selectedTower === tower) {
+      const stats = getStats(tower);
+      setRangeIndicator(stats.range, p.x, p.z, 0xffd44a);
+    }
+    return true;
+  }
+
+  // Re-renders the info panel from the currently selected tower without
+  // re-opening it. Safe to call whenever stats or gold change.
+  function refreshInfoPanel() {
+    const tower = STATE.selectedTower;
+    if (!tower) return;
+    const stats = getStats(tower);
+    const pipsFilled = '★'.repeat(tower.level);
+    const pipsEmpty  = '☆'.repeat(MAX_LEVEL - tower.level);
+    document.getElementById('infoName').textContent = tower.config.label + ' tower';
+    document.getElementById('infoLevel').textContent = pipsFilled + pipsEmpty;
+    document.getElementById('infoDmg').textContent = stats.damage;
+    document.getElementById('infoRange').textContent = stats.range.toFixed(1);
+    document.getElementById('infoRate').textContent = stats.fireRate.toFixed(1) + '/s';
+    document.getElementById('infoKills').textContent = tower.kills;
+    const refundEl = document.getElementById('infoRefund');
+    if (refundEl) refundEl.textContent = getSellRefund(tower);
+    const upBtn = document.getElementById('infoUpgrade');
+    if (upBtn) {
+      if (tower.level >= MAX_LEVEL) {
+        upBtn.disabled = true;
+        upBtn.classList.add('maxed');
+        upBtn.innerHTML = '★ Max level';
+      } else {
+        const cost = getUpgradeCost(tower);
+        upBtn.classList.remove('maxed');
+        upBtn.disabled = STATE.gold < cost;
+        upBtn.innerHTML = `⬆ Upgrade Lv ${tower.level + 1} · <span id="infoUpgradeCost">${cost}</span> 🪙`;
+      }
+    }
+    document.querySelectorAll('#targetModes .target-mode').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === tower.targeting);
+    });
+  }
+
+  // -------- targeting --------
+  // Computes a 0-1ish progress along the path for an enemy (combined with
+  // pathIndex it gives a strict total-order along the route).
+  function enemyPathProgress(en) {
+    const idx = en.pathIndex;
+    const from = pathCoords[idx]     || pathCoords[0];
+    const next = pathCoords[idx + 1] || pathCoords[pathCoords.length - 1];
+    const segDx = next.x - from.x, segDz = next.z - from.z;
+    const segLen2 = segDx*segDx + segDz*segDz;
+    if (segLen2 < 1e-6) return 0;
+    const ex = en.mesh.position.x - (from.x - GRID/2 + 0.5);
+    const ez = en.mesh.position.z - (from.z - GRID/2 + 0.5);
+    return (ex * segDx + ez * segDz) / segLen2;
+  }
+
+  // Picks the best enemy in range for the given tower according to its
+  // targeting priority. Returns null if no enemy is in range.
+  function findTargetForTower(tower) {
+    const stats = getStats(tower);
+    const tp = tower.group.position;
+    const rSq = stats.range * stats.range;
+    const mode = tower.targeting || 'first';
+
+    let best = null;
+    let bestScore = -Infinity;
+    for (const en of STATE.enemies) {
+      if (en.reached || en.hp <= 0) continue;
+      const dx = en.mesh.position.x - tp.x;
+      const dz = en.mesh.position.z - tp.z;
+      const dSq = dx*dx + dz*dz;
+      if (dSq > rSq) continue;
+
+      let score;
+      switch (mode) {
+        case 'last':   score = -(en.pathIndex * 1000 + enemyPathProgress(en)); break;
+        case 'strong': score =  en.hp * 1000 - dSq; break;
+        case 'weak':   score = -en.hp * 1000 - dSq; break;
+        case 'close':  score = -dSq; break;
+        case 'first':
+        default:       score =  en.pathIndex * 1000 + enemyPathProgress(en); break;
+      }
+      if (score > bestScore) { best = en; bestScore = score; }
+    }
+    return best;
+  }
+
   // -------- placement --------
   function canPlaceTower(x, z) {
     if (x < 0 || x >= GRID || z < 0 || z >= GRID) return false;
@@ -1500,10 +1801,14 @@
       group,
       cooldown: 0,
       kills: 0,
+      level: 1,
+      targeting: 'first',
+      totalSpent: cfg.cost,
       baseRot: 0,
     };
     world[x][z].tower = tower;
     STATE.towers.push(tower);
+    applyLevelVisuals(tower);
 
     // Drop-in animation
     group.position.y = TOP_H + 1.5;
@@ -1518,7 +1823,7 @@
   function sellTower(x, z) {
     const tower = world[x][z] && world[x][z].tower;
     if (!tower) return false;
-    const refund = tower.config.refund;
+    const refund = getSellRefund(tower);
     STATE.gold += refund;
     scene.remove(tower.group);
     tower.group.traverse(c => {
@@ -1537,28 +1842,18 @@
 
   function selectTower(tower) {
     STATE.selectedTower = tower;
-    const ip = document.getElementById('infoPanel');
-    document.getElementById('infoName').textContent = tower.config.label + ' tower';
-    document.getElementById('infoDmg').textContent = tower.config.damage;
-    document.getElementById('infoRange').textContent = tower.config.range.toFixed(1);
-    document.getElementById('infoRate').textContent = tower.config.fireRate.toFixed(1) + '/s';
-    document.getElementById('infoKills').textContent = tower.kills;
-    document.getElementById('infoRefund').textContent = tower.config.refund;
-    ip.classList.add('show');
-
-    // Show range ring at this tower
-    rangeRing.geometry.dispose();
-    rangeRing.geometry = new THREE.RingGeometry(tower.config.range - 0.04, tower.config.range, 48);
+    document.getElementById('infoPanel').classList.add('show');
+    refreshInfoPanel();
+    const stats = getStats(tower);
     const p = tilePos(tower.x, tower.z);
-    rangeRing.position.set(p.x, TOP_H + 0.04, p.z);
-    rangeRing.visible = true;
+    setRangeIndicator(stats.range, p.x, p.z, 0xffd44a);
   }
 
   function closeInfoPanel() {
     STATE.selectedTower = null;
     document.getElementById('infoPanel').classList.remove('show');
     if (!STATE.selectedTool || STATE.selectedTool === 'sell') {
-      rangeRing.visible = false;
+      hideRangeIndicator();
     }
   }
 
@@ -1567,6 +1862,17 @@
     if (STATE.selectedTower) {
       sellTower(STATE.selectedTower.x, STATE.selectedTower.z);
     }
+  });
+  document.getElementById('infoUpgrade').addEventListener('click', () => {
+    if (STATE.selectedTower) upgradeTower(STATE.selectedTower);
+  });
+  // Target priority buttons — clicking switches the tower's targeting mode.
+  document.querySelectorAll('#targetModes .target-mode').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!STATE.selectedTower) return;
+      STATE.selectedTower.targeting = btn.dataset.mode;
+      refreshInfoPanel();
+    });
   });
 
   // -------- tower targeting / firing --------
@@ -1585,50 +1891,18 @@
       tower.cooldown -= dt;
       if (tower.cooldown > 0) continue;
 
-      // Find first enemy in range (closest to goal: pathIndex highest, then closest)
-      let target = null;
-      let bestPathIdx = -1;
-      let bestProgress = -1;
-      const tp = tower.group.position;
-      const rSq = tower.config.range * tower.config.range;
-      for (const en of STATE.enemies) {
-        if (en.reached || en.hp <= 0) continue;
-        const dx = en.mesh.position.x - tp.x;
-        const dz = en.mesh.position.z - tp.z;
-        if (dx*dx + dz*dz > rSq) continue;
-        // Prefer the enemy furthest along the path
-        const wpx = en.pathIndex;
-        const next = pathCoords[wpx] || pathCoords[pathCoords.length - 1];
-        const fromP = pathCoords[wpx - 1] || pathCoords[0];
-        const segDx = (next.x - fromP.x), segDz = (next.z - fromP.z);
-        const segLen = Math.hypot(segDx, segDz) || 1;
-        const dxFromStart = (en.mesh.position.x + GRID/2 - 0.5) - fromP.x;
-        const dzFromStart = (en.mesh.position.z + GRID/2 - 0.5) - fromP.z;
-        const progress = (dxFromStart * segDx + dzFromStart * segDz) / (segLen * segLen);
-        if (wpx > bestPathIdx || (wpx === bestPathIdx && progress > bestProgress)) {
-          target = en;
-          bestPathIdx = wpx;
-          bestProgress = progress;
-        }
-      }
-
+      const target = findTargetForTower(tower);
       if (!target) continue;
 
-      // Rotate windmill base to face target (for visual juice)
-      if (tower.config.id === 'magic') {
-        const dx = target.mesh.position.x - tp.x;
-        const dz = target.mesh.position.z - tp.z;
-        const yaw = Math.atan2(dx, dz);
-        tower.group.rotation.y = yaw;
-      } else if (tower.config.id === 'cannon') {
-        const dx = target.mesh.position.x - tp.x;
-        const dz = target.mesh.position.z - tp.z;
-        const yaw = Math.atan2(dx, dz);
-        tower.group.rotation.y = yaw;
-      }
+      // All three units rotate to face the target; the model's "front" is +z.
+      const tp = tower.group.position;
+      const dx = target.mesh.position.x - tp.x;
+      const dz = target.mesh.position.z - tp.z;
+      tower.group.rotation.y = Math.atan2(dx, dz);
 
       fireProjectile(tower, target);
-      tower.cooldown = 1 / tower.config.fireRate;
+      const stats = getStats(tower);
+      tower.cooldown = 1 / stats.fireRate;
     }
   }
 
@@ -1650,15 +1924,16 @@
     if (ud && ud.kind === 'cannon' && ud.barrelPivot) {
       ud.recoilT = 1.0;
     }
+    const stats = getStats(tower);
     STATE.projectiles.push({
       mesh: proj,
       target,
-      damage: tower.config.damage,
+      damage: stats.damage,
       speed: 9 + (tower.config.id === 'magic' ? 6 : 0),
       tower,
       kind: tower.config.projectile,
-      splash: tower.config.splash || 0,
-      pierce: tower.config.pierce || 0,
+      splash: stats.splash || 0,
+      pierce: stats.pierce || 0,
       pierced: new Set(),
     });
   }
@@ -1909,8 +2184,9 @@
   renderer.domElement.addEventListener('pointerdown', e => {
     if (e.button === 2 || (e.pointerType === 'mouse' && e.button !== 0)) {
       // Right click also exits selection
-      if (STATE.selectedTool) { STATE.selectedTool = null; updateActiveDockItem(); rangeRing.visible = !!STATE.selectedTower; }
+      if (STATE.selectedTool) { STATE.selectedTool = null; updateActiveDockItem(); }
       if (STATE.selectedTower) closeInfoPanel();
+      if (!STATE.selectedTool && !STATE.selectedTower) hideRangeIndicator();
       return;
     }
     dragging = true;
@@ -1973,9 +2249,16 @@
     return { x: gx, z: gz };
   }
 
+  // Remember where the pointer was last seen so we can re-run the hover logic
+  // when a tool is selected via keyboard / dock click without requiring the
+  // user to wiggle the mouse to see the range preview.
+  const _lastPointer = { x: null, y: null };
+
   function updateHover(clientX, clientY) {
+    if (clientX != null) { _lastPointer.x = clientX; _lastPointer.y = clientY; }
+
     if (!STATE.selectedTool) {
-      // Hover still highlights towers
+      // No tool selected — just highlight whichever tower is under the cursor.
       const cell = pickTile(clientX, clientY);
       if (cell && world[cell.x][cell.z].tower) {
         hoverMesh.material = M.hoverGood;
@@ -1989,36 +2272,46 @@
     }
 
     const cell = pickTile(clientX, clientY);
-    if (!cell) { hoverMesh.visible = false; rangeRing.visible = !!STATE.selectedTower; return; }
-    const p = tilePos(cell.x, cell.z);
 
     if (STATE.selectedTool === 'sell') {
+      if (!cell) {
+        hoverMesh.visible = false;
+        if (!STATE.selectedTower) hideRangeIndicator();
+        return;
+      }
       const tower = world[cell.x][cell.z].tower;
+      const p = tilePos(cell.x, cell.z);
       hoverMesh.material = tower ? M.hoverGood : M.hoverInvalid;
       hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
       hoverMesh.visible = true;
       if (tower) {
-        rangeRing.geometry.dispose();
-        rangeRing.geometry = new THREE.RingGeometry(tower.config.range - 0.04, tower.config.range, 48);
-        rangeRing.position.set(p.x, TOP_H + 0.04, p.z);
-        rangeRing.visible = true;
-      } else {
-        rangeRing.visible = !!STATE.selectedTower;
+        setRangeIndicator(getStats(tower).range, p.x, p.z, 0xc84848);
+      } else if (!STATE.selectedTower) {
+        hideRangeIndicator();
       }
       return;
     }
 
     const cfg = TOWERS[STATE.selectedTool];
     if (!cfg) return;
+
+    if (!cell) {
+      // Cursor off-grid: still show the range so the user knows the radius,
+      // pinned to the centre of the board. Hover tile is hidden.
+      hoverMesh.visible = false;
+      setRangeIndicator(cfg.range, 0, 0, 0xffd44a);
+      rangeFill.material.opacity = 0.06;
+      return;
+    }
+    const p = tilePos(cell.x, cell.z);
     const valid = canPlaceTower(cell.x, cell.z) && STATE.gold >= cfg.cost;
     hoverMesh.material = valid ? M.hoverGood : M.hoverInvalid;
     hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
     hoverMesh.visible = true;
-    // Range preview
-    rangeRing.geometry.dispose();
-    rangeRing.geometry = new THREE.RingGeometry(cfg.range - 0.04, cfg.range, 48);
-    rangeRing.position.set(p.x, TOP_H + 0.04, p.z);
-    rangeRing.visible = true;
+    // Range preview — green tint when placement is valid, red when not.
+    const tint = valid ? 0x6fb442 : 0xc84848;
+    setRangeIndicator(cfg.range, p.x, p.z, tint);
+    rangeFill.material.opacity = valid ? 0.14 : 0.10;
   }
 
   function handleClick(clientX, clientY) {
@@ -2158,7 +2451,24 @@
     });
     if (!STATE.selectedTool) {
       hoverMesh.visible = false;
-      if (!STATE.selectedTower) rangeRing.visible = false;
+      if (!STATE.selectedTower) hideRangeIndicator();
+    } else if (STATE.selectedTool !== 'sell') {
+      // Tool just got selected — show the range preview right away so the user
+      // sees the radius without needing to first move the mouse over a tile.
+      const cfg = TOWERS[STATE.selectedTool];
+      if (cfg) {
+        if (_lastPointer.x != null) {
+          updateHover(_lastPointer.x, _lastPointer.y);
+        } else {
+          // No pointer yet: show the range at the board centre as a hint.
+          setRangeIndicator(cfg.range, 0, 0, 0xffd44a);
+          rangeFill.material.opacity = 0.10;
+        }
+      }
+    } else {
+      // Sell tool selected without hover info — at least make the indicator
+      // available so we can highlight the next tower under the mouse.
+      if (_lastPointer.x != null) updateHover(_lastPointer.x, _lastPointer.y);
     }
     renderer.domElement.classList.toggle('placing', !!STATE.selectedTool);
   }
