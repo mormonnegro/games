@@ -754,267 +754,359 @@
     return g;
   }
 
-  // -------- house parts (identical to original) --------
-  const H = {
-    WALL_W: 0.82, WALL_H: 0.55, PEAK_Y: 0.87, T: 0.06, ROOF_OVERHANG: 0.3,
-  };
+  // -------- extra materials for unit-style towers --------
+  Object.assign(M, {
+    skin:        new THREE.MeshLambertMaterial({ color: 0xf2c8a0 }),
+    tunic:       new THREE.MeshLambertMaterial({ color: 0x4a8a3f }),
+    tunicD:      new THREE.MeshLambertMaterial({ color: 0x356329 }),
+    pants:       new THREE.MeshLambertMaterial({ color: 0x6b4423 }),
+    boot:        new THREE.MeshLambertMaterial({ color: 0x2a1e14 }),
+    hood:        new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    bowWood:     new THREE.MeshLambertMaterial({ color: 0x8a5a3b }),
+    bowString:   new THREE.MeshLambertMaterial({ color: 0xe5dab4 }),
+    cannonMetal: new THREE.MeshLambertMaterial({ color: 0x2a2a2e }),
+    cannonDark:  new THREE.MeshLambertMaterial({ color: 0x1a1a1e }),
+    cannonWood:  new THREE.MeshLambertMaterial({ color: 0x6b4423 }),
+    cannonWoodD: new THREE.MeshLambertMaterial({ color: 0x4a2d18 }),
+    gold:        new THREE.MeshLambertMaterial({ color: 0xc88a18 }),
+    wizardRobe:  new THREE.MeshLambertMaterial({ color: 0x4a3b8a }),
+    wizardRobeD: new THREE.MeshLambertMaterial({ color: 0x2f266b }),
+    wizardBeard: new THREE.MeshLambertMaterial({ color: 0xf2ece0 }),
+    wizardOrb:   new THREE.MeshBasicMaterial({ color: 0xc4a3ff }),
+    wizardOrbHalo: new THREE.MeshBasicMaterial({ color: 0x9b6bff, transparent: true, opacity: 0.28 }),
+    platformWood: new THREE.MeshLambertMaterial({ color: 0x8a5a3b }),
+    platformStone: new THREE.MeshLambertMaterial({ color: 0xb8b0a0 }),
+    platformStoneD: new THREE.MeshLambertMaterial({ color: 0x8a8276 }),
+    eye:         new THREE.MeshBasicMaterial({ color: 0x1a1410 }),
+  });
 
-  const Parts = {
-    gable() {
-      const shape = new THREE.Shape();
-      shape.moveTo(-H.WALL_W / 2, H.WALL_H);
-      shape.lineTo( H.WALL_W / 2, H.WALL_H);
-      shape.lineTo(0, H.PEAK_Y);
-      shape.closePath();
-      const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: false, curveSegments: 1 });
-      return new THREE.Mesh(geo, M.wallCream);
-    },
-    pitchedRoof(WALL_D, frontOverhang = 0.15, backOverhang = 0.15) {
-      const g = new THREE.Group();
-      const halfW = H.WALL_W / 2;
-      const ROOF_DEPTH = WALL_D + frontOverhang + backOverhang;
-      const ROOF_Z = (frontOverhang - backOverhang) / 2;
-      const rise = H.PEAK_Y - H.WALL_H;
-      const slabLen = Math.sqrt(halfW * halfW + rise * rise);
-      const slabAngle = Math.atan2(rise, halfW);
-      const sa = Math.sin(slabAngle), ca = Math.cos(slabAngle);
-      const slabGeo = new THREE.BoxGeometry(slabLen, H.T, ROOF_DEPTH);
-
-      const slabL = new THREE.Mesh(slabGeo, M.roofBlue);
-      slabL.position.set(-halfW / 2 - (H.T / 2) * sa, (H.WALL_H + H.PEAK_Y) / 2 + (H.T / 2) * ca, ROOF_Z);
-      slabL.rotation.z = slabAngle;
-      g.add(slabL);
-
-      const slabR = new THREE.Mesh(slabGeo, M.roofBlue);
-      slabR.position.set(halfW / 2 + (H.T / 2) * sa, (H.WALL_H + H.PEAK_Y) / 2 + (H.T / 2) * ca, ROOF_Z);
-      slabR.rotation.z = -slabAngle;
-      g.add(slabR);
-
-      const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.06, ROOF_DEPTH + 0.02), M.roofBlueD);
-      ridge.position.set(0, H.PEAK_Y + (H.T / 2) * ca + 0.005, ROOF_Z);
-      g.add(ridge);
-      return g;
-    },
-    door(orientation) {
-      const g = new THREE.Group();
-      if (orientation === 'gable') {
-        const door = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.48, 0.04), M.door);
-        door.position.set(0, 0.24, 0); g.add(door);
-        const aL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aL.position.set(-0.10, 0.24, 0.01); g.add(aL);
-        const aR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aR.position.set( 0.10, 0.24, 0.01); g.add(aR);
-        const aT = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.04, 0.04), M.woodTrim); aT.position.set(0, 0.50, 0.01); g.add(aT);
-        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), M.knob);
-        knob.position.set(0.08, 0.24, 0.03); g.add(knob);
-      }
-      return g;
-    },
-    window(orientation) {
-      const g = new THREE.Group();
-      const f = 0.24, p = 0.17;
-      if (orientation === 'gable') {
-        const wf = new THREE.Mesh(new THREE.BoxGeometry(f, f, 0.04), M.woodTrim); wf.position.set(0, 0, 0); g.add(wf);
-        const wg = new THREE.Mesh(new THREE.BoxGeometry(p, p, 0.04), M.windowB);  wg.position.set(0, 0, 0.015); g.add(wg);
-        const cH = new THREE.Mesh(new THREE.BoxGeometry(p, 0.012, 0.04), M.woodTrim); cH.position.set(0, 0, 0.025); g.add(cH);
-        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.012, p, 0.04), M.woodTrim); cV.position.set(0, 0, 0.025); g.add(cV);
-      } else {
-        const wf = new THREE.Mesh(new THREE.BoxGeometry(0.04, f, f), M.woodTrim); wf.position.set(0, 0, 0); g.add(wf);
-        const wg = new THREE.Mesh(new THREE.BoxGeometry(0.04, p, p), M.windowB);  wg.position.set(0.015, 0, 0); g.add(wg);
-        const cH = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.012, p), M.woodTrim); cH.position.set(0.025, 0, 0); g.add(cH);
-        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.04, p, 0.012), M.woodTrim); cV.position.set(0.025, 0, 0); g.add(cV);
-      }
-      return g;
-    },
-    chimney() {
-      return new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.6, 0.14), M.chimney);
-    },
-    step(orientation) {
-      return orientation === 'side'
-        ? new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.26), M.step)
-        : new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.06, 0.12), M.step);
-    },
-  };
-
-  // -------- House (Archer Tower) --------
-  function makeHouse() {
+  // -------- Archer unit (a person on a wooden platform with a bow) --------
+  function makeArcher() {
     const g = new THREE.Group();
-    const WALL_D = 0.7;
-    const halfW = H.WALL_W / 2;
-    const halfD = WALL_D / 2;
 
-    const walls = new THREE.Mesh(roundedBox(H.WALL_W, H.WALL_H, WALL_D, 0.04), M.wallCream);
-    g.add(walls);
+    // Wooden platform base
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.38, 0.10, 14), M.platformWood);
+    base.position.y = 0.05;
+    g.add(base);
+    const baseTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.39, 0.39, 0.04, 14), M.woodTrim);
+    baseTrim.position.y = 0.105;
+    g.add(baseTrim);
+    // Four corner supports under the platform (visual punch)
+    for (const [ax, az] of [[-0.30, -0.30], [0.30, -0.30], [-0.30, 0.30], [0.30, 0.30]]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.10, 0.05), M.cannonWoodD);
+      post.position.set(ax, 0.05, az);
+      g.add(post);
+    }
 
-    const gF = Parts.gable(); gF.position.set(0, 0, halfD - 0.04); g.add(gF);
-    const gB = Parts.gable(); gB.position.set(0, 0, -halfD); g.add(gB);
+    // Legs (pants) + boots
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.20, 0.10), M.pants);
+    legL.position.set(-0.06, 0.22, 0); g.add(legL);
+    const legR = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.20, 0.10), M.pants);
+    legR.position.set( 0.06, 0.22, 0); g.add(legR);
+    const bootL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.14), M.boot);
+    bootL.position.set(-0.06, 0.135, 0.02); g.add(bootL);
+    const bootR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.14), M.boot);
+    bootR.position.set( 0.06, 0.135, 0.02); g.add(bootR);
 
-    const roof = Parts.pitchedRoof(WALL_D);
-    g.add(roof);
+    // Torso — green tunic + leather belt
+    const torso = new THREE.Mesh(roundedBox(0.30, 0.30, 0.18, 0.03), M.tunic);
+    torso.position.y = 0.48;
+    g.add(torso);
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.04, 0.20), M.bowWood);
+    belt.position.y = 0.36;
+    g.add(belt);
+    // Tunic skirt (slight flare)
+    const skirt = new THREE.Mesh(roundedBox(0.32, 0.08, 0.20, 0.03), M.tunicD);
+    skirt.position.y = 0.34;
+    g.add(skirt);
 
-    const door = Parts.door('gable');
-    door.position.set(-0.12, 0, halfD + 0.01); g.add(door);
-    const win = Parts.window('gable');
-    win.position.set(0.2, 0.32, halfD + 0.01); g.add(win);
-    const step = Parts.step('gable');
-    step.position.set(-0.12, 0.03, halfD + 0.08); g.add(step);
+    // Head + eyes
+    const head = new THREE.Mesh(roundedBox(0.18, 0.18, 0.18, 0.03), M.skin);
+    head.position.y = 0.72;
+    g.add(head);
+    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.01), M.eye);
+    eyeL.position.set(-0.04, 0.74, 0.091); g.add(eyeL);
+    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.01), M.eye);
+    eyeR.position.set( 0.04, 0.74, 0.091); g.add(eyeR);
 
-    const chim = Parts.chimney();
-    chim.position.set(-0.28, H.WALL_H + 0.30, -0.05); g.add(chim);
+    // Hood (brown cap with a small forward peak)
+    const hood = new THREE.Mesh(roundedBox(0.22, 0.10, 0.22, 0.03), M.hood);
+    hood.position.y = 0.86;
+    g.add(hood);
+    const peak = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.03, 0.06), M.hood);
+    peak.position.set(0, 0.82, 0.12);
+    g.add(peak);
+
+    // Left arm extended forward holding the bow grip
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.22), M.tunic);
+    armL.position.set(0.10, 0.55, 0.14);
+    g.add(armL);
+    const handL = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.07), M.skin);
+    handL.position.set(0.10, 0.55, 0.26);
+    g.add(handL);
+    // Right arm drawing back at chest
+    const armR = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.18, 0.07), M.tunic);
+    armR.position.set(-0.16, 0.50, 0.02);
+    g.add(armR);
+    const handR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), M.skin);
+    handR.position.set(-0.16, 0.40, 0.02);
+    g.add(handR);
+
+    // Bow — a vertical handle with two angled limbs, plus string
+    const bow = new THREE.Group();
+    bow.position.set(0.10, 0.55, 0.32);
+    const bowMid = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.16, 0.04), M.bowWood);
+    bow.add(bowMid);
+    const bowTop = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.22, 0.04), M.bowWood);
+    bowTop.position.set(0, 0.16, -0.05);
+    bowTop.rotation.x = -0.45;
+    bow.add(bowTop);
+    const bowBot = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.22, 0.04), M.bowWood);
+    bowBot.position.set(0, -0.16, -0.05);
+    bowBot.rotation.x = 0.45;
+    bow.add(bowBot);
+    // String — runs vertical, slightly behind handle
+    const bowString = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.50, 0.010), M.bowString);
+    bowString.position.set(0, 0, -0.11);
+    bow.add(bowString);
+    // Arrow nocked on string, pointing forward (+z)
+    const arrowShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.34, 6), M.bowWood);
+    arrowShaft.rotation.x = Math.PI / 2;
+    arrowShaft.position.set(0, 0, 0.05);
+    bow.add(arrowShaft);
+    const arrowTip = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.06, 6), M.cannonDark);
+    arrowTip.rotation.x = Math.PI / 2;
+    arrowTip.position.set(0, 0, 0.25);
+    bow.add(arrowTip);
+    const fletch = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.05), M.barnRed);
+    fletch.position.set(0, 0, -0.12);
+    bow.add(fletch);
+    g.add(bow);
+
+    // Quiver on back with arrow fletchings poking out
+    const quiver = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.22, 10), M.cannonWoodD);
+    quiver.position.set(-0.10, 0.58, -0.12);
+    quiver.rotation.z = 0.25;
+    g.add(quiver);
+    const qFletch1 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.04), M.barnRed);
+    qFletch1.position.set(-0.13, 0.72, -0.12); g.add(qFletch1);
+    const qFletch2 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.04), M.barnTrim);
+    qFletch2.position.set(-0.07, 0.72, -0.12); g.add(qFletch2);
 
     castReceive(g);
-    g.userData = { kind: 'house' };
+    g.userData = { kind: 'archer' };
     return g;
   }
 
-  // -------- Barn (Cannon Tower) --------
-  // Simplified single-cell barn (1 tile). Same colors and gambrel roof as original.
-  function makeBarn() {
+  // -------- Cannon unit (wheeled artillery piece) --------
+  function makeCannon() {
     const g = new THREE.Group();
-    const W = 0.82, L = 0.82;
-    const halfW = W / 2, halfL = L / 2;
-    const H1 = 0.55, H2 = 0.95, H3 = 1.20;
-    const T = 0.06, OVERHANG = 0.12;
-    const BREAK_X = W * 0.25;
 
-    const walls = new THREE.Mesh(roundedBox(W, H1, L, 0.04), M.barnRed);
-    g.add(walls);
+    // Carriage frame — two long side beams running fore-aft (+z is forward)
+    const beamL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.62), M.cannonWood);
+    beamL.position.set(-0.18, 0.20, -0.04);
+    g.add(beamL);
+    const beamR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 0.62), M.cannonWood);
+    beamR.position.set( 0.18, 0.20, -0.04);
+    g.add(beamR);
+    // Top platform connecting the beams
+    const platform = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.04, 0.32), M.cannonWoodD);
+    platform.position.set(0, 0.28, 0);
+    g.add(platform);
+    // Cross-piece at front and back
+    const crossF = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.06, 0.06), M.cannonWoodD);
+    crossF.position.set(0, 0.16, 0.22);
+    g.add(crossF);
+    const crossB = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.06, 0.06), M.cannonWoodD);
+    crossB.position.set(0, 0.16, -0.22);
+    g.add(crossB);
+    // Trail (carriage tail extending back)
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.08, 0.18), M.cannonWood);
+    tail.position.set(0, 0.16, -0.36);
+    g.add(tail);
+    const tailRing = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 10), M.cannonGold || M.gold);
+    tailRing.rotation.y = Math.PI / 2;
+    tailRing.position.set(0, 0.16, -0.46);
+    g.add(tailRing);
 
-    // Trim
-    const trimLong  = new THREE.BoxGeometry(W + 0.04, 0.04, 0.05);
-    const trimShort = new THREE.BoxGeometry(0.05, 0.04, L + 0.04);
-    const tF = new THREE.Mesh(trimLong, M.barnTrim);  tF.position.set(0, H1, halfL + 0.005); g.add(tF);
-    const tB = new THREE.Mesh(trimLong, M.barnTrim);  tB.position.set(0, H1, -halfL - 0.005); g.add(tB);
-    const tR = new THREE.Mesh(trimShort, M.barnTrim); tR.position.set( halfW + 0.005, H1, 0); g.add(tR);
-    const tL = new THREE.Mesh(trimShort, M.barnTrim); tL.position.set(-halfW - 0.005, H1, 0); g.add(tL);
-
-    // Gables (pentagonal panel)
-    const apex = [0, H3], breakR = [BREAK_X, H2], breakL = [-BREAK_X, H2];
-    const eaveR = [halfW, H1], eaveL = [-halfW, H1];
-    const gableShape = new THREE.Shape();
-    gableShape.moveTo(eaveL[0], eaveL[1]);
-    gableShape.lineTo(breakL[0], breakL[1]);
-    gableShape.lineTo(apex[0], apex[1]);
-    gableShape.lineTo(breakR[0], breakR[1]);
-    gableShape.lineTo(eaveR[0], eaveR[1]);
-    gableShape.closePath();
-    const gableGeo = new THREE.ExtrudeGeometry(gableShape, { depth: 0.04, bevelEnabled: false, curveSegments: 1 });
-    const gF = new THREE.Mesh(gableGeo, M.barnRed); gF.position.z = halfL - 0.04; g.add(gF);
-    const gB = new THREE.Mesh(gableGeo, M.barnRed); gB.position.z = -halfL + 0.00; g.add(gB);
-
-    // Gambrel slabs (4 per side)
-    const roofDepth = L + OVERHANG * 2;
-    const SLAB_EXTEND = 0.06, SLAB_OFFSET = T * 0.9;
-    function pitchSlab(x1, y1, x2, y2, mirror) {
-      const dx = x2 - x1, dy = y2 - y1;
-      const slabLen = Math.sqrt(dx*dx + dy*dy) + SLAB_EXTEND * 2;
-      const angle = Math.atan2(dy, dx);
-      const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(slabLen, T, roofDepth), M.barnRoof);
-      let finalAngle = angle, finalCx = cx;
-      if (mirror) { finalAngle = Math.PI - angle; finalCx = -cx; }
-      slab.rotation.z = finalAngle;
-      const px = -Math.sin(finalAngle) * SLAB_OFFSET;
-      const py =  Math.cos(finalAngle) * SLAB_OFFSET;
-      slab.position.set(finalCx + px, cy + py, 0);
-      return slab;
+    // Wheels (large discs on each side) — built rotated so they face +x/-x
+    function makeWheel(side) {
+      const w = new THREE.Group();
+      const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 0.06, 16), M.cannonWood);
+      tire.rotation.z = Math.PI / 2;
+      w.add(tire);
+      // Outer rim (slightly darker)
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.20, 0.022, 6, 18), M.cannonDark);
+      rim.rotation.y = Math.PI / 2;
+      w.add(rim);
+      // Hub
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.10, 10), M.gold);
+      hub.rotation.z = Math.PI / 2;
+      w.add(hub);
+      // 4 spokes — boxes oriented in the wheel's plane (YZ plane after parent rotation)
+      for (let i = 0; i < 4; i++) {
+        const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.02), M.cannonWoodD);
+        spoke.rotation.x = i * Math.PI / 4;
+        spoke.rotation.z = Math.PI / 2;
+        w.add(spoke);
+      }
+      w.position.set(side * 0.27, 0.20, 0);
+      return w;
     }
-    g.add(pitchSlab( halfW, H1, BREAK_X, H2, false));
-    g.add(pitchSlab( BREAK_X, H2, 0, H3, false));
-    g.add(pitchSlab( halfW, H1, BREAK_X, H2, true));
-    g.add(pitchSlab( BREAK_X, H2, 0, H3, true));
+    g.add(makeWheel(-1));
+    g.add(makeWheel( 1));
 
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, roofDepth + 0.02), M.barnRoofD);
-    ridge.position.set(0, H3 + 0.02, 0);
-    g.add(ridge);
+    // Barrel group — tilted up slightly, points forward (+z)
+    const barrelPivot = new THREE.Group();
+    barrelPivot.position.set(0, 0.34, 0.02);
+    barrelPivot.rotation.x = -0.12;
 
-    // Big front doors with white X
-    const doorW = 0.56, doorH = 0.5, doorZ = halfL + 0.025;
-    const frameT = 0.05;
-    const frameOuterH = doorH + frameT;
-    const frameTop = new THREE.Mesh(new THREE.BoxGeometry(doorW + frameT * 2, frameT, 0.03), M.barnTrim);
-    frameTop.position.set(0, doorH + frameT / 2, doorZ + 0.005); g.add(frameTop);
-    const frameLeft = new THREE.Mesh(new THREE.BoxGeometry(frameT, frameOuterH, 0.03), M.barnTrim);
-    frameLeft.position.set(-doorW / 2 - frameT / 2, frameOuterH / 2, doorZ + 0.005); g.add(frameLeft);
-    const frameRight = new THREE.Mesh(new THREE.BoxGeometry(frameT, frameOuterH, 0.03), M.barnTrim);
-    frameRight.position.set(doorW / 2 + frameT / 2, frameOuterH / 2, doorZ + 0.005); g.add(frameRight);
-    const halfDoor = new THREE.BoxGeometry(doorW / 2 - 0.01, doorH, 0.04);
-    const doorL = new THREE.Mesh(halfDoor, M.barnRedD); doorL.position.set(-doorW / 4, doorH / 2, doorZ); g.add(doorL);
-    const doorR = new THREE.Mesh(halfDoor, M.barnRedD); doorR.position.set( doorW / 4, doorH / 2, doorZ); g.add(doorR);
-
-    function addXOnPanel(centerX) {
-      const panelW = doorW / 2 - 0.04;
-      const diagLen = Math.sqrt(panelW*panelW + doorH*doorH);
-      const diagAngle = Math.atan2(doorH, panelW);
-      const trimZ = doorZ + 0.025;
-      const t1 = new THREE.Mesh(new THREE.BoxGeometry(diagLen, 0.035, 0.02), M.barnTrim);
-      t1.position.set(centerX, doorH / 2, trimZ); t1.rotation.z =  diagAngle; g.add(t1);
-      const t2 = new THREE.Mesh(new THREE.BoxGeometry(diagLen, 0.035, 0.02), M.barnTrim);
-      t2.position.set(centerX, doorH / 2, trimZ); t2.rotation.z = -diagAngle; g.add(t2);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.62, 16), M.cannonMetal);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0, 0.08);
+    barrelPivot.add(barrel);
+    // Muzzle ring (gold)
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.05, 16), M.gold);
+    muzzle.rotation.x = Math.PI / 2;
+    muzzle.position.set(0, 0, 0.39);
+    barrelPivot.add(muzzle);
+    // Two reinforcement bands
+    for (const z of [0.20, 0.00]) {
+      const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.04, 16), M.gold);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(0, 0, z);
+      barrelPivot.add(ring);
     }
-    addXOnPanel(-doorW / 4);
-    addXOnPanel( doorW / 4);
+    // Cascabel knob at the back of the barrel
+    const cascabel = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), M.cannonDark);
+    cascabel.position.set(0, 0, -0.26);
+    barrelPivot.add(cascabel);
+    // Touch hole — tiny notch on top
+    const touch = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.05), M.cannonDark);
+    touch.position.set(0, 0.10, -0.18);
+    barrelPivot.add(touch);
 
-    // Hay loft window
-    const henilY = (H2 + H3) / 2;
-    const henilFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.04, 14), M.barnTrim);
-    henilFrame.rotation.x = Math.PI / 2;
-    henilFrame.position.set(0, henilY, halfL + 0.005); g.add(henilFrame);
-    const henilGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.04, 14), M.windowB);
-    henilGlass.rotation.x = Math.PI / 2;
-    henilGlass.position.set(0, henilY, halfL + 0.015); g.add(henilGlass);
-    const hay = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.06, 0.04), M.barnHay);
-    hay.position.set(0, henilY - 0.06, halfL + 0.035); hay.rotation.z = 0.15; g.add(hay);
+    g.add(barrelPivot);
+
+    // Cannonball pile next to the carriage
+    const ball1 = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), M.cannonDark);
+    ball1.position.set(0.34, 0.07, -0.16); g.add(ball1);
+    const ball2 = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), M.cannonDark);
+    ball2.position.set(0.40, 0.07, -0.08); g.add(ball2);
+    const ball3 = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), M.cannonDark);
+    ball3.position.set(0.37, 0.18, -0.12); g.add(ball3);
 
     castReceive(g);
-    g.userData = { kind: 'barn' };
+    g.userData = { kind: 'cannon', barrelPivot };
     return g;
   }
 
-  // -------- Windmill (Magic Tower) --------
-  function makeWindmill() {
+  // -------- Wizard unit (robed figure on a runed stone with magic staff) --------
+  function makeWizard() {
     const g = new THREE.Group();
 
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 0.95, 14), M.millStone);
-    base.position.y = 0.475; g.add(base);
+    // Stone platform with magical inscription
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.40, 0.08, 14), M.platformStone);
+    base.position.y = 0.04;
+    g.add(base);
+    const baseRim = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.025, 6, 18), M.platformStoneD);
+    baseRim.rotation.x = Math.PI / 2;
+    baseRim.position.y = 0.08;
+    g.add(baseRim);
+    // Dark inscription disc on top
+    const inscription = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.02, 14), M.wizardRobeD);
+    inscription.position.y = 0.095;
+    g.add(inscription);
+    // Glowing rune at center
+    const rune = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.022, 14), M.wizardOrb);
+    rune.position.y = 0.107;
+    g.add(rune);
 
-    const band1 = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.32, 0.04, 14), M.millStoneD);
-    band1.position.y = 0.18; g.add(band1);
-    const band2 = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.28, 0.04, 14), M.millStoneD);
-    band2.position.y = 0.62; g.add(band2);
+    // Robe — tapered cylinder (wide at bottom, narrow at top)
+    const robe = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.32, 0.58, 14), M.wizardRobe);
+    robe.position.y = 0.40;
+    g.add(robe);
+    // Robe darker trim along the bottom hem
+    const robeTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.05, 14), M.wizardRobeD);
+    robeTrim.position.y = 0.13;
+    g.add(robeTrim);
+    // Gold belt at robe waist
+    const beltW = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.04, 14), M.gold);
+    beltW.position.y = 0.43;
+    g.add(beltW);
 
-    const winFrame = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.03), M.woodTrim);
-    winFrame.position.set(0, 0.55, 0.265); g.add(winFrame);
-    const winGlass = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.04), M.windowB);
-    winGlass.position.set(0, 0.55, 0.28); g.add(winGlass);
+    // Sleeves (two boxes flaring outward)
+    const sleeveL = new THREE.Mesh(roundedBox(0.10, 0.22, 0.14, 0.03), M.wizardRobe);
+    sleeveL.position.set(-0.22, 0.48, 0); g.add(sleeveL);
+    const sleeveR = new THREE.Mesh(roundedBox(0.10, 0.22, 0.14, 0.03), M.wizardRobe);
+    sleeveR.position.set( 0.22, 0.48, 0); g.add(sleeveR);
+    // Hands
+    const handL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.07, 0.10), M.skin);
+    handL.position.set(-0.22, 0.36, 0.03); g.add(handL);
+    const handR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.07, 0.10), M.skin);
+    handR.position.set( 0.22, 0.36, 0.03); g.add(handR);
 
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.32, 0.04), M.door);
-    door.position.set(0, 0.16, 0.27); g.add(door);
+    // Head (mostly hidden by hat) — keep eyes visible
+    const head = new THREE.Mesh(roundedBox(0.18, 0.16, 0.18, 0.03), M.skin);
+    head.position.y = 0.78;
+    g.add(head);
 
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.34, 14), M.millRoof);
-    roof.position.y = 1.12; g.add(roof);
+    // Pointy wizard hat
+    const hat = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.46, 14), M.wizardRobeD);
+    hat.position.y = 1.06;
+    g.add(hat);
+    // Hat brim — wide disc with slight upturn
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.04, 14), M.wizardRobeD);
+    brim.position.y = 0.87;
+    g.add(brim);
+    // Gold band where brim meets cone
+    const hatBand = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 14), M.gold);
+    hatBand.position.y = 0.91;
+    g.add(hatBand);
+    // Star embellishment on hat
+    const star = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.02), M.gold);
+    star.position.set(0, 1.06, 0.18);
+    star.rotation.z = Math.PI / 4;
+    g.add(star);
 
-    const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.18, 8), M.millFrame);
-    axle.rotation.x = Math.PI / 2;
-    axle.position.set(0, 1.0, 0.32); g.add(axle);
+    // White beard
+    const beard = new THREE.Mesh(roundedBox(0.14, 0.18, 0.10, 0.03), M.wizardBeard);
+    beard.position.set(0, 0.66, 0.07);
+    g.add(beard);
+    // Mustache tip
+    const stache = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.04, 0.06), M.wizardBeard);
+    stache.position.set(0, 0.76, 0.10);
+    g.add(stache);
 
-    const blades = new THREE.Group();
-    blades.position.set(0, 1.0, 0.40);
+    // Eyes — small dark slits visible under hat brim
+    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.018, 0.01), M.eye);
+    eyeL.position.set(-0.04, 0.80, 0.091); g.add(eyeL);
+    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.018, 0.01), M.eye);
+    eyeR.position.set( 0.04, 0.80, 0.091); g.add(eyeR);
 
-    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), M.millFrame);
-    hub.rotation.x = Math.PI / 2; blades.add(hub);
-
-    for (let i = 0; i < 4; i++) {
-      const blade = new THREE.Group();
-      blade.rotation.z = i * Math.PI / 2;
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.62, 0.04), M.millFrame);
-      beam.position.y = 0.34; blade.add(beam);
-      const sail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.02), M.millBlade);
-      sail.position.set(0.11, 0.36, 0.03); blade.add(sail);
-      blades.add(blade);
-    }
-    g.add(blades);
+    // Staff group held in right hand (orb at top glows)
+    const staffGroup = new THREE.Group();
+    staffGroup.position.set(0.28, 0.10, 0.05);
+    staffGroup.rotation.z = -0.10;
+    const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.030, 1.00, 8), M.trunk);
+    staff.position.y = 0.50;
+    staffGroup.add(staff);
+    // Decorative gold band below orb
+    const staffBand = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.04, 10), M.gold);
+    staffBand.position.y = 0.95;
+    staffGroup.add(staffBand);
+    // Magic orb at top
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.09, 14, 14), M.wizardOrb);
+    orb.position.y = 1.05;
+    staffGroup.add(orb);
+    // Translucent halo around orb (gives a glow feel)
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 14), M.wizardOrbHalo);
+    halo.position.y = 1.05;
+    staffGroup.add(halo);
+    g.add(staffGroup);
 
     castReceive(g);
-    g.userData = { kind: 'windmill', blades, spinSpeed: 1.4 };
+    g.userData = { kind: 'wizard', orb, halo, staffGroup };
     return g;
   }
 
@@ -1188,25 +1280,25 @@
   // -------- towers config --------
   const TOWERS = {
     arrow: {
-      id: 'arrow', label: 'Archer', desc: 'Cottage',
+      id: 'arrow', label: 'Archer', desc: 'Hooded ranger',
       cost: 20, refund: 12,
       damage: 1, range: 2.4, fireRate: 1.8,
       projectile: 'arrow',
-      build: makeHouse,
+      build: makeArcher,
     },
     cannon: {
-      id: 'cannon', label: 'Cannon', desc: 'Barn',
+      id: 'cannon', label: 'Cannon', desc: 'Splash damage',
       cost: 55, refund: 30,
       damage: 4, range: 2.7, fireRate: 0.7,
       projectile: 'cannon', splash: 0.8,
-      build: makeBarn,
+      build: makeCannon,
     },
     magic: {
-      id: 'magic', label: 'Wizard', desc: 'Windmill',
+      id: 'magic', label: 'Wizard', desc: 'Long range bolt',
       cost: 100, refund: 60,
       damage: 3, range: 4.5, fireRate: 1.3,
       projectile: 'magic', pierce: 2,
-      build: makeWindmill,
+      build: makeWizard,
     },
   };
 
@@ -1543,9 +1635,21 @@
   function fireProjectile(tower, target) {
     const tp = tower.group.position;
     const startY = TOP_H + 0.75;
+    // Spawn the projectile slightly in front of the tower in the firing direction,
+    // so it doesn't appear stuck inside the model.
+    const dxT = target.mesh.position.x - tp.x;
+    const dzT = target.mesh.position.z - tp.z;
+    const dT = Math.hypot(dxT, dzT) || 1;
+    const offsetX = (dxT / dT) * 0.35;
+    const offsetZ = (dzT / dT) * 0.35;
     const proj = new THREE.Mesh(_projGeoms[tower.config.projectile], _projMats[tower.config.projectile]);
-    proj.position.set(tp.x, startY, tp.z);
+    proj.position.set(tp.x + offsetX, startY, tp.z + offsetZ);
     scene.add(proj);
+    // Cannon recoil: kick the barrel back briefly. (animate() relaxes it.)
+    const ud = tower.group.userData;
+    if (ud && ud.kind === 'cannon' && ud.barrelPivot) {
+      ud.recoilT = 1.0;
+    }
     STATE.projectiles.push({
       mesh: proj,
       target,
@@ -2105,17 +2209,38 @@
       }
     }
 
-    // Windmill blades on towers
+    // Tower idle animations
     for (const tower of STATE.towers) {
-      if (tower.config.id === 'magic') {
-        tower.group.children.forEach(child => {
-          if (child.userData && child.userData.kind === 'windmill') {}
-        });
-        // The windmill group itself has userData.blades; rotate them
-        const ud = tower.group.userData;
-        if (ud && ud.blades) {
-          ud.blades.rotation.z = t * ud.spinSpeed;
+      const ud = tower.group.userData;
+      if (!ud) continue;
+
+      if (ud.kind === 'wizard') {
+        // Pulse the orb: scale halo with a sine breath; tilt staff gently.
+        const pulse = 0.85 + Math.sin(t * 3.2) * 0.20;
+        if (ud.halo) {
+          ud.halo.scale.setScalar(pulse);
+          ud.halo.material.opacity = 0.18 + Math.sin(t * 3.2) * 0.10;
         }
+        if (ud.orb) {
+          ud.orb.scale.setScalar(0.95 + Math.sin(t * 3.2) * 0.05);
+        }
+        if (ud.staffGroup) {
+          ud.staffGroup.rotation.z = -0.10 + Math.sin(t * 1.6) * 0.04;
+        }
+      } else if (ud.kind === 'cannon') {
+        // Smoothly relax the barrel recoil if active.
+        if (ud.recoilT !== undefined) {
+          ud.recoilT -= 0.05;
+          if (ud.recoilT <= 0) {
+            ud.barrelPivot.position.z = 0.02;
+            delete ud.recoilT;
+          } else {
+            ud.barrelPivot.position.z = 0.02 - 0.10 * ud.recoilT;
+          }
+        }
+      } else if (ud.kind === 'archer') {
+        // Slight torso/bow bob so the archer feels alive.
+        tower.group.position.y = (tower.group.userData._baseY ?? TOP_H) + Math.sin(t * 1.4) * 0.005;
       }
     }
 
