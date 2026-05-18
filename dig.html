@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Deep Dig</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #1a1410;
+    --bg-soft: #241c16;
+    --panel: #2e251e;
+    --panel-soft: #3a2e24;
+    --ink: #f4ecdc;
+    --muted: #9a8c7a;
+    --accent: #f4a838;
+    --accent-hi: #ffc878;
+    --line: #4a3b2c;
+    --shadow: 0 12px 32px -10px rgba(0,0,0,0.7);
+    --good: #7ac74b;
+    --bad:  #d4585a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  body {
+    background: radial-gradient(ellipse at 50% -20%, #3a2820 0%, var(--bg) 60%);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #app { position: fixed; inset: 0; z-index: 1; }
+  canvas { display: block; cursor: pointer; }
+
+  .brand {
+    position: fixed;
+    top: 22px; left: 26px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .brand .title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .brand .title em { color: var(--accent); font-style: italic; }
+  .brand .sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Top-right HUD */
+  .hud-top {
+    position: fixed;
+    top: 22px; right: 24px;
+    z-index: 10;
+    display: flex; gap: 8px;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat b { color: var(--accent-hi); font-weight: 700; font-size: 15px; }
+  .stat .ic { margin-right: 6px; }
+
+  /* Right-side shop */
+  .shop {
+    position: fixed;
+    right: 24px; top: 80px;
+    z-index: 10;
+    width: 248px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+  }
+  .shop-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 2px 4px 10px;
+    color: var(--accent);
+  }
+  .upgrade {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    color: var(--ink);
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.12s, transform 0.08s, border-color 0.12s;
+  }
+  .upgrade:hover  { background: var(--panel-soft); border-color: var(--accent); }
+  .upgrade:active { transform: translateY(1px); }
+  .upgrade:disabled { opacity: 0.55; cursor: not-allowed; }
+  .upgrade .icon { font-size: 22px; line-height: 1; }
+  .upgrade .body { flex: 1; text-align: left; }
+  .upgrade .name { font-size: 13px; font-weight: 600; line-height: 1.1; }
+  .upgrade .desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .upgrade .cost {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-hi);
+    font-variant-numeric: tabular-nums;
+    background: rgba(244, 168, 56, 0.12);
+    padding: 4px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .upgrade.cant .cost { color: var(--bad); background: rgba(212, 88, 90, 0.12); }
+
+  /* Inventory chips along the bottom */
+  .inv {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 80vw;
+    pointer-events: none;
+  }
+  .inv-chip {
+    background: var(--panel);
+    border: 2px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 12px 6px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 7px;
+    font-variant-numeric: tabular-nums;
+  }
+  .inv-chip .dot {
+    width: 11px; height: 11px;
+    border-radius: 3px;
+    box-shadow: inset 0 -2px 2px rgba(0,0,0,0.25);
+  }
+  .inv-chip b { color: var(--accent-hi); font-weight: 700; }
+
+  /* Floating popups (+coins, -dmg) */
+  .popups {
+    position: fixed; inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .popup {
+    position: absolute;
+    font-weight: 700;
+    font-size: 16px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+    transform: translate(-50%, -50%);
+    animation: pop 1s ease-out forwards;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+  .popup.big { font-size: 22px; }
+  @keyframes pop {
+    0%   { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+    15%  { transform: translate(-50%, -55%) scale(1.1); opacity: 1; }
+    100% { transform: translate(-50%, -90%) scale(1.0); opacity: 0; }
+  }
+
+  /* Reset button */
+  .reset-btn {
+    position: fixed;
+    bottom: 18px; right: 24px;
+    z-index: 10;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+  .reset-btn:hover { opacity: 1; color: var(--ink); }
+
+  /* Vertical depth meter, fixed to the left edge */
+  .depth-meter {
+    position: fixed;
+    left: 22px; top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+  }
+  .dm-label-top, .dm-label-bot {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .dm-track {
+    width: 14px;
+    height: 320px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--shadow);
+  }
+  .dm-zone {
+    position: absolute; left: 0; right: 0;
+  }
+  .dm-marker {
+    position: absolute; left: -8px; right: -8px;
+    height: 4px;
+    background: var(--ink);
+    border-radius: 2px;
+    box-shadow: 0 0 12px rgba(244, 168, 56, 0.7);
+    transition: top 0.25s ease-out;
+    pointer-events: auto;
+  }
+  .dm-marker-val {
+    position: absolute;
+    left: 40px;
+    top: -10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-hi);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 10px;
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Current tier badge at the top centre */
+  .zone {
+    position: fixed;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 18px 8px 12px;
+    box-shadow: var(--shadow);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .zone-ic {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    background: var(--accent);
+    box-shadow: inset 0 -2px 3px rgba(0,0,0,0.3);
+  }
+
+  /* Event banner — sits above the boost button, pulses while active */
+  .event-banner {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 14;
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, var(--panel-soft), var(--panel));
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    padding: 12px 22px 12px 18px;
+    box-shadow: 0 14px 36px -10px rgba(244, 168, 56, 0.6), var(--shadow);
+    pointer-events: none;
+    animation: banner-pulse 1.8s ease-in-out infinite;
+  }
+  .event-banner.hidden { display: none; }
+  .event-ic {
+    font-size: 26px;
+    line-height: 1;
+  }
+  .event-body { display: flex; flex-direction: column; }
+  .event-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--accent-hi);
+    line-height: 1;
+  }
+  .event-sub {
+    font-size: 11px;
+    color: var(--ink);
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.05em;
+  }
+  @keyframes banner-pulse {
+    0%, 100% { box-shadow: 0 14px 36px -10px rgba(244, 168, 56, 0.6), var(--shadow); }
+    50%      { box-shadow: 0 14px 50px -8px rgba(255, 200, 120, 0.8), var(--shadow); }
+  }
+
+  /* Active effect chips — below the boost button, stack of pill chips */
+  .effects {
+    position: fixed;
+    top: 122px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 12;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 70vw;
+    pointer-events: none;
+  }
+  .effect-chip {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 5px 12px 5px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 7px;
+    font-variant-numeric: tabular-nums;
+  }
+  .effect-chip .ic { font-size: 14px; line-height: 1; }
+  .effect-chip .name { color: var(--accent-hi); }
+  .effect-chip .timer { color: var(--muted); }
+
+  /* Boost button — sits below the event banner / effect chips */
+  .boost-btn {
+    position: fixed;
+    top: 168px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 11;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--panel);
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    padding: 10px 18px 10px 14px;
+    box-shadow: 0 12px 32px -10px rgba(244, 168, 56, 0.4), var(--shadow);
+    font-family: inherit;
+    color: var(--ink);
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.08s, box-shadow 0.2s, border-color 0.2s;
+  }
+  .boost-btn:hover  { transform: translateX(-50%) translateY(-1px); }
+  .boost-btn:active { transform: translateX(-50%) translateY(1px); }
+  .boost-btn.hidden { display: none; }
+  .boost-btn.active {
+    border-color: var(--accent-hi);
+    box-shadow: 0 0 24px rgba(255, 200, 120, 0.5);
+  }
+  .boost-btn.cd {
+    border-color: var(--line);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  .boost-ic {
+    font-size: 22px;
+    line-height: 1;
+    z-index: 1;
+  }
+  .boost-body {
+    display: flex; flex-direction: column;
+    text-align: left;
+    z-index: 1;
+  }
+  .boost-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.1;
+  }
+  .boost-btn.cd .boost-title { color: var(--muted); }
+  .boost-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Fill bar shows boost time left when active, or cooldown progress otherwise */
+  .boost-fill {
+    position: absolute;
+    left: 0; bottom: 0;
+    height: 3px;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.1s linear;
+  }
+  .boost-btn.cd .boost-fill { background: var(--muted); }
+
+  /* Run stats peek panel, bottom-left */
+  .stats-peek {
+    position: fixed;
+    left: 24px;
+    bottom: 18px;
+    z-index: 10;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: var(--shadow);
+    font-size: 11px;
+    min-width: 120px;
+  }
+  .sp-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    line-height: 1.5;
+  }
+  .sp-row span { color: var(--muted); }
+  .sp-row b { color: var(--accent-hi); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* Achievement toasts — slide in from the LEFT so they don't cover the shop. */
+  .ach-toasts {
+    position: fixed;
+    top: 90px; left: 24px;
+    z-index: 30;
+    display: flex; flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    max-width: 280px;
+  }
+  .ach-toast {
+    background: linear-gradient(135deg, var(--panel), var(--panel-soft));
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 12px 16px;
+    box-shadow: 0 12px 32px -10px rgba(244, 168, 56, 0.4), var(--shadow);
+    display: flex; align-items: center; gap: 10px;
+    min-width: 200px;
+    animation: ach-in 0.35s cubic-bezier(0.22, 1.4, 0.32, 1) forwards,
+               ach-out 0.35s ease-in 3.4s forwards;
+  }
+  .ach-toast .ic { font-size: 28px; }
+  .ach-toast .body { flex: 1; }
+  .ach-toast .lbl {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .ach-toast .title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  @keyframes ach-in {
+    0%   { transform: translateX(-120%); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes ach-out {
+    100% { transform: translateX(-120%); opacity: 0; }
+  }
+
+  /* Coin counter rolls in slight scale-up when it changes */
+  .stat.coin-bump b { animation: coin-bump 0.3s ease-out; }
+  @keyframes coin-bump {
+    0%   { transform: scale(1); color: var(--accent-hi); }
+    40%  { transform: scale(1.18); color: #fff; }
+    100% { transform: scale(1); color: var(--accent-hi); }
+  }
+
+  @media (max-width: 700px) {
+    .brand { top: 14px; left: 14px; }
+    .hud-top { top: 14px; right: 14px; }
+    .shop { right: 12px; left: 12px; width: auto; top: 70px; }
+    .depth-meter { display: none; }
+    .stats-peek { display: none; }
+    .zone { top: auto; bottom: 80px; }
+  }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div class="brand">
+    <div class="title">Deep <em>Dig</em></div>
+    <div class="sub">Click to mine · upgrade your shovel</div>
+  </div>
+
+  <div class="hud-top">
+    <div class="stat">⛏️ <b id="depthVal">0</b>m</div>
+    <div class="stat">🪙 <b id="coinsVal">0</b></div>
+  </div>
+
+  <div class="shop">
+    <div class="shop-title">Shovel</div>
+    <button class="upgrade" id="upgPower">
+      <span class="icon">⛏️</span>
+      <span class="body">
+        <div class="name">Power Lv <span id="powerLv">1</span></div>
+        <div class="desc"><span id="powerDmg">1</span> dmg / hit</div>
+      </span>
+      <span class="cost">🪙 <span id="powerCost">25</span></span>
+    </button>
+    <button class="upgrade" id="upgAuto">
+      <span class="icon">🤖</span>
+      <span class="body">
+        <div class="name">Boost Lv <span id="autoLv">0</span></div>
+        <div class="desc" id="autoDesc">Unlocks timed auto-dig</div>
+      </span>
+      <span class="cost">🪙 <span id="autoCost">120</span></span>
+    </button>
+    <button class="upgrade" id="upgLuck">
+      <span class="icon">🍀</span>
+      <span class="body">
+        <div class="name">Luck Lv <span id="luckLv">0</span></div>
+        <div class="desc"><span id="luckChance">0</span>% chance of crit ×3</div>
+      </span>
+      <span class="cost">🪙 <span id="luckCost">200</span></span>
+    </button>
+    <button class="upgrade" id="upgValue">
+      <span class="icon">💰</span>
+      <span class="body">
+        <div class="name">Value Lv <span id="valueLv">0</span></div>
+        <div class="desc">+<span id="valueBoost">0</span>% coin value</div>
+      </span>
+      <span class="cost">🪙 <span id="valueCost">300</span></span>
+    </button>
+  </div>
+
+  <!-- Vertical depth meter showing all material tiers and current position. -->
+  <div class="depth-meter">
+    <div class="dm-label-top">Surface</div>
+    <div class="dm-track" id="dmTrack">
+      <div class="dm-marker" id="dmMarker">
+        <span class="dm-marker-val" id="dmMarkerVal">0m</span>
+      </div>
+    </div>
+    <div class="dm-label-bot">Deep</div>
+  </div>
+
+  <!-- Tier badge at top showing the material zone you're in. -->
+  <div class="zone" id="zone">
+    <span class="zone-ic" id="zoneIc"></span>
+    <span class="zone-name" id="zoneName">Dirt</span>
+  </div>
+
+  <!-- Active effect chips — show current buffs with timers / counters. -->
+  <div class="effects" id="effects"></div>
+
+  <!-- Event banner — pops when a random event fires, fades when it expires. -->
+  <div class="event-banner hidden" id="eventBanner">
+    <span class="event-ic" id="eventIc"></span>
+    <span class="event-body">
+      <span class="event-title" id="eventTitle"></span>
+      <span class="event-sub" id="eventSub"></span>
+    </span>
+  </div>
+
+  <!-- Boost button — activates a timed auto-dig burst with a cooldown. -->
+  <button class="boost-btn hidden" id="boostBtn">
+    <span class="boost-ic" id="boostIc">⚡</span>
+    <span class="boost-body">
+      <span class="boost-title">Auto-dig Boost</span>
+      <span class="boost-sub" id="boostSub">Ready · 6/s for 8s</span>
+    </span>
+    <div class="boost-fill" id="boostFill"></div>
+  </button>
+
+  <!-- Run stats: total mined, deepest, time. -->
+  <div class="stats-peek" id="statsPeek">
+    <div class="sp-row"><span>Blocks</span><b id="spBlocks">0</b></div>
+    <div class="sp-row"><span>Best depth</span><b id="spBest">0m</b></div>
+  </div>
+
+  <div class="inv" id="inv"></div>
+
+  <div class="popups" id="popups"></div>
+
+  <div class="ach-toasts" id="achToasts"></div>
+
+  <button class="reset-btn" id="resetBtn" title="Wipe save and start over">↺ reset</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  // =====================================================================
+  // Deep Dig — single-file voxel mining clicker.
+  // 3-column infinite vertical shaft. Click the current row to mine.
+  // Materials get rarer and more valuable as depth increases. Coins buy
+  // shovel upgrades (power, auto-dig, luck for crits, coin multiplier).
+  // =====================================================================
+
+  const COLS = 3;
+  const BLOCK = 1.0;                 // world unit per block
+  const SAVE_KEY = 'deepDig_v1';
+
+  // Material catalogue. `hp` is hits at power 1; `coin` is base value.
+  const MATERIALS = {
+    grass:   { name: 'Grass',   color: 0x86d139, dark: 0x5fab26, hp: 1,   coin: 1    },
+    dirt:    { name: 'Dirt',    color: 0x9a6a3a, dark: 0x6c4a26, hp: 1,   coin: 1    },
+    stone:   { name: 'Stone',   color: 0xa9a5a0, dark: 0x7a766f, hp: 6,   coin: 4    },
+    coal:    { name: 'Coal',    color: 0x383233, dark: 0x1a1718, hp: 14,  coin: 12   },
+    copper:  { name: 'Copper',  color: 0xd07a48, dark: 0x9a5028, hp: 28,  coin: 30   },
+    iron:    { name: 'Iron',    color: 0xc8a890, dark: 0x927560, hp: 55,  coin: 70   },
+    gold:    { name: 'Gold',    color: 0xf4cc3a, dark: 0xb8941d, hp: 110, coin: 180  },
+    diamond: { name: 'Diamond', color: 0x6ee0d2, dark: 0x3aa698, hp: 240, coin: 520  },
+    mythril: { name: 'Mythril', color: 0xc079ff, dark: 0x8048b8, hp: 520, coin: 1500 },
+    // Rare gems drop instead of the normal material with some probability.
+    ruby:    { name: 'Ruby',    color: 0xe4456a, dark: 0xa61e3e, hp: 80,  coin: 350  },
+    emerald: { name: 'Emerald', color: 0x4ad65a, dark: 0x269033, hp: 80,  coin: 350  },
+    sapphire:{ name: 'Sapphire',color: 0x4a86e4, dark: 0x224ea6, hp: 80,  coin: 350  },
+  };
+
+  // Depth tiers: each row's material is sampled from the matching tier's
+  // weights. Tiers cascade (later tier wins when depth exceeds previous max).
+  const TIERS = [
+    { until:  1,   weights: { grass: 1.0 } },               // surface row — first thing you mine
+    { until:  8,   weights: { dirt: 0.85, stone: 0.15 } },
+    { until: 20,   weights: { stone: 0.65, dirt: 0.20, coal: 0.15 } },
+    { until: 40,   weights: { coal: 0.55, stone: 0.25, copper: 0.20 } },
+    { until: 70,   weights: { copper: 0.50, coal: 0.20, iron: 0.30 } },
+    { until: 110,  weights: { iron: 0.55, copper: 0.20, gold: 0.25 } },
+    { until: 170,  weights: { gold: 0.55, iron: 0.20, diamond: 0.25 } },
+    { until: 260,  weights: { diamond: 0.55, gold: 0.20, mythril: 0.25 } },
+    { until: Infinity, weights: { mythril: 0.75, diamond: 0.25 } },
+  ];
+  const RARE_GEM_CHANCE = 0.025;   // ~2.5% per block
+  const RARE_GEMS = ['ruby', 'emerald', 'sapphire'];
+
+  function pickMaterial(depth) {
+    if (Math.random() < RARE_GEM_CHANCE && depth > 4) {
+      return RARE_GEMS[Math.floor(Math.random() * RARE_GEMS.length)];
+    }
+    for (const tier of TIERS) {
+      if (depth < tier.until) {
+        const r = Math.random();
+        let acc = 0;
+        for (const [name, w] of Object.entries(tier.weights)) {
+          acc += w;
+          if (r < acc) return name;
+        }
+        // Fallback: last key
+        return Object.keys(tier.weights).pop();
+      }
+    }
+    return 'mythril';
+  }
+
+  // =====================================================================
+  // Special blocks — rare variants that drop big rewards or trigger effects.
+  // Each is rolled per-block (after material is picked) with its own chance.
+  // Specials override the block's HP and rendering but keep `mat` so the
+  // surrounding context (drop type, depth tier) stays coherent.
+  // =====================================================================
+  const SPECIAL_BLOCKS = {
+    chest: {
+      name: 'Treasure Chest', icon: '🪙',
+      color: 0x7a4a26, accent: 0xf4cc3a,
+      hpMult: 8, coinMult: 25,             // bigger HP, massive coin reward
+      chance: 0.006,
+    },
+    geode: {
+      name: 'Geode', icon: '💎',
+      color: 0x544a48, accent: 0x6ee0d2,
+      hpMult: 5, gems: 6,                  // drops a burst of gems
+      chance: 0.008,
+    },
+    bomb: {
+      name: 'Bomb Stone', icon: '💥',
+      color: 0x2a2628, accent: 0xe4456a,
+      hpMult: 2,                            // easy to set off
+      explodeRadius: 1,                     // 3x3 around itself
+      chance: 0.009,
+    },
+    power: {
+      name: 'Power Crystal', icon: '⚡',
+      color: 0xb070ff, accent: 0xffffff,
+      hpMult: 3, effect: 'random',          // drops a temporary buff
+      chance: 0.011,
+    },
+  };
+
+  function rollSpecial(depth) {
+    if (depth < 3) return null;             // give a friendly intro before specials
+    const r = Math.random();
+    let acc = 0;
+    for (const [name, cfg] of Object.entries(SPECIAL_BLOCKS)) {
+      acc += cfg.chance;
+      if (r < acc) return name;
+    }
+    return null;
+  }
+
+  // =====================================================================
+  // Effects — temporary buffs that stack. Each effect has either a `duration`
+  // (timer in seconds) or a `counter` (decrements on each qualifying hit).
+  // Power crystals drop one of these at random; random events also apply
+  // them for short periods. Stacking is multiplicative for damage/coin
+  // multipliers, and additive (logical-OR) for forceCrit.
+  // =====================================================================
+  const EFFECTS = {
+    gold_rush: {
+      name: 'Gold Rush', icon: '🪙', color: '#f4cc3a',
+      duration: 22, coinMult: 3,
+    },
+    power_surge: {
+      name: 'Power Surge', icon: '💥', color: '#e4456a',
+      duration: 18, dmgMult: 2,
+    },
+    frenzy: {
+      name: 'Frenzy', icon: '⚡', color: '#a8d4ff',
+      duration: 16, speedMult: 2,
+    },
+    lucky_vein: {
+      name: 'Lucky Vein', icon: '🍀', color: '#6ee0d2',
+      counter: 12, forceCrit: true, coinMult: 2,
+    },
+  };
+  const EFFECT_IDS = Object.keys(EFFECTS);
+
+  // =====================================================================
+  // State
+  // =====================================================================
+  const state = {
+    depth: 0,           // first row that still has any unmined block
+    rows: [],           // rows[d] = [block,block,block] (block = {mat,hp,maxHp} or null)
+    inv:  {},           // mat -> count
+    coins: 0,
+    shovel: {
+      power: 1,         // dmg/click
+      auto:  0,         // auto-hits per second
+      luck:  0,         // crit chance
+      value: 0,         // % coin boost
+    },
+    totalMined: 0,
+    bestDepth: 0,
+    achievements: {},   // id -> true once unlocked
+    // Boost: a temporary auto-dig burst. The player activates it manually
+    // when ready; it auto-deactivates after its duration and then enters a
+    // cooldown before it can be triggered again.
+    boostActive: false,
+    boostEndsAt: 0,
+    boostCooldownEndsAt: 0,
+    lastBoostHitAt: 0,
+    lastShownCoins: 0,
+    // Active effect instances. `endsAt` for duration effects, `remaining`
+    // for counter effects. Multiple instances of the same id refresh the
+    // longest one — see addEffect().
+    effects: {},
+    nextEventAt: 0,
+  };
+
+  // Milestone toasts — keeps the player rewarded as they push deeper or
+  // surface a new material type for the first time.
+  const ACHIEVEMENTS = [
+    { id: 'depth_25',   lbl: 'depth',     ic: '⛏️',  title: 'First 25m',       cond: () => state.depth >= 25 },
+    { id: 'depth_50',   lbl: 'depth',     ic: '🪨',  title: '50m — Stone age', cond: () => state.depth >= 50 },
+    { id: 'depth_100',  lbl: 'depth',     ic: '⚒️',  title: '100m — Coal',     cond: () => state.depth >= 100 },
+    { id: 'depth_200',  lbl: 'depth',     ic: '🪙',  title: '200m — Gold rush',cond: () => state.depth >= 200 },
+    { id: 'depth_400',  lbl: 'depth',     ic: '💎',  title: '400m — Diamond',  cond: () => state.depth >= 400 },
+    { id: 'depth_700',  lbl: 'depth',     ic: '🟣',  title: '700m — Mythril',  cond: () => state.depth >= 700 },
+    { id: 'depth_1500', lbl: 'depth',     ic: '🌟',  title: '1500m — Legend',  cond: () => state.depth >= 1500 },
+    { id: 'first_copper',  lbl: 'material', ic: '🟠', title: 'First Copper',    cond: () => (state.inv.copper  || 0) >= 1 },
+    { id: 'first_iron',    lbl: 'material', ic: '⚙️', title: 'First Iron',      cond: () => (state.inv.iron    || 0) >= 1 },
+    { id: 'first_gold',    lbl: 'material', ic: '🥇', title: 'First Gold',      cond: () => (state.inv.gold    || 0) >= 1 },
+    { id: 'first_diamond', lbl: 'material', ic: '💎', title: 'First Diamond',   cond: () => (state.inv.diamond || 0) >= 1 },
+    { id: 'first_mythril', lbl: 'material', ic: '🟣', title: 'First Mythril',   cond: () => (state.inv.mythril || 0) >= 1 },
+    { id: 'first_gem',     lbl: 'rare',     ic: '💠', title: 'Rare gem found!', cond: () => RARE_GEMS.some(g => (state.inv[g] || 0) >= 1) },
+    { id: 'coins_1k',      lbl: 'wealth',   ic: '🪙', title: '1,000 coins',     cond: () => state.coins >= 1000 },
+    { id: 'coins_100k',    lbl: 'wealth',   ic: '💰', title: '100k coins',      cond: () => state.coins >= 100000 },
+    { id: 'boost_used',    lbl: 'ability',  ic: '⚡',  title: 'First boost!',    cond: () => state.boostActive || state.boostCooldownEndsAt > 0 },
+  ];
+
+  function checkAchievements() {
+    for (const a of ACHIEVEMENTS) {
+      if (state.achievements[a.id]) continue;
+      if (a.cond()) {
+        state.achievements[a.id] = true;
+        showAchToast(a);
+      }
+    }
+  }
+
+  function showAchToast(a) {
+    const host = document.getElementById('achToasts');
+    if (!host) return;
+    const el = document.createElement('div');
+    el.className = 'ach-toast';
+    el.innerHTML =
+      '<span class="ic">' + a.ic + '</span>' +
+      '<div class="body">' +
+      '  <div class="lbl">' + a.lbl + '</div>' +
+      '  <div class="title">' + a.title + '</div>' +
+      '</div>';
+    host.appendChild(el);
+    setTimeout(() => el.remove(), 3800);
+  }
+
+  function ensureRow(d) {
+    while (state.rows.length <= d) {
+      const depthNow = state.rows.length;
+      const row = [];
+      for (let c = 0; c < COLS; c++) {
+        const mat = pickMaterial(depthNow);
+        const m = MATERIALS[mat];
+        const special = rollSpecial(depthNow);
+        const baseHp = special ? Math.max(2, Math.round(m.hp * SPECIAL_BLOCKS[special].hpMult)) : m.hp;
+        const block = { mat, hp: baseHp, maxHp: baseHp };
+        if (special) block.special = special;
+        row.push(block);
+      }
+      state.rows.push(row);
+    }
+  }
+
+  function loadState() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (!s) return;
+      state.depth  = s.depth || 0;
+      state.coins  = s.coins || 0;
+      state.inv    = s.inv   || {};
+      state.shovel = Object.assign(state.shovel, s.shovel || {});
+      state.totalMined  = s.totalMined  || 0;
+      state.bestDepth   = s.bestDepth   || state.depth;
+      state.achievements = s.achievements || {};
+      // Rows are saved with full indexing — older fully-mined rows are stored
+      // as null to keep the JSON compact without breaking index alignment.
+      state.rows = (s.rows || []).map(r => r ? r.map(b => b ? { ...b } : null) : null);
+      for (let i = 0; i < state.rows.length; i++) {
+        if (state.rows[i] === null) state.rows[i] = [null, null, null];
+      }
+    } catch {}
+  }
+  function saveState() {
+    try {
+      const out = state.rows.map((r, i) =>
+        i < state.depth - 1 ? null : r,
+      );
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        depth: state.depth,
+        coins: state.coins,
+        inv:   state.inv,
+        shovel: state.shovel,
+        totalMined:  state.totalMined,
+        bestDepth:   state.bestDepth,
+        achievements: state.achievements,
+        rows: out,
+      }));
+    } catch {}
+  }
+
+  // =====================================================================
+  // Biomes — visual layer that changes every ~100-300m so descending feels
+  // like exploration. Each biome has its own background, fog, torch tint,
+  // wall colour and ambient particle behaviour. Blends smoothly across
+  // boundaries so transitions don't snap.
+  // =====================================================================
+  const BIOMES = [
+    {
+      until: 100, name: 'Surface Soils',
+      bg: 0x1a1410, fog: 0x1a1410,
+      torch: 0xffaa55, wall: 0x6c4a26,
+      particle: 'dust',
+    },
+    {
+      until: 250, name: 'Cold Caverns',
+      bg: 0x101622, fog: 0x131c2a,
+      torch: 0xa8b4ff, wall: 0x404a58,
+      particle: 'crystal',
+    },
+    {
+      until: 500, name: 'Volcanic Depths',
+      bg: 0x1a0808, fog: 0x220c0c,
+      torch: 0xff6028, wall: 0x6a2418,
+      particle: 'ember',
+    },
+    {
+      until: 800, name: 'Crystal Vault',
+      bg: 0x140820, fog: 0x1c0c2a,
+      torch: 0xc070ff, wall: 0x4a2c66,
+      particle: 'glow',
+    },
+    {
+      until: Infinity, name: 'The Abyss',
+      bg: 0x02020a, fog: 0x06061a,
+      torch: 0xddddff, wall: 0x1a1830,
+      particle: 'stars',
+    },
+  ];
+
+  function biomeIndexAt(depth) {
+    for (let i = 0; i < BIOMES.length; i++) {
+      if (depth < BIOMES[i].until) return i;
+    }
+    return BIOMES.length - 1;
+  }
+
+  // Blend factor toward the NEXT biome in the last 25m before the boundary,
+  // so colours fade rather than snap.
+  function biomeBlend(depth) {
+    const i = biomeIndexAt(depth);
+    const cur = BIOMES[i];
+    if (i === BIOMES.length - 1) return { i, t: 0, cur, next: cur };
+    const dist = cur.until - depth;
+    const t = dist < 25 ? 1 - (dist / 25) : 0;
+    return { i, t, cur, next: BIOMES[i + 1] };
+  }
+
+  function lerpHex(a, b, t) {
+    const ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
+    const br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
+    const r = Math.round(ar + (br - ar) * t);
+    const g = Math.round(ag + (bg - ag) * t);
+    const bl = Math.round(ab + (bb - ab) * t);
+    return (r << 16) | (g << 8) | bl;
+  }
+
+  // =====================================================================
+  // Three.js scene
+  // =====================================================================
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a1410);
+  scene.fog = new THREE.Fog(0x1a1410, 12, 28);
+
+  let aspect = window.innerWidth / window.innerHeight;
+  let viewSize = 5.5;
+  const camera = new THREE.OrthographicCamera(
+    -viewSize * aspect, viewSize * aspect,
+    viewSize, -viewSize,
+    0.1, 100,
+  );
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  document.getElementById('app').appendChild(renderer.domElement);
+
+  scene.add(new THREE.HemisphereLight(0xffeacc, 0x442211, 0.55));
+  const sun = new THREE.DirectionalLight(0xffeacc, 0.6);
+  sun.position.set(4, 8, 5);
+  scene.add(sun);
+  // Warm torch light that follows the current dig depth — gives a cozy
+  // miner's-lamp glow on the active row.
+  const torch = new THREE.PointLight(0xffaa55, 1.4, 14);
+  scene.add(torch);
+
+  const worldGroup = new THREE.Group();
+  scene.add(worldGroup);
+
+  // ---------- block meshes ----------
+  // blockMeshes is a Map from "d,c" -> mesh. We lazily create meshes for
+  // rows near the visible window and dispose ones that scrolled off.
+  const blockMeshes = new Map();
+  const materialCache = new Map(); // keyed by hex color string
+
+  function getMat(hex) {
+    if (!materialCache.has(hex)) {
+      materialCache.set(hex, new THREE.MeshLambertMaterial({ color: hex }));
+    }
+    return materialCache.get(hex);
+  }
+
+  // Decorative ground on each side of the well, aligned with the first
+  // mineable row (depth 0 block top is at y = -0.04). The well's first row
+  // IS grass — that's what the player mines first — so we no longer cap the
+  // columns with a separate grass lid.
+  const surfaceGroup = new THREE.Group();
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < 4; i++) {
+      const x = side * ((COLS / 2) + 0.5 + i);
+      const grass = new THREE.Mesh(
+        new THREE.BoxGeometry(0.95, 0.3, 0.95),
+        getMat(0x6fb442),
+      );
+      grass.position.set(x, -0.19, 0);   // top at y = -0.04 (matches block top)
+      surfaceGroup.add(grass);
+      const dirt = new THREE.Mesh(
+        new THREE.BoxGeometry(0.95, 1.0, 0.95),
+        getMat(0x6c4a26),
+      );
+      dirt.position.set(x, -0.84, 0);    // top at y = -0.34 (under the grass)
+      surfaceGroup.add(dirt);
+    }
+  }
+  scene.add(surfaceGroup);
+
+  // -------- biome side walls --------
+  // Two tall vertical panels just outside the shaft. They follow the camera
+  // depth and tint themselves to the current biome's wall colour, so when
+  // you've mined a column you see a colored cave wall instead of empty void.
+  const wallMatLeft  = new THREE.MeshLambertMaterial({ color: 0x6c4a26 });
+  const wallMatRight = new THREE.MeshLambertMaterial({ color: 0x6c4a26 });
+  const wallHeight = 60;
+  const wallLeft  = new THREE.Mesh(new THREE.BoxGeometry(0.12, wallHeight, 0.95), wallMatLeft);
+  const wallRight = new THREE.Mesh(new THREE.BoxGeometry(0.12, wallHeight, 0.95), wallMatRight);
+  wallLeft.position.x  = -(COLS / 2) - 0.05;
+  wallRight.position.x =  (COLS / 2) + 0.05;
+  scene.add(wallLeft);
+  scene.add(wallRight);
+
+  // -------- ambient particles --------
+  // A pool of small drifting particles whose visuals and motion depend on
+  // the active biome. Spawned around the camera focus and recycled when
+  // they expire or leave the frame.
+  const ambientPool = [];
+  const AMBIENT_MAX = 40;
+  function makeAmbient() {
+    const geo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
+    const m = new THREE.Mesh(geo, mat);
+    m.userData = { alive: false };
+    scene.add(m);
+    ambientPool.push(m);
+    return m;
+  }
+  for (let i = 0; i < AMBIENT_MAX; i++) makeAmbient();
+
+  function spawnAmbient(focusY, kind) {
+    const m = ambientPool.find(p => !p.userData.alive);
+    if (!m) return;
+    m.userData.alive = true;
+    m.userData.kind = kind;
+    m.userData.life = 0;
+    m.userData.maxLife = 2.5 + Math.random() * 3.5;
+    m.position.set(
+      (Math.random() - 0.5) * 7,
+      focusY + (Math.random() - 0.5) * 5,
+      (Math.random() - 0.5) * 3 - 1,
+    );
+    // Defaults; per-kind overrides below.
+    m.userData.vx = 0;
+    m.userData.vy = -0.2;
+    m.userData.vz = 0;
+    m.scale.setScalar(1);
+    m.material.opacity = 0;
+
+    if (kind === 'dust') {
+      m.material.color.setHex(0xb89878);
+      m.userData.vy = -0.1 - Math.random() * 0.2;
+      m.userData.vx = (Math.random() - 0.5) * 0.15;
+      m.scale.setScalar(0.4 + Math.random() * 0.4);
+    } else if (kind === 'crystal') {
+      m.material.color.setHex(0xa8d4ff);
+      m.userData.vy = (Math.random() - 0.5) * 0.1;
+      m.userData.twinkle = true;
+      m.scale.setScalar(0.5 + Math.random() * 0.4);
+    } else if (kind === 'ember') {
+      m.material.color.setHex(0xff8830);
+      m.userData.vy = 0.4 + Math.random() * 0.6;        // rise like sparks
+      m.userData.vx = (Math.random() - 0.5) * 0.25;
+      m.scale.setScalar(0.35 + Math.random() * 0.3);
+    } else if (kind === 'glow') {
+      m.material.color.setHex(0xd4a8ff);
+      m.userData.vy = (Math.random() - 0.5) * 0.15;
+      m.userData.vx = Math.sin(m.position.x) * 0.1;
+      m.userData.twinkle = true;
+      m.scale.setScalar(0.5 + Math.random() * 0.5);
+    } else if (kind === 'stars') {
+      m.material.color.setHex(0xffffff);
+      m.userData.vy = 0;
+      m.userData.vx = 0;
+      m.userData.twinkle = true;
+      m.scale.setScalar(0.25 + Math.random() * 0.3);
+    }
+  }
+
+  let ambientSpawnAccum = 0;
+  function tickAmbient(dt, focusY, kind) {
+    // Spawn rate depends on kind — dust is sparse, embers are dense.
+    const rate = { dust: 4, crystal: 6, ember: 12, glow: 6, stars: 8 }[kind] || 4;
+    ambientSpawnAccum += dt * rate;
+    while (ambientSpawnAccum >= 1) {
+      ambientSpawnAccum -= 1;
+      spawnAmbient(focusY, kind);
+    }
+    for (const m of ambientPool) {
+      if (!m.userData.alive) continue;
+      const u = m.userData;
+      u.life += dt;
+      m.position.x += u.vx * dt;
+      m.position.y += u.vy * dt;
+      m.position.z += u.vz * dt;
+      // Fade in/out
+      const t = u.life / u.maxLife;
+      let alpha;
+      if (t < 0.2)       alpha = t / 0.2;
+      else if (t > 0.7)  alpha = (1 - t) / 0.3;
+      else               alpha = 1;
+      if (u.twinkle) alpha *= 0.4 + Math.abs(Math.sin(u.life * 6)) * 0.6;
+      m.material.opacity = alpha * 0.7;
+      if (t >= 1) {
+        u.alive = false;
+        m.material.opacity = 0;
+      }
+    }
+  }
+
+  // Apply biome visuals each frame: bg colour, fog, torch tint, wall colour.
+  function applyBiomeVisuals() {
+    const { t, cur, next } = biomeBlend(state.depth);
+    const bgHex   = lerpHex(cur.bg,    next.bg,    t);
+    const fogHex  = lerpHex(cur.fog,   next.fog,   t);
+    const torchHex= lerpHex(cur.torch, next.torch, t);
+    const wallHex = lerpHex(cur.wall,  next.wall,  t);
+    scene.background.setHex(bgHex);
+    scene.fog.color.setHex(fogHex);
+    torch.color.setHex(torchHex);
+    wallMatLeft.color.setHex(wallHex);
+    wallMatRight.color.setHex(wallHex);
+  }
+
+  function updateWalls(focusY) {
+    // Walls slide down with the camera but never let their top edge rise
+    // above y=0 (the surface) — otherwise they look like absurd pillars
+    // sticking up out of the ground.
+    const wantCenter = focusY - 8;
+    // Top edge sits at y = -0.04 to align with the surface row's top.
+    const maxCenter  = -wallHeight / 2 - 0.04;
+    const center = Math.min(wantCenter, maxCenter);
+    wallLeft.position.y  = center;
+    wallRight.position.y = center;
+  }
+
+  // Biome crossing detection — pops a toast the first time the player
+  // descends into a new biome on this run.
+  let lastBiomeIdx = -1;
+  function checkBiomeCross() {
+    const i = biomeIndexAt(state.depth);
+    if (lastBiomeIdx === -1) { lastBiomeIdx = i; return; }
+    if (i > lastBiomeIdx) {
+      lastBiomeIdx = i;
+      showAchToast({ lbl: 'biome', ic: '🗺️', title: 'Entered ' + BIOMES[i].name });
+    }
+  }
+
+  function rebuildBlockMesh(d, c) {
+    const key = d + ',' + c;
+    const existing = blockMeshes.get(key);
+    if (existing) {
+      worldGroup.remove(existing);
+      blockMeshes.delete(key);
+    }
+    const row = state.rows[d];
+    if (!row) return;
+    const block = row[c];
+    if (!block) return;
+    const t = block.hp / block.maxHp; // 1 = fresh, 0 = broken
+    const size = 0.92 * (0.6 + 0.4 * t);
+
+    let group;
+    if (block.special) {
+      const cfg = SPECIAL_BLOCKS[block.special];
+      group = new THREE.Group();
+      const core = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), getMat(cfg.color));
+      group.add(core);
+      // Accent decoration on top — what makes each special readable from
+      // across the screen. Different shape per type for instant recognition.
+      let accent;
+      if (block.special === 'chest') {
+        // Gold band across the middle of the front face.
+        accent = new THREE.Mesh(new THREE.BoxGeometry(size * 1.01, size * 0.18, size * 0.05), getMat(cfg.accent));
+        accent.position.set(0, 0, size / 2);
+        group.add(accent);
+        // Small gold knob.
+        const knob = new THREE.Mesh(new THREE.BoxGeometry(size * 0.18, size * 0.18, size * 0.10), getMat(cfg.accent));
+        knob.position.set(0, 0, size / 2 + 0.04);
+        group.add(knob);
+      } else if (block.special === 'geode') {
+        // Cyan crystal poking from the top.
+        accent = new THREE.Mesh(new THREE.SphereGeometry(size * 0.28, 8, 6), getMat(cfg.accent));
+        accent.position.set(0, size / 2 + size * 0.18, 0);
+        group.add(accent);
+      } else if (block.special === 'bomb') {
+        // Red fuse sphere on top, slightly emissive feel via brightness.
+        accent = new THREE.Mesh(new THREE.SphereGeometry(size * 0.22, 8, 6), getMat(cfg.accent));
+        accent.position.set(0, size / 2 + size * 0.15, 0);
+        group.add(accent);
+      } else if (block.special === 'power') {
+        // White inner crystal showing through.
+        accent = new THREE.Mesh(new THREE.BoxGeometry(size * 0.55, size * 0.55, size * 0.55), getMat(cfg.accent));
+        accent.position.set(0, 0, 0);
+        group.add(accent);
+      }
+    } else {
+      const m = MATERIALS[block.mat];
+      const mat = (t < 0.5) ? getMat(m.dark) : getMat(m.color);
+      group = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
+    }
+
+    group.position.set(c - (COLS - 1) / 2, -d - 0.5, 0);
+    group.userData = { d, c };
+    // Ensure children carry userData too so raycast hits register.
+    if (group.children) {
+      for (const child of group.children) child.userData = { d, c };
+    }
+    worldGroup.add(group);
+    blockMeshes.set(key, group);
+  }
+
+  function refreshBlocks() {
+    // Visible window: a few rows above and ~14 below the current depth.
+    const minD = Math.max(0, state.depth - 1);
+    const maxD = state.depth + 14;
+    ensureRow(maxD);
+    // Add/refresh meshes for in-window rows.
+    for (let d = minD; d <= maxD; d++) {
+      for (let c = 0; c < COLS; c++) {
+        if (state.rows[d] && state.rows[d][c]) {
+          if (!blockMeshes.has(d + ',' + c)) rebuildBlockMesh(d, c);
+        }
+      }
+    }
+    // Dispose meshes that scrolled off the top.
+    for (const key of Array.from(blockMeshes.keys())) {
+      const [d] = key.split(',').map(Number);
+      if (d < minD - 1) {
+        worldGroup.remove(blockMeshes.get(key));
+        blockMeshes.delete(key);
+      }
+    }
+  }
+
+  // =====================================================================
+  // Camera follows the current depth.
+  // =====================================================================
+  let cameraTargetY = 0;
+  function updateCamera() {
+    // Smoothly follow the depth. We aim a couple rows below the current
+    // depth so the player sees what they're about to mine.
+    const wantY = -(state.depth + 2);
+    cameraTargetY += (wantY - cameraTargetY) * 0.12;
+    const focusY = cameraTargetY;
+    camera.position.set(5, focusY + 3, 7);
+    camera.lookAt(0, focusY, 0);
+    torch.position.set(0, focusY + 1, 1.5);
+  }
+
+  function onResize() {
+    aspect = window.innerWidth / window.innerHeight;
+    camera.left   = -viewSize * aspect;
+    camera.right  =  viewSize * aspect;
+    camera.top    =  viewSize;
+    camera.bottom = -viewSize;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+  window.addEventListener('resize', onResize);
+
+  // =====================================================================
+  // Mining
+  // =====================================================================
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+
+  function pickBlockAt(clientX, clientY) {
+    ndc.x =  (clientX / window.innerWidth) * 2 - 1;
+    ndc.y = -(clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(ndc, camera);
+    // Recursive so we hit children of special-block Groups too.
+    const hits = raycaster.intersectObjects(worldGroup.children, true);
+    for (const h of hits) {
+      const ud = h.object.userData;
+      if (ud && ud.d !== undefined) return ud;
+    }
+    return null;
+  }
+
+  function isFront(d, c) {
+    // A block is "front" (mineable manually) if no row above it (in the
+    // same column) still has an unmined block. We let the player chip away
+    // at the topmost block in each column — natural gravity feel.
+    for (let dd = 0; dd < d; dd++) {
+      const r = state.rows[dd];
+      if (r && r[c]) return false;
+    }
+    return true;
+  }
+
+  // ---------- effect aggregation ----------
+  // Walk active effects and compute current multipliers. Stacking: damage
+  // and coin multipliers MULTIPLY; forceCrit is logical-OR.
+  function effectMults() {
+    let dmgMult = 1, coinMult = 1, speedMult = 1, forceCrit = false;
+    for (const id in state.effects) {
+      const cfg = EFFECTS[id];
+      if (!cfg) continue;
+      if (cfg.dmgMult)   dmgMult   *= cfg.dmgMult;
+      if (cfg.coinMult)  coinMult  *= cfg.coinMult;
+      if (cfg.speedMult) speedMult *= cfg.speedMult;
+      if (cfg.forceCrit) forceCrit = true;
+    }
+    return { dmgMult, coinMult, speedMult, forceCrit };
+  }
+
+  function addEffect(id) {
+    const cfg = EFFECTS[id];
+    if (!cfg) return;
+    if (cfg.duration) {
+      const endsAt = performance.now() + cfg.duration * 1000;
+      const prev = state.effects[id];
+      state.effects[id] = { endsAt: prev ? Math.max(prev.endsAt || 0, endsAt) : endsAt };
+    } else if (cfg.counter) {
+      const prev = state.effects[id];
+      const remaining = (prev && prev.remaining) ? prev.remaining + cfg.counter : cfg.counter;
+      state.effects[id] = { remaining };
+    }
+    showAchToast({ lbl: 'effect', ic: cfg.icon, title: cfg.name + ' activated' });
+    updateEffectsUI();
+  }
+
+  function tickEffects(now) {
+    let changed = false;
+    for (const id in state.effects) {
+      const e = state.effects[id];
+      if (e.endsAt && e.endsAt < now) {
+        delete state.effects[id];
+        changed = true;
+      } else if (e.remaining !== undefined && e.remaining <= 0) {
+        delete state.effects[id];
+        changed = true;
+      }
+    }
+    if (changed) updateEffectsUI();
+  }
+
+  // Decrement counter effects after a qualifying hit. Counter effects are
+  // consumed per-hit, not per-second.
+  function consumeCounterEffects() {
+    for (const id in state.effects) {
+      const cfg = EFFECTS[id];
+      if (cfg && cfg.counter) {
+        state.effects[id].remaining -= 1;
+        if (state.effects[id].remaining <= 0) delete state.effects[id];
+      }
+    }
+    updateEffectsUI();
+  }
+
+  function hitBlock(d, c, sx, sy) {
+    const row = state.rows[d];
+    if (!row) return;
+    const block = row[c];
+    if (!block) return;
+    if (!isFront(d, c)) {
+      showPopAt(sx, sy, 'blocked', '#d4585a', false);
+      return;
+    }
+    const mults = effectMults();
+    const critChance = state.shovel.luck * 0.03;
+    const isCrit = mults.forceCrit || Math.random() < critChance;
+    const dmg = Math.round(state.shovel.power * mults.dmgMult * (isCrit ? 3 : 1));
+
+    block.hp -= dmg;
+    consumeCounterEffects();
+    if (block.hp <= 0) {
+      breakBlock(d, c, sx, sy, isCrit);
+    } else {
+      rebuildBlockMesh(d, c);
+      showPopAt(sx, sy, '-' + dmg, isCrit ? '#ffc878' : '#fff', isCrit);
+    }
+  }
+
+  function breakBlock(d, c, sx, sy, isCrit) {
+    const block = state.rows[d][c];
+    if (!block) return;
+    const m = MATERIALS[block.mat];
+    const mults = effectMults();
+    const valueMult = 1 + state.shovel.value * 0.20;
+
+    if (block.special) {
+      handleSpecialBreak(block, d, c, sx, sy, isCrit, valueMult, mults);
+    } else {
+      const earned = Math.floor(m.coin * valueMult * mults.coinMult * (isCrit ? 3 : 1));
+      state.coins += earned;
+      state.inv[block.mat] = (state.inv[block.mat] || 0) + 1;
+      spawnBurst(c - (COLS - 1) / 2, -d - 0.5, m.color);
+      showPopAt(sx, sy, '+' + earned + '🪙', '#f4cc3a', true);
+      if (RARE_GEMS.includes(block.mat)) {
+        showPopAt(sx, sy - 28, m.name + '!', '#' + m.color.toString(16).padStart(6, '0'), true);
+      }
+    }
+    state.totalMined += 1;
+    state.rows[d][c] = null;
+    const mesh = blockMeshes.get(d + ',' + c);
+    if (mesh) {
+      worldGroup.remove(mesh);
+      blockMeshes.delete(d + ',' + c);
+    }
+    while (state.rows[state.depth] && state.rows[state.depth].every(b => b === null)) {
+      state.depth++;
+    }
+    if (state.depth > state.bestDepth) state.bestDepth = state.depth;
+    checkAchievements();
+    updateHud();
+    saveState();
+  }
+
+  // ---------- special block handlers ----------
+  function handleSpecialBreak(block, d, c, sx, sy, isCrit, valueMult, mults) {
+    const cfg = SPECIAL_BLOCKS[block.special];
+    const m = MATERIALS[block.mat];
+    spawnBurst(c - (COLS - 1) / 2, -d - 0.5, cfg.accent);
+    spawnBurst(c - (COLS - 1) / 2, -d - 0.5, cfg.color);
+
+    if (block.special === 'chest') {
+      const earned = Math.floor(m.coin * cfg.coinMult * valueMult * mults.coinMult * (isCrit ? 3 : 1));
+      state.coins += earned;
+      showPopAt(sx, sy, '+' + formatNum(earned) + '🪙', '#f4cc3a', true);
+      showAchToast({ lbl: 'treasure', ic: cfg.icon, title: 'Treasure chest!' });
+    } else if (block.special === 'geode') {
+      let totalEarned = 0;
+      for (let i = 0; i < cfg.gems; i++) {
+        const gem = RARE_GEMS[Math.floor(Math.random() * RARE_GEMS.length)];
+        state.inv[gem] = (state.inv[gem] || 0) + 1;
+        const gemValue = Math.floor(MATERIALS[gem].coin * valueMult * mults.coinMult);
+        state.coins += gemValue;
+        totalEarned += gemValue;
+      }
+      showPopAt(sx, sy, '+' + formatNum(totalEarned) + '🪙', '#6ee0d2', true);
+      showAchToast({ lbl: 'geode', ic: cfg.icon, title: cfg.gems + ' gems burst!' });
+    } else if (block.special === 'bomb') {
+      // Chain-explode neighbours in a 3×3 around the bomb. Each neighbour is
+      // destroyed if it exists and counts as a normal-material drop.
+      showPopAt(sx, sy, '💥 BOOM', '#e4456a', true);
+      showAchToast({ lbl: 'boom', ic: cfg.icon, title: 'Bomb stone exploded' });
+      const r = cfg.explodeRadius;
+      const toBlast = [];
+      for (let dd = d - r; dd <= d + r; dd++) {
+        for (let cc = c - r; cc <= c + r; cc++) {
+          if (cc < 0 || cc >= COLS) continue;
+          if (!state.rows[dd] || !state.rows[dd][cc]) continue;
+          if (dd === d && cc === c) continue;
+          toBlast.push([dd, cc]);
+        }
+      }
+      for (const [dd, cc] of toBlast) {
+        const nb = state.rows[dd][cc];
+        if (!nb) continue;
+        const nm = MATERIALS[nb.mat];
+        if (nb.special) {
+          // Chain into other specials, but smaller reward — only their basic accent burst.
+          spawnBurst(cc - (COLS - 1) / 2, -dd - 0.5, SPECIAL_BLOCKS[nb.special].accent);
+        } else {
+          const earned = Math.floor(nm.coin * valueMult * mults.coinMult);
+          state.coins += earned;
+          state.inv[nb.mat] = (state.inv[nb.mat] || 0) + 1;
+          spawnBurst(cc - (COLS - 1) / 2, -dd - 0.5, nm.color);
+        }
+        state.rows[dd][cc] = null;
+        const om = blockMeshes.get(dd + ',' + cc);
+        if (om) { worldGroup.remove(om); blockMeshes.delete(dd + ',' + cc); }
+        state.totalMined += 1;
+      }
+    } else if (block.special === 'power') {
+      // Drop a random temporary effect.
+      const eid = EFFECT_IDS[Math.floor(Math.random() * EFFECT_IDS.length)];
+      addEffect(eid);
+      showPopAt(sx, sy, EFFECTS[eid].name + '!', EFFECTS[eid].color, true);
+    }
+  }
+
+  // =====================================================================
+  // Pointer handling — single click and click-and-hold both work.
+  // =====================================================================
+  let pointerDown = false;
+  let pointerX = 0, pointerY = 0;
+  let lastHoldHit = 0;
+
+  renderer.domElement.addEventListener('pointerdown', e => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    pointerDown = true;
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+    const hit = pickBlockAt(e.clientX, e.clientY);
+    if (hit) hitBlock(hit.d, hit.c, e.clientX, e.clientY);
+    lastHoldHit = performance.now();
+  });
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (!pointerDown) return;
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+  });
+  function endPointer() { pointerDown = false; }
+  renderer.domElement.addEventListener('pointerup',     endPointer);
+  renderer.domElement.addEventListener('pointercancel', endPointer);
+  renderer.domElement.addEventListener('pointerleave',  endPointer);
+
+  // Auto-fire while holding (10 hits/sec). Cheap and gives a satisfying
+  // hammer feel without exhausting the player's clicking finger.
+  function tickHold(now) {
+    if (!pointerDown) return;
+    const holdInterval = 100 / Math.max(1, effectMults().speedMult);
+    if (now - lastHoldHit < holdInterval) return;
+    lastHoldHit = now;
+    const hit = pickBlockAt(pointerX, pointerY);
+    if (hit) hitBlock(hit.d, hit.c, pointerX, pointerY);
+  }
+
+  // =====================================================================
+  // Boost — temporary auto-mine burst, then cooldown.
+  // shovel.auto is the boost LEVEL (0 = locked). Each level extends duration
+  // and rate and shrinks the cooldown, but the boost is NEVER on permanently —
+  // it expires and forces the player to wait before re-activating.
+  // =====================================================================
+  function boostStats(level) {
+    if (level <= 0) return { rate: 0, duration: 0, cooldown: 0 };
+    return {
+      rate:     4 + level * 2,                  // hits/sec while active
+      duration: 6 + level * 2,                  // seconds active per use
+      cooldown: Math.max(15, 50 - level * 5),   // seconds cooldown
+    };
+  }
+
+  function activateBoost() {
+    if (state.shovel.auto <= 0) return;
+    const now = performance.now();
+    if (state.boostActive) return;
+    if (now < state.boostCooldownEndsAt) return;
+    const { duration } = boostStats(state.shovel.auto);
+    state.boostActive = true;
+    state.boostEndsAt = now + duration * 1000;
+    state.lastBoostHitAt = 0;
+    checkAchievements();
+    saveState();
+  }
+
+  function autoMineTick(now) {
+    if (!state.boostActive) {
+      if (state.boostEndsAt > 0 && now >= state.boostEndsAt) {
+        // Just expired this frame — switch to cooldown.
+        const { cooldown } = boostStats(state.shovel.auto);
+        state.boostActive = false;
+        state.boostEndsAt = 0;
+        state.boostCooldownEndsAt = now + cooldown * 1000;
+      }
+      return;
+    }
+    if (now >= state.boostEndsAt) {
+      const { cooldown } = boostStats(state.shovel.auto);
+      state.boostActive = false;
+      state.boostEndsAt = 0;
+      state.boostCooldownEndsAt = now + cooldown * 1000;
+      saveState();
+      return;
+    }
+    const { rate } = boostStats(state.shovel.auto);
+    const interval = 1000 / (rate * Math.max(1, effectMults().speedMult));
+    if (now - state.lastBoostHitAt < interval) return;
+    state.lastBoostHitAt = now;
+    ensureRow(state.depth + 4);
+    const cols = [0, 1, 2].filter(c => state.rows[state.depth] && state.rows[state.depth][c]);
+    if (!cols.length) return;
+    const c = cols[Math.floor(Math.random() * cols.length)];
+    const v = new THREE.Vector3(c - (COLS - 1) / 2, -state.depth - 0.5, 0);
+    v.project(camera);
+    const sx = (v.x + 1) * 0.5 * window.innerWidth;
+    const sy = (1 - v.y) * 0.5 * window.innerHeight;
+    hitBlock(state.depth, c, sx, sy);
+  }
+
+  // =====================================================================
+  // Particles (block-break burst)
+  // =====================================================================
+  const particles = [];
+
+  function spawnBurst(x, y, color) {
+    const mat = getMat(color);
+    for (let i = 0; i < 6; i++) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), mat);
+      p.position.set(x, y, 0);
+      p.userData = {
+        vx: (Math.random() - 0.5) * 3.0,
+        vy: 2.0 + Math.random() * 2.0,
+        vz: (Math.random() - 0.5) * 1.0,
+        rx: Math.random() * 6 - 3,
+        ry: Math.random() * 6 - 3,
+        life: 0,
+        maxLife: 0.7,
+      };
+      scene.add(p);
+      particles.push(p);
+    }
+  }
+
+  function tickParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      const u = p.userData;
+      u.life += dt;
+      const t = u.life / u.maxLife;
+      u.vy -= 8 * dt; // gravity
+      p.position.x += u.vx * dt;
+      p.position.y += u.vy * dt;
+      p.position.z += u.vz * dt;
+      p.rotation.x += u.rx * dt;
+      p.rotation.y += u.ry * dt;
+      p.scale.setScalar(1 - t);
+      if (t >= 1) {
+        scene.remove(p);
+        particles.splice(i, 1);
+      }
+    }
+  }
+
+  // =====================================================================
+  // Popups
+  // =====================================================================
+  function showPopAt(x, y, text, color, big = false) {
+    const el = document.createElement('div');
+    el.className = 'popup' + (big ? ' big' : '');
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+    el.style.color = color;
+    document.getElementById('popups').appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  // =====================================================================
+  // Shop / upgrade pricing
+  // =====================================================================
+  function powerCost() { return Math.floor(25 * Math.pow(1.55, state.shovel.power - 1)); }
+  function autoCost()  { return Math.floor(120 * Math.pow(1.85, state.shovel.auto)); }
+  function luckCost()  { return Math.floor(200 * Math.pow(2.10, state.shovel.luck)); }
+  function valueCost() { return Math.floor(300 * Math.pow(2.30, state.shovel.value)); }
+
+  function tryBuy(cost, apply) {
+    if (state.coins < cost) return false;
+    state.coins -= cost;
+    apply();
+    updateHud();
+    saveState();
+    showPopAt(window.innerWidth - 160, 100, 'Upgraded!', '#f4a838', true);
+    return true;
+  }
+
+  document.getElementById('upgPower').addEventListener('click', () => {
+    tryBuy(powerCost(), () => state.shovel.power += 1);
+  });
+  document.getElementById('upgAuto').addEventListener('click', () => {
+    tryBuy(autoCost(), () => state.shovel.auto += 1);
+  });
+  document.getElementById('upgLuck').addEventListener('click', () => {
+    tryBuy(luckCost(), () => state.shovel.luck += 1);
+  });
+  document.getElementById('upgValue').addEventListener('click', () => {
+    tryBuy(valueCost(), () => state.shovel.value += 1);
+  });
+  document.getElementById('boostBtn').addEventListener('click', activateBoost);
+
+  // =====================================================================
+  // HUD update
+  // =====================================================================
+  function updateHud() {
+    document.getElementById('depthVal').textContent = state.depth;
+
+    // Coin counter: bump animation when it changes.
+    const coinsEl = document.getElementById('coinsVal');
+    coinsEl.textContent = formatNum(state.coins);
+    if (state.coins !== state.lastShownCoins) {
+      const wrap = coinsEl.parentElement;
+      wrap.classList.remove('coin-bump');
+      void wrap.offsetWidth;            // restart animation
+      wrap.classList.add('coin-bump');
+      state.lastShownCoins = state.coins;
+    }
+
+    document.getElementById('powerLv').textContent  = state.shovel.power;
+    document.getElementById('powerDmg').textContent = state.shovel.power;
+    document.getElementById('powerCost').textContent= formatNum(powerCost());
+
+    document.getElementById('autoLv').textContent   = state.shovel.auto;
+    document.getElementById('autoCost').textContent = formatNum(autoCost());
+    const bs = boostStats(state.shovel.auto + 1);
+    document.getElementById('autoDesc').textContent =
+      state.shovel.auto > 0
+        ? 'Next: ' + bs.rate + '/s × ' + bs.duration + 's, CD ' + bs.cooldown + 's'
+        : 'Unlocks timed auto-dig boost';
+
+    document.getElementById('luckLv').textContent     = state.shovel.luck;
+    document.getElementById('luckChance').textContent = Math.round(state.shovel.luck * 3);
+    document.getElementById('luckCost').textContent   = formatNum(luckCost());
+
+    document.getElementById('valueLv').textContent    = state.shovel.value;
+    document.getElementById('valueBoost').textContent = state.shovel.value * 20;
+    document.getElementById('valueCost').textContent  = formatNum(valueCost());
+
+    document.getElementById('upgPower').classList.toggle('cant', state.coins < powerCost());
+    document.getElementById('upgAuto').classList.toggle('cant',  state.coins < autoCost());
+    document.getElementById('upgLuck').classList.toggle('cant',  state.coins < luckCost());
+    document.getElementById('upgValue').classList.toggle('cant', state.coins < valueCost());
+
+    // Inventory chips.
+    const inv = document.getElementById('inv');
+    inv.innerHTML = '';
+    const order = ['grass','dirt','stone','coal','copper','iron','gold','diamond','mythril',
+                   'ruby','emerald','sapphire'];
+    for (const mat of order) {
+      const count = state.inv[mat];
+      if (!count) continue;
+      const m = MATERIALS[mat];
+      const chip = document.createElement('div');
+      chip.className = 'inv-chip';
+      chip.innerHTML =
+        '<span class="dot" style="background:#' + m.color.toString(16).padStart(6, '0') + '"></span>' +
+        '<span>' + m.name + '</span>' +
+        '<b>' + formatNum(count) + '</b>';
+      inv.appendChild(chip);
+    }
+
+    // Stats peek panel.
+    document.getElementById('spBlocks').textContent = formatNum(state.totalMined);
+    document.getElementById('spBest').textContent   = state.bestDepth + 'm';
+
+    updateZoneBadge();
+    updateDepthMeter();
+  }
+
+  // Depth meter — tier zones drawn once, marker position updates with depth.
+  // We treat 600m as "full bar" so the player can see everything past mythril
+  // is bonus territory.
+  const DEPTH_METER_RANGE = 600;
+  let depthMeterBuilt = false;
+  function buildDepthMeter() {
+    if (depthMeterBuilt) return;
+    depthMeterBuilt = true;
+    const track = document.getElementById('dmTrack');
+    if (!track) return;
+    // Find the dominant material per tier and use its colour.
+    const tiers = [];
+    let prevUntil = 0;
+    for (const t of TIERS) {
+      const until = isFinite(t.until) ? t.until : DEPTH_METER_RANGE;
+      let bestMat = null, bestW = 0;
+      for (const [name, w] of Object.entries(t.weights)) {
+        if (w > bestW) { bestW = w; bestMat = name; }
+      }
+      tiers.push({ from: prevUntil, to: until, mat: bestMat });
+      prevUntil = until;
+    }
+    for (const tier of tiers) {
+      const topPct = Math.min(100, (tier.from / DEPTH_METER_RANGE) * 100);
+      const botPct = Math.min(100, (tier.to   / DEPTH_METER_RANGE) * 100);
+      const zone = document.createElement('div');
+      zone.className = 'dm-zone';
+      zone.style.top = topPct + '%';
+      zone.style.height = (botPct - topPct) + '%';
+      const c = MATERIALS[tier.mat].color;
+      zone.style.background = '#' + c.toString(16).padStart(6, '0');
+      zone.style.opacity = '0.7';
+      track.insertBefore(zone, track.firstChild);
+    }
+  }
+  function updateDepthMeter() {
+    buildDepthMeter();
+    const marker = document.getElementById('dmMarker');
+    if (!marker) return;
+    const pct = Math.min(100, (state.depth / DEPTH_METER_RANGE) * 100);
+    marker.style.top = pct + '%';
+    document.getElementById('dmMarkerVal').textContent = state.depth + 'm';
+  }
+
+  function currentTier() {
+    for (const t of TIERS) {
+      if (state.depth < t.until) return t;
+    }
+    return TIERS[TIERS.length - 1];
+  }
+  function updateZoneBadge() {
+    const t = currentTier();
+    let bestMat = null, bestW = 0;
+    for (const [name, w] of Object.entries(t.weights)) {
+      if (w > bestW) { bestW = w; bestMat = name; }
+    }
+    const m = MATERIALS[bestMat];
+    document.getElementById('zoneName').textContent = m.name + ' zone';
+    document.getElementById('zoneIc').style.background = '#' + m.color.toString(16).padStart(6, '0');
+  }
+
+  // ---------- effects UI ----------
+  function updateEffectsUI() {
+    const host = document.getElementById('effects');
+    host.innerHTML = '';
+    const now = performance.now();
+    for (const id in state.effects) {
+      const cfg = EFFECTS[id];
+      if (!cfg) continue;
+      const e = state.effects[id];
+      const chip = document.createElement('div');
+      chip.className = 'effect-chip';
+      let timerTxt = '';
+      if (cfg.duration) {
+        const left = Math.max(0, (e.endsAt - now) / 1000);
+        timerTxt = left.toFixed(1) + 's';
+      } else if (cfg.counter) {
+        timerTxt = (e.remaining || 0) + 'x';
+      }
+      chip.style.borderColor = cfg.color;
+      chip.innerHTML =
+        '<span class="ic">' + cfg.icon + '</span>' +
+        '<span class="name" style="color:' + cfg.color + '">' + cfg.name + '</span>' +
+        '<span class="timer">' + timerTxt + '</span>';
+      host.appendChild(chip);
+    }
+  }
+
+  // ---------- random event scheduler ----------
+  // Pop a random event every 60-90s. Events all map to effect activations.
+  // If an effect is already active, we still apply (refreshes its timer).
+  const EVENT_INTERVAL_MIN = 60_000;
+  const EVENT_INTERVAL_MAX = 90_000;
+  function tickEvents(now) {
+    if (state.nextEventAt === 0) {
+      state.nextEventAt = now + 25_000 + Math.random() * 20_000; // first event 25-45s in
+      return;
+    }
+    if (now < state.nextEventAt) return;
+    const eid = EFFECT_IDS[Math.floor(Math.random() * EFFECT_IDS.length)];
+    addEffect(eid);
+    showEventBanner(eid);
+    state.nextEventAt = now + EVENT_INTERVAL_MIN + Math.random() * (EVENT_INTERVAL_MAX - EVENT_INTERVAL_MIN);
+  }
+
+  function showEventBanner(eid) {
+    const cfg = EFFECTS[eid];
+    const el = document.getElementById('eventBanner');
+    document.getElementById('eventIc').textContent = cfg.icon;
+    document.getElementById('eventTitle').textContent = cfg.name;
+    document.getElementById('eventSub').textContent =
+      cfg.duration ? cfg.duration + 's of ' + (cfg.coinMult ? '×' + cfg.coinMult + ' coins' : cfg.dmgMult ? '×' + cfg.dmgMult + ' damage' : cfg.speedMult ? '×' + cfg.speedMult + ' speed' : 'bonus')
+                   : (cfg.counter + ' crits ×' + (cfg.coinMult || 1));
+    el.classList.remove('hidden');
+    clearTimeout(showEventBanner._t);
+    showEventBanner._t = setTimeout(() => el.classList.add('hidden'), 5000);
+  }
+
+  // Boost UI — three states: locked (hidden), ready (orange), active (bright
+  // bar depleting), cooldown (dimmed bar filling). Refreshed every frame.
+  function updateBoostUI() {
+    const btn = document.getElementById('boostBtn');
+    const sub = document.getElementById('boostSub');
+    const fill = document.getElementById('boostFill');
+    const ic   = document.getElementById('boostIc');
+    if (!btn) return;
+    if (state.shovel.auto <= 0) {
+      btn.classList.add('hidden');
+      return;
+    }
+    btn.classList.remove('hidden');
+    const { rate, duration, cooldown } = boostStats(state.shovel.auto);
+    const now = performance.now();
+    if (state.boostActive) {
+      const remaining = Math.max(0, state.boostEndsAt - now) / 1000;
+      btn.classList.add('active');
+      btn.classList.remove('cd');
+      sub.textContent = 'Active · ' + remaining.toFixed(1) + 's left';
+      ic.textContent = '⚡';
+      fill.style.width = (remaining / duration * 100) + '%';
+    } else if (now < state.boostCooldownEndsAt) {
+      const remaining = Math.max(0, state.boostCooldownEndsAt - now) / 1000;
+      btn.classList.remove('active');
+      btn.classList.add('cd');
+      sub.textContent = 'Cooldown · ' + remaining.toFixed(0) + 's';
+      ic.textContent = '⏳';
+      const elapsed = cooldown - remaining;
+      fill.style.width = (elapsed / cooldown * 100) + '%';
+    } else {
+      btn.classList.remove('active');
+      btn.classList.remove('cd');
+      sub.textContent = 'Ready · ' + rate + '/s for ' + duration + 's';
+      ic.textContent = '⚡';
+      fill.style.width = '100%';
+    }
+  }
+
+  function formatNum(n) {
+    if (n < 10000) return n.toString();
+    if (n < 1e6)   return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    if (n < 1e9)   return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    return (n / 1e9).toFixed(2).replace(/\.0$/, '') + 'B';
+  }
+
+  // =====================================================================
+  // Reset
+  // =====================================================================
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!confirm('Wipe your save and start over from depth 0?')) return;
+    localStorage.removeItem(SAVE_KEY);
+    state.depth = 0;
+    state.coins = 0;
+    state.inv = {};
+    state.shovel = { power: 1, auto: 0, luck: 0, value: 0 };
+    state.totalMined = 0;
+    state.bestDepth = 0;
+    state.achievements = {};
+    state.boostActive = false;
+    state.boostEndsAt = 0;
+    state.boostCooldownEndsAt = 0;
+    state.effects = {};
+    state.nextEventAt = 0;
+    state.rows = [];
+    for (const m of blockMeshes.values()) worldGroup.remove(m);
+    blockMeshes.clear();
+    refreshBlocks();
+    updateHud();
+  });
+
+  // =====================================================================
+  // Animation loop
+  // =====================================================================
+  let prevT = 0;
+  function animate(nowMs) {
+    requestAnimationFrame(animate);
+    const t = nowMs / 1000;
+    const dt = prevT ? Math.min(t - prevT, 0.05) : 0;
+    prevT = t;
+
+    tickHold(nowMs);
+    autoMineTick(nowMs);
+    tickParticles(dt);
+    tickEffects(nowMs);
+    tickEvents(nowMs);
+    updateEffectsUI();
+    updateBoostUI();
+    // Torch flicker — warmth ebbs subtly so the cave feels alive.
+    torch.intensity = 1.35 + Math.sin(t * 3.2) * 0.10 + (Math.random() - 0.5) * 0.06;
+    refreshBlocks();
+    updateCamera();
+    // Biome visuals — runs every frame so transitions stay smooth.
+    applyBiomeVisuals();
+    updateWalls(cameraTargetY);
+    const biome = BIOMES[biomeIndexAt(state.depth)];
+    tickAmbient(dt, cameraTargetY, biome.particle);
+    checkBiomeCross();
+    renderer.render(scene, camera);
+  }
+
+  // =====================================================================
+  // Boot
+  // =====================================================================
+  loadState();
+  ensureRow(state.depth + 20);
+  refreshBlocks();
+  updateHud();
+  onResize();
+  cameraTargetY = -(state.depth + 2);
+  requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
