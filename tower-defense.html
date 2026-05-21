@@ -507,7 +507,9 @@
 
   .toasts {
     position: fixed;
-    top: 90px; left: 50%;
+    /* Below the centered HUD (stats row + wave button) so toasts never cover
+       the Send Wave button. */
+    top: 130px; left: 50%;
     transform: translateX(-50%);
     z-index: 60;
     display: flex;
@@ -655,7 +657,7 @@
 
   <div class="help">
     Click a tower in the dock, then click an empty grass tile to place<br/>
-    <kbd>1</kbd>–<kbd>6</kbd> select tower · <kbd>S</kbd> sell · <kbd>R</kbd> reset · <kbd>Space</kbd> start wave
+    <kbd>1</kbd>–<kbd>9</kbd> select tower · <kbd>S</kbd> sell · <kbd>R</kbd> reset · <kbd>Space</kbd> start wave
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -911,6 +913,22 @@
     beaconGlow:  new THREE.MeshBasicMaterial({ color: 0xffd76a }),
     beaconHalo:  new THREE.MeshBasicMaterial({ color: 0xffb83a, transparent: true, opacity: 0.28 }),
     beaconGem:   new THREE.MeshBasicMaterial({ color: 0xffe89a }),
+    // Rapid tower (minigun)
+    rapidBody:   new THREE.MeshLambertMaterial({ color: 0x3a4148 }),
+    rapidBodyD:  new THREE.MeshLambertMaterial({ color: 0x1f2429 }),
+    rapidBarrel: new THREE.MeshLambertMaterial({ color: 0x52595e }),
+    rapidHeat:   new THREE.MeshBasicMaterial({ color: 0xff8c3a }),
+    // Tesla tower
+    teslaCore:   new THREE.MeshLambertMaterial({ color: 0x3e2a78 }),
+    teslaSteel:  new THREE.MeshLambertMaterial({ color: 0xc0c4cc }),
+    teslaSpark:  new THREE.MeshBasicMaterial({ color: 0xc8a3ff }),
+    teslaHalo:   new THREE.MeshBasicMaterial({ color: 0x9b6bff, transparent: true, opacity: 0.32 }),
+    teslaBolt:   new THREE.MeshBasicMaterial({ color: 0xe0d6ff }),
+    // Poison tower
+    poisonBase:  new THREE.MeshLambertMaterial({ color: 0x4e5b3a }),
+    poisonFlask: new THREE.MeshLambertMaterial({ color: 0x88c45a }),
+    poisonGoo:   new THREE.MeshBasicMaterial({ color: 0x9bff5e }),
+    poisonHalo:  new THREE.MeshBasicMaterial({ color: 0x6fc23a, transparent: true, opacity: 0.30 }),
     // Slow tint on enemies
     slowTint:    new THREE.Color(0x3a7cc7),
   });
@@ -1309,6 +1327,99 @@
     return g;
   }
 
+  // -------- Rapid tower (minigun on a swivel) --------
+  function makeRapid() {
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.38, 0.08, 12), M.platformStone);
+    base.position.y = 0.04; g.add(base);
+    // Swivel pedestal
+    const swivel = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.18, 10), M.rapidBodyD);
+    swivel.position.y = 0.17; g.add(swivel);
+    // Receiver block
+    const body = new THREE.Mesh(roundedBox(0.32, 0.22, 0.36, 0.04), M.rapidBody);
+    body.position.set(0, 0.36, 0.0); g.add(body);
+    // Magazine drum on top
+    const mag = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.12, 12), M.rapidBodyD);
+    mag.position.set(0, 0.54, -0.04); g.add(mag);
+    // Triple barrels pointing +z
+    const barrelGroup = new THREE.Group();
+    barrelGroup.position.set(0, 0.36, 0.18);
+    for (let i = 0; i < 3; i++) {
+      const angle = (i / 3) * Math.PI * 2;
+      const bx = Math.cos(angle) * 0.05;
+      const by = Math.sin(angle) * 0.05;
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.40, 8), M.rapidBarrel);
+      b.rotation.x = Math.PI / 2;
+      b.position.set(bx, by, 0.20);
+      barrelGroup.add(b);
+    }
+    // Hot orange muzzle hint
+    const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 10), M.rapidHeat);
+    muzzle.position.z = 0.40; barrelGroup.add(muzzle);
+    g.add(barrelGroup);
+    castReceive(g);
+    g.userData = { kind: 'rapid', barrelGroup, muzzle };
+    return g;
+  }
+
+  // -------- Tesla tower (lightning coil) --------
+  function makeTesla() {
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.42, 0.10, 14), M.platformStone);
+    base.position.y = 0.05; g.add(base);
+    // Insulator rings (stacked)
+    for (let i = 0; i < 3; i++) {
+      const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.20 - i * 0.02, 0.24 - i * 0.02, 0.10, 14), M.platformStoneD);
+      ring.position.y = 0.15 + i * 0.11; g.add(ring);
+    }
+    // Central coil column (purple)
+    const coil = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.40, 12), M.teslaCore);
+    coil.position.y = 0.55; g.add(coil);
+    // Top sphere (steel ball) — Tesla coil signature
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), M.teslaSteel);
+    ball.position.y = 0.86; g.add(ball);
+    // Inner glow spark + halo
+    const spark = new THREE.Mesh(new THREE.SphereGeometry(0.10, 12, 12), M.teslaSpark);
+    spark.position.y = 0.86; g.add(spark);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 14), M.teslaHalo);
+    halo.position.y = 0.86; g.add(halo);
+    castReceive(g);
+    g.userData = { kind: 'tesla', spark, halo, ball };
+    return g;
+  }
+
+  // -------- Poison tower (alchemist with bubbling flask) --------
+  function makePoison() {
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.38, 0.08, 12), M.platformStone);
+    base.position.y = 0.04; g.add(base);
+    // Mossy mound
+    const mound = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.20, 12), M.poisonBase);
+    mound.position.y = 0.18; g.add(mound);
+    // Three flasks bubbling
+    const flaskGeom = new THREE.CylinderGeometry(0.07, 0.10, 0.18, 10);
+    const f1 = new THREE.Mesh(flaskGeom, M.poisonFlask);
+    f1.position.set(0, 0.40, 0); g.add(f1);
+    const f2 = new THREE.Mesh(flaskGeom, M.poisonFlask);
+    f2.position.set(0.14, 0.36, 0.05); f2.scale.set(0.75, 0.75, 0.75); g.add(f2);
+    const f3 = new THREE.Mesh(flaskGeom, M.poisonFlask);
+    f3.position.set(-0.13, 0.36, -0.05); f3.scale.set(0.7, 0.7, 0.7); g.add(f3);
+    // Glowing goo at top of main flask
+    const goo = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), M.poisonGoo);
+    goo.position.set(0, 0.52, 0); g.add(goo);
+    // Toxic halo
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), M.poisonHalo);
+    halo.position.set(0, 0.52, 0); g.add(halo);
+    // Bubbles (small spheres above)
+    const b1 = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), M.poisonGoo);
+    b1.position.set(0.03, 0.65, 0.02); g.add(b1);
+    const b2 = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), M.poisonGoo);
+    b2.position.set(-0.04, 0.72, -0.01); g.add(b2);
+    castReceive(g);
+    g.userData = { kind: 'poison', goo, halo, bubbles: [b1, b2] };
+    return g;
+  }
+
   // -------- Beacon tower (golden brazier, support buff) --------
   function makeBeacon() {
     const g = new THREE.Group();
@@ -1626,13 +1737,40 @@
       damageType: 'none',
       build: makeBeacon,
     },
+    rapid: {
+      id: 'rapid', label: 'Rapid', desc: 'Minigun · very high fire rate',
+      cost: 65, refund: 38,
+      damage: 1, range: 2.0, fireRate: 5.0,
+      projectile: 'rapid', damageType: 'physical',
+      build: makeRapid,
+    },
+    tesla: {
+      id: 'tesla', label: 'Tesla', desc: 'Chains lightning',
+      cost: 130, refund: 75,
+      damage: 4, range: 3.0, fireRate: 1.0,
+      projectile: 'tesla', damageType: 'arcane',
+      chain: 2,                 // Additional jumps after the primary hit
+      chainRange: 1.6,          // Max distance between consecutive chain hops
+      chainFalloff: 0.6,        // Damage multiplier applied each jump
+      build: makeTesla,
+    },
+    poison: {
+      id: 'poison', label: 'Poison', desc: 'DoT · ignores armor',
+      cost: 85, refund: 50,
+      damage: 1, range: 2.6, fireRate: 0.9,
+      projectile: 'poison', damageType: 'poison',
+      poisonDPS: 2.0,           // Damage per second from the venom DoT
+      poisonDuration: 4.0,      // Seconds the DoT keeps ticking
+      build: makePoison,
+    },
   };
 
-  const TOOL_LIST = ['arrow', 'cannon', 'magic', 'frost', 'sniper', 'beacon', 'sell'];
+  const TOOL_LIST = ['arrow', 'cannon', 'magic', 'frost', 'sniper', 'beacon', 'rapid', 'tesla', 'poison', 'sell'];
 
   // Dock categories — each entry maps to a tab. `items` references TOOL_LIST ids.
   const TOWER_CATEGORIES = [
-    { id: 'attack',  label: 'Attack',  items: ['arrow', 'cannon', 'magic', 'sniper'] },
+    { id: 'attack',  label: 'Attack',  items: ['arrow', 'cannon', 'magic', 'rapid'] },
+    { id: 'special', label: 'Special', items: ['sniper', 'tesla', 'poison'] },
     { id: 'support', label: 'Support', items: ['frost', 'beacon'] },
     { id: 'tools',   label: 'Tools',   items: ['sell'] },
   ];
@@ -1643,12 +1781,18 @@
     cannon: new THREE.SphereGeometry(0.11, 10, 10),
     magic:  new THREE.SphereGeometry(0.08, 8, 8),
     sniper: new THREE.SphereGeometry(0.04, 8, 8),
+    rapid:  new THREE.SphereGeometry(0.045, 8, 8),
+    tesla:  new THREE.SphereGeometry(0.07, 8, 8),
+    poison: new THREE.SphereGeometry(0.07, 8, 8),
   };
   const _projMats = {
     arrow:  new THREE.MeshBasicMaterial({ color: 0xffe55c }),
     cannon: new THREE.MeshBasicMaterial({ color: 0x2a2722 }),
     magic:  new THREE.MeshBasicMaterial({ color: 0x9b6bff }),
     sniper: new THREE.MeshBasicMaterial({ color: 0xfff4c0 }),
+    rapid:  new THREE.MeshBasicMaterial({ color: 0xffae3a }),
+    tesla:  new THREE.MeshBasicMaterial({ color: 0xc8a3ff }),
+    poison: new THREE.MeshBasicMaterial({ color: 0x9bff5e }),
   };
 
   // -------- game state --------
@@ -2348,6 +2492,8 @@
     let projSpeed = 9;
     if (tower.config.id === 'magic')  projSpeed = 15;
     if (tower.config.id === 'sniper') projSpeed = 24; // hitscan-feel
+    if (tower.config.id === 'tesla')  projSpeed = 20;
+    if (tower.config.id === 'rapid')  projSpeed = 18;
     STATE.projectiles.push({
       mesh: proj,
       target,
@@ -2359,6 +2505,13 @@
       splash: stats.splash || 0,
       pierce: stats.pierce || 0,
       pierced: new Set(),
+      // Tesla: chain to nearby targets on impact.
+      chain:        tower.config.chain || 0,
+      chainRange:   tower.config.chainRange || 0,
+      chainFalloff: tower.config.chainFalloff || 0.6,
+      // Poison: tick a DoT on the hit enemy (and splash victims if any).
+      poisonDPS:      tower.config.poisonDPS || 0,
+      poisonDuration: tower.config.poisonDuration || 0,
     });
   }
 
@@ -2369,21 +2522,53 @@
       en.bobPhase += dt * 6;
       en.mesh.position.y = TOP_H + 0.30 + Math.abs(Math.sin(en.bobPhase)) * 0.05;
 
-      // Status: slow ticks down, regen heals up to maxHp.
+      // Status: slow ticks down, regen heals up to maxHp, poison ticks damage.
       let speedMult = 1;
-      if (en.slow && en.slow.timer > 0) {
+      const slowed   = !!(en.slow   && en.slow.timer   > 0);
+      const poisoned = !!(en.poison && en.poison.timer > 0);
+      if (slowed) {
         en.slow.timer -= dt;
         speedMult = en.slow.factor;
-        // Re-paint every frame so a brief hit-flash doesn't strand us on black.
-        if (en.mesh.material && en.mesh.material.emissive) {
+      }
+      // Pick a tint priority: slow (blue) wins over poison (green) when both
+      // are active, since the speed reduction is the more gameplay-relevant
+      // status to recognize at a glance.
+      if (en.mesh.material && en.mesh.material.emissive) {
+        if (slowed) {
           en.mesh.material.emissive.setHex(0x2a5e9c);
-        }
-        en._tinted = true;
-      } else if (en._tinted) {
-        if (en.mesh.material && en.mesh.material.emissive) {
+          en._tinted = true;
+        } else if (poisoned) {
+          en.mesh.material.emissive.setHex(0x3a8a2a);
+          en._tinted = true;
+        } else if (en._tinted) {
           en.mesh.material.emissive.setHex(0x000000);
+          en._tinted = false;
         }
-        en._tinted = false;
+      }
+      if (poisoned) {
+        en.poison.timer -= dt;
+        // Damage tick. Poison ignores type resistance (it's biological, not
+        // physical / arcane). HP bar gets repainted alongside.
+        const beforeHp = en.hp;
+        en.hp -= en.poison.dps * dt;
+        if (en.hpBar) en.hpBar.visible = true;
+        if (en.hpBar && en.hpBar.userData.fill) {
+          const pct = Math.max(0, en.hp / en.maxHp);
+          en.hpBar.userData.fill.scale.x = Math.max(0.001, pct);
+          en.hpBar.userData.fill.position.x = -en.hpBar.userData.baseW * (1 - pct) / 2;
+          const c = en.hpBar.userData.fill.material.color;
+          if (pct > 0.5)      c.setHex(0x6fb442);
+          else if (pct > 0.25) c.setHex(0xe8c050);
+          else                 c.setHex(0xc84848);
+        }
+        if (beforeHp > 0 && en.hp <= 0) {
+          scene.remove(en.mesh);
+          STATE.gold += en.reward;
+          STATE.kills++;
+          bumpRes('resGold');
+          bumpRes('resWave');
+          updateHud();
+        }
       }
       if (en.regen > 0 && en.hp > 0 && en.hp < en.maxHp) {
         en.hp = Math.min(en.maxHp, en.hp + en.regen * dt);
@@ -2454,6 +2639,34 @@
             }
           }
           spawnExplosion(sx, sz);
+        }
+        // Tesla: hop to nearby enemies with diminishing damage.
+        if (p.chain > 0 && p.chainRange > 0) {
+          let last = target;
+          let dmg  = p.damage;
+          const hit = new Set([target]);
+          const r2 = p.chainRange * p.chainRange;
+          for (let i = 0; i < p.chain; i++) {
+            dmg = Math.max(1, Math.round(dmg * p.chainFalloff));
+            let next = null;
+            let bestD = r2;
+            for (const en of STATE.enemies) {
+              if (hit.has(en) || en.reached || en.hp <= 0) continue;
+              const ddx = en.mesh.position.x - last.mesh.position.x;
+              const ddz = en.mesh.position.z - last.mesh.position.z;
+              const d2 = ddx*ddx + ddz*ddz;
+              if (d2 < bestD) { bestD = d2; next = en; }
+            }
+            if (!next) break;
+            spawnLightning(last.mesh.position, next.mesh.position);
+            hitEnemy(next, dmg, p);
+            hit.add(next);
+            last = next;
+          }
+        }
+        // Poison: apply DoT to the primary (and any splash victims still alive).
+        if (p.poisonDPS > 0 && p.poisonDuration > 0) {
+          applyPoison(target, p.poisonDPS, p.poisonDuration);
         }
         scene.remove(p.mesh);
         continue;
@@ -2551,6 +2764,43 @@
       en.slow.factor = Math.min(en.slow.factor, factor);
       en.slow.timer  = Math.max(en.slow.timer,  duration);
     }
+  }
+
+  // Apply (or refresh) a poison DoT. Keeps the stronger DPS, longest timer.
+  function applyPoison(en, dps, duration) {
+    if (!en.poison || en.poison.timer <= 0) {
+      en.poison = { dps, timer: duration };
+    } else {
+      en.poison.dps   = Math.max(en.poison.dps,   dps);
+      en.poison.timer = Math.max(en.poison.timer, duration);
+    }
+  }
+
+  // Spawn an instant lightning segment between two world positions, fading out.
+  // Used by the Tesla tower's chain effect.
+  function spawnLightning(from, to) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const dz = to.z - from.z;
+    const len = Math.hypot(dx, dy, dz) || 0.001;
+    const geo = new THREE.CylinderGeometry(0.025, 0.025, len, 6);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xe0d6ff, transparent: true, opacity: 0.95 });
+    const m = new THREE.Mesh(geo, mat);
+    // Position the cylinder at the midpoint and orient it along the segment.
+    m.position.set((from.x + to.x) / 2, (from.y + to.y) / 2, (from.z + to.z) / 2);
+    m.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(dx, dy, dz).normalize()
+    );
+    scene.add(m);
+    const start = performance.now();
+    function step() {
+      const t = (performance.now() - start) / 200;
+      if (t >= 1) { scene.remove(m); geo.dispose(); mat.dispose(); return; }
+      mat.opacity = 0.95 * (1 - t);
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
   }
 
   // -------- damage feedback (vignette flash via toast bumper) --------
@@ -3191,6 +3441,12 @@
             desc.textContent = parts.join(' · ');
           } else if (cfg.aoe) {
             desc.textContent = `AoE slow · RNG ${cfg.range.toFixed(1)}`;
+          } else if (cfg.chain) {
+            desc.textContent = `Chain x${cfg.chain + 1} · DMG ${cfg.damage}`;
+          } else if (cfg.poisonDPS) {
+            desc.textContent = `DoT ${cfg.poisonDPS}/s · ${cfg.poisonDuration}s`;
+          } else if (cfg.fireRate >= 4) {
+            desc.textContent = `${cfg.fireRate.toFixed(1)}/s · DMG ${cfg.damage}`;
           } else {
             desc.textContent = `DMG ${cfg.damage} · RNG ${cfg.range.toFixed(1)}`;
           }
@@ -3333,6 +3589,35 @@
       } else if (ud.kind === 'archer') {
         // Slight torso/bow bob so the archer feels alive.
         tower.group.position.y = (tower.group.userData._baseY ?? TOP_H) + Math.sin(t * 1.4) * 0.005;
+      } else if (ud.kind === 'rapid') {
+        // Spin the barrel cluster; flash the muzzle when the cooldown is small.
+        if (ud.barrelGroup) ud.barrelGroup.rotation.z = t * 10;
+        if (ud.muzzle) {
+          const recent = tower.cooldown < 0.05;
+          ud.muzzle.scale.setScalar(recent ? 1.3 : 0.85 + Math.sin(t * 4) * 0.10);
+        }
+      } else if (ud.kind === 'tesla') {
+        // Pulse the spark and halo, gentle ball rotation.
+        const pulse = 0.85 + Math.sin(t * 5) * 0.18;
+        if (ud.spark) ud.spark.scale.setScalar(pulse);
+        if (ud.halo)  {
+          ud.halo.scale.setScalar(0.95 + Math.sin(t * 5 + 0.4) * 0.15);
+          ud.halo.material.opacity = 0.25 + Math.sin(t * 5) * 0.10;
+        }
+        if (ud.ball)  ud.ball.rotation.y = t * 0.8;
+      } else if (ud.kind === 'poison') {
+        // Bubbling: goo pulses, bubbles rise & reset.
+        if (ud.goo) ud.goo.scale.setScalar(0.92 + Math.sin(t * 2.5) * 0.10);
+        if (ud.halo) ud.halo.material.opacity = 0.22 + Math.sin(t * 2.5) * 0.12;
+        if (ud.bubbles) {
+          for (let i = 0; i < ud.bubbles.length; i++) {
+            const b = ud.bubbles[i];
+            const phase = (t * 0.8 + i * 0.5) % 1;
+            b.position.y = 0.62 + phase * 0.20;
+            b.material.opacity = 1 - phase;
+            b.material.transparent = true;
+          }
+        }
       }
 
       // Level 5 "elite" cosmetics: pulse the floating crystal + base ring.
@@ -3429,6 +3714,9 @@
     if (e.key === '4') { STATE.selectedTool = STATE.selectedTool === 'frost'  ? null : 'frost';  updateActiveDockItem(); }
     if (e.key === '5') { STATE.selectedTool = STATE.selectedTool === 'sniper' ? null : 'sniper'; updateActiveDockItem(); }
     if (e.key === '6') { STATE.selectedTool = STATE.selectedTool === 'beacon' ? null : 'beacon'; updateActiveDockItem(); }
+    if (e.key === '7') { STATE.selectedTool = STATE.selectedTool === 'rapid'  ? null : 'rapid';  updateActiveDockItem(); }
+    if (e.key === '8') { STATE.selectedTool = STATE.selectedTool === 'tesla'  ? null : 'tesla';  updateActiveDockItem(); }
+    if (e.key === '9') { STATE.selectedTool = STATE.selectedTool === 'poison' ? null : 'poison'; updateActiveDockItem(); }
     if (e.key.toLowerCase() === 's') { STATE.selectedTool = STATE.selectedTool === 'sell' ? null : 'sell'; updateActiveDockItem(); }
     if (e.key.toLowerCase() === 'r') openResetConfirm();
     if (e.key === 'Escape') {
