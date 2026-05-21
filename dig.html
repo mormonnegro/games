@@ -377,6 +377,26 @@
   .effect-chip .name { color: var(--accent-hi); }
   .effect-chip .timer { color: var(--muted); }
 
+  /* Depth chip — slightly emphasised since it's the main score */
+  .stat.stat-depth b { color: var(--accent-hi); }
+
+  /* Lava-distance chip — escape only, pulses red when the gap is small. */
+  .stat.stat-lava {
+    background: rgba(228, 69, 106, 0.15);
+    border-color: #e4456a;
+    color: #ffb0c0;
+  }
+  .stat.stat-lava b { color: #ff7088; }
+  .stat.stat-lava.danger {
+    animation: chip-danger 0.5s ease-in-out infinite;
+    background: rgba(255, 50, 80, 0.3);
+  }
+  .stat.stat-lava.hidden { display: none; }
+  @keyframes chip-danger {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 80, 110, 0); }
+    50%      { box-shadow: 0 0 0 4px rgba(255, 80, 110, 0.35); }
+  }
+
   /* Mute / icon button — same shape as other top stats but clickable */
   .stat.icon-btn {
     font-family: inherit;
@@ -1004,10 +1024,10 @@
   </div>
 
   <div class="hud-top">
-    <button class="stat icon-btn" id="pauseBtn" title="Pausar (espacio)">⏸</button>
     <button class="stat icon-btn" id="muteBtn" title="Mute / unmute sound">🔈</button>
     <div class="stat" id="prestigeChip" style="display:none">💠 <b id="prestigeVal">0</b></div>
-    <div class="stat">⛏️ <b id="depthVal">0</b>m</div>
+    <div class="stat stat-depth" title="Pisos descendidos">⛏️ <b id="depthVal">0</b>m</div>
+    <div class="stat stat-lava hidden" id="lavaChip" title="Distancia hasta la lava">🔥 <b id="lavaChipVal">—</b>m</div>
     <div class="stat">🪙 <b id="coinsVal">0</b></div>
   </div>
 
@@ -1130,16 +1150,6 @@
     <div class="lg-label">LAVA · <span id="lgDiff">NORMAL</span></div>
     <div class="lg-bar"><div class="lg-fill" id="lgFill"></div></div>
     <div class="lg-meta" id="lgMeta">5.0m gap · 0.3/s</div>
-  </div>
-
-  <!-- Pause overlay. -->
-  <div class="pause-backdrop hidden" id="pauseOverlay">
-    <div class="pause-card">
-      <div class="pause-icon">⏸</div>
-      <h2>Pausa</h2>
-      <p class="pause-hint">Presioná <kbd>Espacio</kbd> o el botón para continuar</p>
-      <button class="go-btn go-btn-primary" id="resumeBtn">▶ Reanudar</button>
-    </div>
   </div>
 
   <!-- Game-over modal. Shown when lava catches the player in escape mode. -->
@@ -1485,10 +1495,10 @@
   // and how many coins blocks award. Free mode is unaffected.
   // =====================================================================
   const DIFFICULTIES = {
-    easy:      { name: 'Fácil',     lavaInit: 0.45, accelStep: 0.06, accelEvery: 30, coinMult: 1.4 },
-    normal:    { name: 'Normal',    lavaInit: 0.75, accelStep: 0.10, accelEvery: 25, coinMult: 1.0 },
-    hard:      { name: 'Difícil',   lavaInit: 1.05, accelStep: 0.13, accelEvery: 20, coinMult: 0.65 },
-    nightmare: { name: 'Pesadilla', lavaInit: 1.40, accelStep: 0.18, accelEvery: 15, coinMult: 0.40 },
+    easy:      { name: 'Fácil',     lavaInit: 0.45, accelStep: 0.04, accelEvery: 45, coinMult: 1.4 },
+    normal:    { name: 'Normal',    lavaInit: 0.60, accelStep: 0.06, accelEvery: 40, coinMult: 1.0 },
+    hard:      { name: 'Difícil',   lavaInit: 1.05, accelStep: 0.09, accelEvery: 35, coinMult: 0.65 },
+    nightmare: { name: 'Pesadilla', lavaInit: 1.40, accelStep: 0.12, accelEvery: 30, coinMult: 0.40 },
   };
   function currentDifficulty() {
     return DIFFICULTIES[state.difficulty] || DIFFICULTIES.normal;
@@ -1539,6 +1549,7 @@
     lavaSlab.visible = true;
     lavaHalo.visible = true;
     document.getElementById('lavaGauge').classList.remove('hidden');
+    document.getElementById('lavaChip').classList.remove('hidden');
     document.getElementById('gameover').classList.add('hidden');
     refreshBlocks();
     updateHud();
@@ -1553,6 +1564,7 @@
     lavaHalo.visible = false;
     lavaLight.intensity = 0;
     document.getElementById('lavaGauge').classList.add('hidden');
+    document.getElementById('lavaChip').classList.add('hidden');
     document.getElementById('gameover').classList.add('hidden');
     // Restore free-mode snapshot.
     const b = state.freeBackup;
@@ -1621,12 +1633,19 @@
     const fill  = document.getElementById('lgFill');
     const meta  = document.getElementById('lgMeta');
     const diffEl = document.getElementById('lgDiff');
+    const chip   = document.getElementById('lavaChip');
+    const chipVal= document.getElementById('lavaChipVal');
     if (!fill) return;
     const safety = Math.min(1, gap / 10);
     fill.style.width = (safety * 100) + '%';
     meta.textContent = gap.toFixed(1) + 'm gap · ' + state.escape.lavaSpeed.toFixed(2) + '/s';
     if (diffEl) diffEl.textContent = currentDifficulty().name.toUpperCase();
     gauge.classList.toggle('danger', gap < 3);
+    // Top-right HUD chip — same gap value in big format.
+    if (chip && chipVal) {
+      chipVal.textContent = gap.toFixed(1);
+      chip.classList.toggle('danger', gap < 3);
+    }
   }
 
   function makeBossRow(depth) {
@@ -2719,7 +2738,7 @@
   function powerCost() { return Math.floor(25 * Math.pow(1.55, state.shovel.power - 1)); }
   function autoCost()  { return Math.floor(120 * Math.pow(1.85, state.shovel.auto)); }
   function luckCost()  { return Math.floor(200 * Math.pow(2.10, state.shovel.luck)); }
-  function valueCost() { return Math.floor(300 * Math.pow(2.30, state.shovel.value)); }
+  function valueCost() { return Math.floor(500 * Math.pow(2.80, state.shovel.value)); }
   function speedCost() { return Math.floor(200 * Math.pow(2.50, state.shovel.speed)); }
   // Hits per second when click is held. Base 10/s, +1.5/s per Speed level.
   function holdHitsPerSec() { return 10 + state.shovel.speed * 1.5; }
@@ -2764,45 +2783,12 @@
   document.getElementById('goExit').addEventListener('click',  () => switchMode('free'));
   document.getElementById('quickEscape').addEventListener('click', () => switchMode('escape'));
 
-  // =====================================================================
-  // Pause — freezes lava, boost timer, effect timers, holds, autos and
-  // event scheduler. On resume we shift all wall-clock timers forward by
-  // the paused duration so they pick up exactly where they left off.
-  // =====================================================================
-  let isPaused = false;
-  let pauseStartT = 0;
-  function setPaused(p) {
-    if (p === isPaused) return;
-    if (p) {
-      isPaused = true;
-      pauseStartT = performance.now();
-      document.getElementById('pauseOverlay').classList.remove('hidden');
-      document.getElementById('pauseBtn').textContent = '▶';
-    } else {
-      const delta = performance.now() - pauseStartT;
-      // Shift all wall-clock anchors forward by the paused time.
-      if (state.escape.startT)         state.escape.startT          += delta;
-      if (state.boostEndsAt)           state.boostEndsAt            += delta;
-      if (state.boostCooldownEndsAt)   state.boostCooldownEndsAt    += delta;
-      for (const id in state.effects) {
-        const e = state.effects[id];
-        if (e.endsAt) e.endsAt += delta;
-      }
-      isPaused = false;
-      document.getElementById('pauseOverlay').classList.add('hidden');
-      document.getElementById('pauseBtn').textContent = '⏸';
-    }
-  }
-  function togglePause() {
-    // Don't allow pausing the game over screen or while a modal is up.
-    if (!document.getElementById('gameover').classList.contains('hidden')) return;
-    if (!document.getElementById('tutorial').classList.contains('hidden')) return;
-    setPaused(!isPaused);
-  }
-  document.getElementById('pauseBtn').addEventListener('click', togglePause);
-  document.getElementById('resumeBtn').addEventListener('click', () => setPaused(false));
-  // Keyboard shortcuts: 1-5 buy the corresponding upgrade, B activates boost,
-  // Space/P toggle pause, Escape closes pause. Blocked while a modal is up.
+  // Pause was removed at the player's request — escape mode is meant to be
+  // pure survival. `isPaused` is kept as a constant so the (still-referenced)
+  // guards in the animate loop and hitBlock just become no-ops.
+  const isPaused = false;
+
+  // Keyboard shortcuts: 1-5 buy the corresponding upgrade, B activates boost.
   function modalOpen() {
     return !document.getElementById('gameover').classList.contains('hidden') ||
            !document.getElementById('tutorial').classList.contains('hidden');
@@ -2822,17 +2808,7 @@
     setTimeout(() => { el.style.transform = ''; }, 90);
   }
   window.addEventListener('keydown', (e) => {
-    if (modalOpen() && e.code !== 'Space' && e.key.toLowerCase() !== 'p' && e.key !== 'Escape') return;
-    if (e.code === 'Space' || e.key.toLowerCase() === 'p') {
-      e.preventDefault();
-      togglePause();
-      return;
-    }
-    if (e.key === 'Escape' && isPaused) {
-      setPaused(false);
-      return;
-    }
-    if (isPaused) return;
+    if (modalOpen()) return;
     const upgId = KEY_TO_UPGRADE[e.key];
     if (upgId) {
       e.preventDefault();
@@ -3152,8 +3128,6 @@
     state.nextEventAt = 0;
     // Hide any modals that might be in the way.
     document.getElementById('gameover').classList.add('hidden');
-    document.getElementById('pauseOverlay').classList.add('hidden');
-    if (isPaused) setPaused(false);
     updateHud();
     updateBoostUI();
     saveState();
