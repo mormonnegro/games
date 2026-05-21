@@ -164,17 +164,6 @@
     opacity: 0.22;
     pointer-events: none;
   }
-  .banknote-corner {
-    position: absolute;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.10em;
-    padding: 8px 12px;
-    z-index: 1;
-    font-family: 'Inter', sans-serif;
-  }
-  .banknote-corner.tl { top: 0; left: 0; }
-  .banknote-corner.br { bottom: 0; right: 0; }
   .banknote-symbol {
     position: absolute;
     top: 50%; left: 50%;
@@ -591,10 +580,8 @@
   <main>
     <div class="card" id="dataCard">
       <div class="banknote" id="banknote" hidden>
-        <div class="banknote-corner tl"><span id="bnCodeTL">—</span></div>
         <div class="banknote-symbol" id="bnSymbol">$</div>
         <div class="banknote-name" id="bnName">—</div>
-        <div class="banknote-corner br"><span id="bnCodeBR">—</span></div>
       </div>
       <h2 class="question">Adiviná el país · desbloqueá <em>pistas</em></h2>
       <div class="free-stats-grid">
@@ -650,7 +637,7 @@
   </main>
 
   <footer>
-    Empezás con <b>$100</b> · acertar paga <b>+$50</b> · errar cuesta <b>−$10</b> · ver el billete de la moneda cuesta <b>−$10</b> · si te quedás sin plata, <b>perdés</b>.<br/>
+    Empezás con <b>$100</b> · acertar paga <b>+$50</b> · errar cuesta <b>−$10</b> · ver el billete arranca en <b>−$10</b> y sube <b>+$5</b> por cada uso · si te quedás sin plata, <b>perdés</b>.<br/>
     <kbd>Enter</kbd> enviar respuesta escrita · <kbd>1</kbd>–<kbd>4</kbd> elegir opción · <kbd>Espacio</kbd>/<kbd>Enter</kbd> siguiente ronda
   </footer>
 
@@ -671,132 +658,132 @@
   const COUNTRIES = [
     { name: 'China', flag: '🇨🇳', continent: 'Asia',
       gdp: 17800, perCapita: 12600, population: 1411, currency: 'Yuan (CNY)',
-      exports: ['Electrónica', 'Maquinaria', 'Textiles', 'Acero'],
-      imports: ['Petróleo crudo', 'Mineral de hierro', 'Chips', 'Soja'] },
+      exports: ['Electrónica', 'Maquinaria', 'Textiles', 'Acero', 'Muebles', 'Vehículos eléctricos'],
+      imports: ['Petróleo crudo', 'Mineral de hierro', 'Chips', 'Soja', 'Cobre', 'Plásticos'] },
     { name: 'Estados Unidos', flag: '🇺🇸', continent: 'América',
       gdp: 27000, perCapita: 80400, population: 333, currency: 'Dólar (USD)',
-      exports: ['Petróleo refinado', 'Aviones', 'Autos', 'Soja'],
-      imports: ['Autos', 'Petróleo crudo', 'Productos farmacéuticos', 'Electrónicos'] },
+      exports: ['Petróleo refinado', 'Aviones', 'Autos', 'Soja', 'Gas natural licuado', 'Chips'],
+      imports: ['Autos', 'Petróleo crudo', 'Productos farmacéuticos', 'Electrónicos', 'Computadoras', 'Ropa'] },
     { name: 'Alemania', flag: '🇩🇪', continent: 'Europa',
       gdp: 4500, perCapita: 53600, population: 84, currency: 'Euro (EUR)',
-      exports: ['Autos', 'Maquinaria', 'Productos químicos', 'Productos farmacéuticos'],
-      imports: ['Autos', 'Petróleo crudo', 'Gas natural', 'Computadoras'] },
+      exports: ['Autos', 'Maquinaria', 'Productos químicos', 'Productos farmacéuticos', 'Vehículos comerciales', 'Equipos eléctricos'],
+      imports: ['Autos', 'Petróleo crudo', 'Gas natural', 'Computadoras', 'Productos farmacéuticos', 'Ropa'] },
     { name: 'Japón', flag: '🇯🇵', continent: 'Asia',
       gdp: 4200, perCapita: 33800, population: 124, currency: 'Yen (JPY)',
-      exports: ['Autos', 'Maquinaria', 'Chips', 'Acero'],
-      imports: ['Petróleo crudo', 'Gas natural licuado', 'Carbón', 'Ropa'] },
+      exports: ['Autos', 'Maquinaria', 'Chips', 'Acero', 'Equipos médicos', 'Plásticos'],
+      imports: ['Petróleo crudo', 'Gas natural licuado', 'Carbón', 'Ropa', 'Chips', 'Productos farmacéuticos'] },
     { name: 'Arabia Saudita', flag: '🇸🇦', continent: 'Asia',
       gdp: 1100, perCapita: 32400, population: 36, currency: 'Riyal (SAR)',
-      exports: ['Petróleo crudo', 'Petróleo refinado', 'Productos químicos', 'Plásticos'],
-      imports: ['Autos', 'Maquinaria', 'Productos farmacéuticos', 'Hierro y acero'] },
+      exports: ['Petróleo crudo', 'Petróleo refinado', 'Productos químicos', 'Plásticos', 'Polietileno', 'Oro'],
+      imports: ['Autos', 'Maquinaria', 'Productos farmacéuticos', 'Hierro y acero', 'Cereales', 'Electrónicos'] },
     { name: 'Brasil', flag: '🇧🇷', continent: 'América',
       gdp: 2100, perCapita: 10000, population: 215, currency: 'Real (BRL)',
-      exports: ['Soja', 'Mineral de hierro', 'Petróleo crudo', 'Carne'],
-      imports: ['Petróleo refinado', 'Autos', 'Fertilizantes', 'Maquinaria'] },
+      exports: ['Soja', 'Mineral de hierro', 'Petróleo crudo', 'Carne', 'Café', 'Azúcar'],
+      imports: ['Petróleo refinado', 'Autos', 'Fertilizantes', 'Maquinaria', 'Chips', 'Productos farmacéuticos'] },
     { name: 'Argentina', flag: '🇦🇷', continent: 'América',
       gdp: 640, perCapita: 13700, population: 46, currency: 'Peso (ARS)',
-      exports: ['Harina de soja', 'Maíz', 'Carne vacuna', 'Trigo'],
-      imports: ['Autos', 'Gas natural', 'Productos químicos', 'Maquinaria'] },
+      exports: ['Harina de soja', 'Maíz', 'Carne vacuna', 'Trigo', 'Aceite de soja', 'Petróleo crudo'],
+      imports: ['Autos', 'Gas natural', 'Productos químicos', 'Maquinaria', 'Autopartes', 'Productos farmacéuticos'] },
     { name: 'Chile', flag: '🇨🇱', continent: 'América',
       gdp: 310, perCapita: 15800, population: 19, currency: 'Peso chileno (CLP)',
-      exports: ['Cobre refinado', 'Mineral de cobre', 'Salmón', 'Frutas'],
-      imports: ['Petróleo refinado', 'Autos', 'Maquinaria', 'Petróleo crudo'] },
+      exports: ['Cobre refinado', 'Mineral de cobre', 'Salmón', 'Frutas', 'Vino', 'Celulosa'],
+      imports: ['Petróleo refinado', 'Autos', 'Maquinaria', 'Petróleo crudo', 'Gas natural', 'Electrónicos'] },
     { name: 'Australia', flag: '🇦🇺', continent: 'Oceanía',
       gdp: 1700, perCapita: 64500, population: 26, currency: 'Dólar AUD',
-      exports: ['Mineral de hierro', 'Carbón', 'Gas natural licuado', 'Oro'],
-      imports: ['Petróleo refinado', 'Autos', 'Petróleo crudo', 'Maquinaria'] },
+      exports: ['Mineral de hierro', 'Carbón', 'Gas natural licuado', 'Oro', 'Carne vacuna', 'Trigo'],
+      imports: ['Petróleo refinado', 'Autos', 'Petróleo crudo', 'Maquinaria', 'Productos farmacéuticos', 'Electrónicos'] },
     { name: 'Canadá', flag: '🇨🇦', continent: 'América',
       gdp: 2100, perCapita: 53700, population: 39, currency: 'Dólar CAD',
-      exports: ['Petróleo crudo', 'Autos', 'Oro', 'Madera'],
-      imports: ['Autos', 'Maquinaria', 'Electrónicos', 'Productos químicos'] },
+      exports: ['Petróleo crudo', 'Autos', 'Oro', 'Madera', 'Gas natural', 'Trigo'],
+      imports: ['Autos', 'Maquinaria', 'Electrónicos', 'Productos químicos', 'Plásticos', 'Productos farmacéuticos'] },
     { name: 'Suiza', flag: '🇨🇭', continent: 'Europa',
       gdp: 870, perCapita: 99000, population: 8.8, currency: 'Franco suizo (CHF)',
-      exports: ['Oro', 'Productos farmacéuticos', 'Relojes', 'Maquinaria'],
-      imports: ['Oro', 'Productos farmacéuticos', 'Autos', 'Productos químicos'] },
+      exports: ['Oro', 'Productos farmacéuticos', 'Relojes', 'Maquinaria', 'Chocolate', 'Equipos médicos'],
+      imports: ['Oro', 'Productos farmacéuticos', 'Autos', 'Productos químicos', 'Joyas', 'Maquinaria'] },
     { name: 'Países Bajos', flag: '🇳🇱', continent: 'Europa',
       gdp: 1100, perCapita: 61100, population: 17.8, currency: 'Euro (EUR)',
-      exports: ['Petróleo refinado', 'Maquinaria', 'Flores', 'Equipos médicos'],
-      imports: ['Petróleo crudo', 'Maquinaria', 'Autos', 'Electrónicos'] },
+      exports: ['Petróleo refinado', 'Maquinaria', 'Flores', 'Equipos médicos', 'Chips', 'Lácteos'],
+      imports: ['Petróleo crudo', 'Maquinaria', 'Autos', 'Electrónicos', 'Chips', 'Productos farmacéuticos'] },
     { name: 'Corea del Sur', flag: '🇰🇷', continent: 'Asia',
       gdp: 1700, perCapita: 33100, population: 52, currency: 'Won (KRW)',
-      exports: ['Chips', 'Autos', 'Barcos', 'Petróleo refinado'],
-      imports: ['Petróleo crudo', 'Gas natural', 'Chips', 'Carbón'] },
+      exports: ['Chips', 'Autos', 'Barcos', 'Petróleo refinado', 'Maquinaria', 'Plásticos'],
+      imports: ['Petróleo crudo', 'Gas natural', 'Chips', 'Carbón', 'Maquinaria', 'Mineral de hierro'] },
     { name: 'Singapur', flag: '🇸🇬', continent: 'Asia',
       gdp: 500, perCapita: 84700, population: 5.9, currency: 'Dólar SGD',
-      exports: ['Chips', 'Petróleo refinado', 'Oro', 'Maquinaria'],
-      imports: ['Chips', 'Petróleo refinado', 'Petróleo crudo', 'Oro'] },
+      exports: ['Chips', 'Petróleo refinado', 'Oro', 'Maquinaria', 'Productos farmacéuticos', 'Equipos médicos'],
+      imports: ['Chips', 'Petróleo refinado', 'Petróleo crudo', 'Oro', 'Maquinaria', 'Gas natural'] },
     { name: 'India', flag: '🇮🇳', continent: 'Asia',
       gdp: 3700, perCapita: 2600, population: 1428, currency: 'Rupia (INR)',
-      exports: ['Petróleo refinado', 'Joyas', 'Productos farmacéuticos', 'Arroz'],
-      imports: ['Petróleo crudo', 'Oro', 'Carbón', 'Gas natural'] },
+      exports: ['Petróleo refinado', 'Joyas', 'Productos farmacéuticos', 'Arroz', 'Textiles', 'Productos químicos'],
+      imports: ['Petróleo crudo', 'Oro', 'Carbón', 'Gas natural', 'Chips', 'Diamantes'] },
     { name: 'Francia', flag: '🇫🇷', continent: 'Europa',
       gdp: 3000, perCapita: 44500, population: 68, currency: 'Euro (EUR)',
-      exports: ['Aviones', 'Productos farmacéuticos', 'Vino', 'Autos'],
-      imports: ['Autos', 'Petróleo crudo', 'Gas natural', 'Productos farmacéuticos'] },
+      exports: ['Aviones', 'Productos farmacéuticos', 'Vino', 'Autos', 'Perfumes', 'Trigo'],
+      imports: ['Autos', 'Petróleo crudo', 'Gas natural', 'Productos farmacéuticos', 'Aviones', 'Electrónicos'] },
     { name: 'Italia', flag: '🇮🇹', continent: 'Europa',
       gdp: 2200, perCapita: 37700, population: 59, currency: 'Euro (EUR)',
-      exports: ['Maquinaria', 'Autos', 'Productos farmacéuticos', 'Vino'],
-      imports: ['Petróleo crudo', 'Autos', 'Gas natural', 'Maquinaria'] },
+      exports: ['Maquinaria', 'Autos', 'Productos farmacéuticos', 'Vino', 'Ropa', 'Calzado'],
+      imports: ['Petróleo crudo', 'Autos', 'Gas natural', 'Maquinaria', 'Productos farmacéuticos', 'Acero'] },
     { name: 'México', flag: '🇲🇽', continent: 'América',
       gdp: 1800, perCapita: 13900, population: 129, currency: 'Peso (MXN)',
-      exports: ['Autos', 'Electrónica', 'Petróleo crudo', 'Cerveza'],
-      imports: ['Chips', 'Autopartes', 'Petróleo refinado', 'Plásticos'] },
+      exports: ['Autos', 'Electrónica', 'Petróleo crudo', 'Cerveza', 'Aguacates', 'Equipos médicos'],
+      imports: ['Chips', 'Autopartes', 'Petróleo refinado', 'Plásticos', 'Maquinaria', 'Gas natural'] },
     { name: 'Tailandia', flag: '🇹🇭', continent: 'Asia',
       gdp: 510, perCapita: 7100, population: 72, currency: 'Baht (THB)',
-      exports: ['Autos', 'Computadoras', 'Caucho', 'Arroz'],
-      imports: ['Petróleo crudo', 'Chips', 'Oro', 'Maquinaria'] },
+      exports: ['Autos', 'Computadoras', 'Caucho', 'Arroz', 'Plásticos', 'Joyas'],
+      imports: ['Petróleo crudo', 'Chips', 'Oro', 'Maquinaria', 'Hierro y acero', 'Productos químicos'] },
     { name: 'Sudáfrica', flag: '🇿🇦', continent: 'África',
       gdp: 400, perCapita: 6500, population: 62, currency: 'Rand (ZAR)',
-      exports: ['Oro', 'Platino', 'Carbón', 'Mineral de hierro'],
-      imports: ['Petróleo refinado', 'Petróleo crudo', 'Autos', 'Maquinaria'] },
+      exports: ['Oro', 'Platino', 'Carbón', 'Mineral de hierro', 'Diamantes', 'Manganeso'],
+      imports: ['Petróleo refinado', 'Petróleo crudo', 'Autos', 'Maquinaria', 'Productos farmacéuticos', 'Electrónicos'] },
     { name: 'Nigeria', flag: '🇳🇬', continent: 'África',
       gdp: 470, perCapita: 2100, population: 224, currency: 'Naira (NGN)',
-      exports: ['Petróleo crudo', 'Gas natural licuado', 'Cacao', 'Petróleo refinado'],
-      imports: ['Petróleo refinado', 'Trigo', 'Maquinaria', 'Autos'] },
+      exports: ['Petróleo crudo', 'Gas natural licuado', 'Cacao', 'Petróleo refinado', 'Semillas oleaginosas', 'Cuero'],
+      imports: ['Petróleo refinado', 'Trigo', 'Maquinaria', 'Autos', 'Productos farmacéuticos', 'Arroz'] },
     { name: 'Rusia', flag: '🇷🇺', continent: 'Europa',
       gdp: 2000, perCapita: 13800, population: 144, currency: 'Rublo (RUB)',
-      exports: ['Petróleo crudo', 'Gas natural', 'Carbón', 'Trigo'],
-      imports: ['Maquinaria', 'Autos', 'Productos farmacéuticos', 'Electrónicos'] },
+      exports: ['Petróleo crudo', 'Gas natural', 'Carbón', 'Trigo', 'Oro', 'Fertilizantes'],
+      imports: ['Maquinaria', 'Autos', 'Productos farmacéuticos', 'Electrónicos', 'Frutas', 'Ropa'] },
     { name: 'Israel', flag: '🇮🇱', continent: 'Asia',
       gdp: 520, perCapita: 54300, population: 9.7, currency: 'Shekel (ILS)',
-      exports: ['Diamantes', 'Chips', 'Productos farmacéuticos', 'Equipos médicos'],
-      imports: ['Diamantes', 'Petróleo crudo', 'Autos', 'Chips'] },
+      exports: ['Diamantes', 'Chips', 'Productos farmacéuticos', 'Equipos médicos', 'Frutas cítricas', 'Software'],
+      imports: ['Diamantes', 'Petróleo crudo', 'Autos', 'Chips', 'Maquinaria', 'Granos'] },
     { name: 'España', flag: '🇪🇸', continent: 'Europa',
       gdp: 1600, perCapita: 33100, population: 48, currency: 'Euro (EUR)',
-      exports: ['Autos', 'Petróleo refinado', 'Productos farmacéuticos', 'Aceite de oliva'],
-      imports: ['Petróleo crudo', 'Autos', 'Gas natural', 'Maquinaria'] },
+      exports: ['Autos', 'Petróleo refinado', 'Productos farmacéuticos', 'Aceite de oliva', 'Frutas', 'Cerdo'],
+      imports: ['Petróleo crudo', 'Autos', 'Gas natural', 'Maquinaria', 'Productos farmacéuticos', 'Electrónicos'] },
     { name: 'Reino Unido', flag: '🇬🇧', continent: 'Europa',
       gdp: 3300, perCapita: 48900, population: 67, currency: 'Libra (GBP)',
-      exports: ['Oro', 'Autos', 'Maquinaria', 'Productos farmacéuticos'],
-      imports: ['Oro', 'Autos', 'Petróleo crudo', 'Productos farmacéuticos'] },
+      exports: ['Oro', 'Autos', 'Maquinaria', 'Productos farmacéuticos', 'Aviones', 'Whisky'],
+      imports: ['Oro', 'Autos', 'Petróleo crudo', 'Productos farmacéuticos', 'Maquinaria', 'Ropa'] },
     { name: 'Noruega', flag: '🇳🇴', continent: 'Europa',
       gdp: 480, perCapita: 87900, population: 5.5, currency: 'Corona NOK',
-      exports: ['Petróleo crudo', 'Gas natural', 'Pescado', 'Aluminio'],
-      imports: ['Autos', 'Maquinaria', 'Electrónicos', 'Productos farmacéuticos'] },
+      exports: ['Petróleo crudo', 'Gas natural', 'Pescado', 'Aluminio', 'Petróleo refinado', 'Níquel'],
+      imports: ['Autos', 'Maquinaria', 'Electrónicos', 'Productos farmacéuticos', 'Hierro y acero', 'Ropa'] },
     { name: 'Nueva Zelanda', flag: '🇳🇿', continent: 'Oceanía',
       gdp: 250, perCapita: 48800, population: 5.2, currency: 'Dólar NZD',
-      exports: ['Lácteos', 'Carne', 'Madera', 'Vino'],
-      imports: ['Autos', 'Petróleo refinado', 'Maquinaria', 'Electrónicos'] },
+      exports: ['Lácteos', 'Carne', 'Madera', 'Vino', 'Frutas', 'Lana'],
+      imports: ['Autos', 'Petróleo refinado', 'Maquinaria', 'Electrónicos', 'Petróleo crudo', 'Productos farmacéuticos'] },
     { name: 'Vietnam', flag: '🇻🇳', continent: 'Asia',
       gdp: 430, perCapita: 4300, population: 100, currency: 'Dong (VND)',
-      exports: ['Electrónica', 'Ropa', 'Calzado', 'Café'],
-      imports: ['Chips', 'Petróleo refinado', 'Tela', 'Acero'] },
+      exports: ['Electrónica', 'Ropa', 'Calzado', 'Café', 'Chips', 'Pescado'],
+      imports: ['Chips', 'Petróleo refinado', 'Tela', 'Acero', 'Plásticos', 'Maquinaria'] },
     { name: 'Indonesia', flag: '🇮🇩', continent: 'Asia',
       gdp: 1400, perCapita: 5000, population: 278, currency: 'Rupia (IDR)',
-      exports: ['Carbón', 'Aceite de palma', 'Níquel', 'Petróleo refinado'],
-      imports: ['Petróleo refinado', 'Petróleo crudo', 'Chips', 'Maquinaria'] },
+      exports: ['Carbón', 'Aceite de palma', 'Níquel', 'Petróleo refinado', 'Caucho', 'Café'],
+      imports: ['Petróleo refinado', 'Petróleo crudo', 'Chips', 'Maquinaria', 'Hierro y acero', 'Trigo'] },
     { name: 'Turquía', flag: '🇹🇷', continent: 'Asia',
       gdp: 1100, perCapita: 13000, population: 86, currency: 'Lira (TRY)',
-      exports: ['Autos', 'Maquinaria', 'Ropa', 'Joyas'],
-      imports: ['Petróleo crudo', 'Oro', 'Petróleo refinado', 'Chips'] },
+      exports: ['Autos', 'Maquinaria', 'Ropa', 'Joyas', 'Frutos secos', 'Acero'],
+      imports: ['Petróleo crudo', 'Oro', 'Petróleo refinado', 'Chips', 'Maquinaria', 'Hierro y acero'] },
     { name: 'Irlanda', flag: '🇮🇪', continent: 'Europa',
       gdp: 590, perCapita: 113900, population: 5.2, currency: 'Euro (EUR)',
-      exports: ['Productos farmacéuticos', 'Equipos médicos', 'Software', 'Lácteos'],
-      imports: ['Aviones', 'Productos farmacéuticos', 'Computadoras', 'Petróleo refinado'] },
+      exports: ['Productos farmacéuticos', 'Equipos médicos', 'Software', 'Lácteos', 'Productos químicos', 'Carne vacuna'],
+      imports: ['Aviones', 'Productos farmacéuticos', 'Computadoras', 'Petróleo refinado', 'Productos químicos', 'Autos'] },
     { name: 'Emiratos Árabes Unidos', flag: '🇦🇪', continent: 'Asia',
       gdp: 510, perCapita: 53800, population: 9.5, currency: 'Dirham (AED)',
-      exports: ['Petróleo crudo', 'Oro', 'Petróleo refinado', 'Joyas'],
-      imports: ['Oro', 'Joyas', 'Autos', 'Joyería'] },
+      exports: ['Petróleo crudo', 'Oro', 'Petróleo refinado', 'Joyas', 'Gas natural', 'Aluminio'],
+      imports: ['Oro', 'Joyas', 'Autos', 'Chips', 'Maquinaria', 'Productos farmacéuticos'] },
   ];
 
   // -------- formatting --------
@@ -825,12 +812,20 @@
   // ayuda más fuerte: revelar las 4 opciones múltiples.
   // -------- economy --------
   const START_MONEY     = 100;
-  const HINT_COST       = 10;   // pagás por desbloquear cada pista
+  const HINT_COST       = 10;   // costo base por desbloquear la pista de moneda
+  const HINT_COST_STEP  = 5;    // sube +$5 por cada vez que ya la usaste en la partida
   const WRONG_COST      = 10;   // pagás cuando errás la respuesta
   const CORRECT_REWARD  = 50;   // ganás cuando acertás
   const HINTS = [
     { id: 'currency', label: 'Moneda', cost: HINT_COST, format: c => c.currency, kind: 'banknote' },
   ];
+
+  // Costo dinámico: la pista de moneda sube de a poco a medida que la usás
+  // varias veces en la misma partida. Resetea al volver a empezar.
+  function hintCost(h) {
+    if (h.id === 'currency') return h.cost + STATE.currencyUses * HINT_COST_STEP;
+    return h.cost;
+  }
 
   // -------- currency → symbol + visual palette --------
   const CURRENCY_SYMBOLS = {
@@ -875,8 +870,6 @@
     bn.style.setProperty('--note-ink',     pal.ink);
     bn.style.color = pal.ink;
     bn.style.borderColor = pal.border;
-    $('bnCodeTL').textContent = code;
-    $('bnCodeBR').textContent = code;
     $('bnSymbol').textContent = symbol;
     $('bnName').textContent = name;
     bn.hidden = false;
@@ -901,6 +894,7 @@
     correctOption: -1,
     recent: [],          // indices of recently shown to avoid quick repeats
     revealed: new Set(), // hints unlocked in the current round (visual)
+    currencyUses: 0,     // veces que se desbloqueó la pista de moneda en esta partida
   };
 
   const $ = id => document.getElementById(id);
@@ -1013,11 +1007,15 @@
       } else {
         card.classList.add('locked');
         card.type = 'button';
-        const broke = STATE.money < h.cost;
+        const cost = hintCost(h);
+        const broke = STATE.money < cost;
         card.disabled = STATE.answered || STATE.gameOver || broke;
+        const subtitle = broke
+          ? 'Sin plata'
+          : `Desbloquear · <b>−$${cost}</b>${STATE.currencyUses > 0 && h.id === 'currency' ? ` <span style="color:var(--muted)">(sube $${HINT_COST_STEP} cada uso)</span>` : ''}`;
         card.innerHTML = `
           <span class="hint-lock"><span class="ico">🔒</span>${h.label}</span>
-          <span class="hint-cost">${broke ? 'Sin plata' : `Desbloquear · <b>−$${h.cost}</b>`}</span>
+          <span class="hint-cost">${subtitle}</span>
         `;
         card.addEventListener('click', () => revealHint(h.id));
       }
@@ -1030,9 +1028,11 @@
     if (STATE.revealed.has(id)) return;
     const h = HINTS.find(x => x.id === id);
     if (!h) return;
-    if (STATE.money < h.cost) return; // can't afford — button is also disabled in UI
+    const cost = hintCost(h);
+    if (STATE.money < cost) return; // can't afford — button is also disabled in UI
     STATE.revealed.add(id);
-    STATE.money -= h.cost;
+    STATE.money -= cost;
+    if (h.id === 'currency') STATE.currencyUses++;
     bumpMoneyChip();
     if (h.kind === 'reveal-options') {
       $('optionsRow').style.display = 'grid';
@@ -1175,12 +1175,13 @@
   }
 
   function restartGame() {
-    STATE.money     = START_MONEY;
-    STATE.streak    = 0;
-    STATE.maxStreak = 0;
-    STATE.gameOver  = false;
-    STATE.answered  = false;
-    STATE.recent    = [];
+    STATE.money        = START_MONEY;
+    STATE.streak       = 0;
+    STATE.maxStreak    = 0;
+    STATE.gameOver     = false;
+    STATE.answered     = false;
+    STATE.recent       = [];
+    STATE.currencyUses = 0;
     $('gameOverModal').classList.remove('show');
     updateScore();
     startRound();
