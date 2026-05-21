@@ -81,12 +81,19 @@
   }
   .chip .ico { font-size: 14px; }
   .chip .muted { color: var(--muted); font-weight: 500; }
-  .chip.potential {
-    background: #fff8e6;
-    border-color: #ead7a4;
+  .chip.money {
+    background: #eef9e0;
+    border-color: #b8d985;
+    color: #3f6d22;
   }
-  .chip.potential.low  { background: #fbe6da; border-color: #e2b298; }
-  .chip.potential.gone { background: #f0dada; border-color: #c89090; color: #7a3a3a; }
+  .chip.money.low  { background: #fbe6da; border-color: #e2b298; color: #8a4a20; }
+  .chip.money.gone { background: #f0dada; border-color: #c89090; color: #7a3a3a; }
+  .chip.money.bump { animation: chipBump 0.35s ease-out; }
+  @keyframes chipBump {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
 
   /* ---------- main card ---------- */
   main {
@@ -519,6 +526,54 @@
     .options { grid-template-columns: 1fr; }
     .question { font-size: 20px; }
   }
+
+  /* ---------- Game Over modal ---------- */
+  .gameover-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(40, 30, 18, 0.55);
+    backdrop-filter: blur(3px);
+    padding: 22px;
+  }
+  .gameover-modal.show { display: flex; }
+  .gameover-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 32px 28px 24px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 28px 70px -16px rgba(50, 35, 10, 0.45);
+    animation: gameoverPop 0.35s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  @keyframes gameoverPop {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .gameover-flag {
+    font-size: 56px;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .gameover-card h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+    color: var(--red);
+  }
+  .gameover-card p {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 18px;
+  }
+  .gameover-card p b { color: var(--ink); }
 </style>
 </head>
 <body>
@@ -528,8 +583,7 @@
       <div class="sub">Adivina por los datos económicos</div>
     </div>
     <div class="scoreboard">
-      <div class="chip" title="Puntos totales"><span class="ico">⭐</span><span id="totalScoreVal">0</span></div>
-      <div class="chip potential" id="potentialChip" title="Puntos en juego esta ronda — bajan con cada pista"><span class="ico">💎</span><span id="potentialVal">100</span></div>
+      <div class="chip money" id="moneyChip" title="Plata disponible — si se acaba, perdés"><span class="ico">💰</span><span id="moneyVal">100</span></div>
       <div class="chip" title="Racha actual"><span class="ico">🔥</span><span id="streakVal">0</span></div>
     </div>
   </header>
@@ -596,9 +650,19 @@
   </main>
 
   <footer>
-    Cada ronda hay <b>100 pts</b> en juego · si acertás <b>los ganás</b>, si fallás <b>los perdés</b> · escribir el país sigue valiendo lo mismo que elegir una opción.<br/>
+    Empezás con <b>$100</b> · acertar paga <b>+$50</b> · errar cuesta <b>−$10</b> · ver el billete de la moneda cuesta <b>−$10</b> · si te quedás sin plata, <b>perdés</b>.<br/>
     <kbd>Enter</kbd> enviar respuesta escrita · <kbd>1</kbd>–<kbd>4</kbd> elegir opción · <kbd>Espacio</kbd>/<kbd>Enter</kbd> siguiente ronda
   </footer>
+
+  <!-- Game over modal -->
+  <div class="gameover-modal" id="gameOverModal">
+    <div class="gameover-card">
+      <div class="gameover-flag">💸</div>
+      <h2>Te quedaste sin plata</h2>
+      <p>Lograste sobrevivir con una racha máxima de <b id="gameOverStreak">0</b>.</p>
+      <button id="restartBtn" class="next-btn">Volver a empezar</button>
+    </div>
+  </div>
 
 <script>
   // -------- countries dataset --------
@@ -759,9 +823,13 @@
   // Continente, exportaciones e importaciones se muestran gratis siempre, son
   // el anclaje del juego. Las pistas pagas son los datos cuantitativos y la
   // ayuda más fuerte: revelar las 4 opciones múltiples.
-  const ROUND_MAX = 100;
+  // -------- economy --------
+  const START_MONEY     = 100;
+  const HINT_COST       = 10;   // pagás por desbloquear cada pista
+  const WRONG_COST      = 10;   // pagás cuando errás la respuesta
+  const CORRECT_REWARD  = 50;   // ganás cuando acertás
   const HINTS = [
-    { id: 'currency', label: 'Moneda', cost: 20, format: c => c.currency, kind: 'banknote' },
+    { id: 'currency', label: 'Moneda', cost: HINT_COST, format: c => c.currency, kind: 'banknote' },
   ];
 
   // -------- currency → symbol + visual palette --------
@@ -823,15 +891,16 @@
 
   // -------- game state --------
   const STATE = {
-    totalScore: 0,       // cumulative across rounds
+    money: START_MONEY,
     streak: 0,
+    maxStreak: 0,
     answered: false,
+    gameOver: false,
     currentIdx: -1,
     options: [],
     correctOption: -1,
     recent: [],          // indices of recently shown to avoid quick repeats
-    potential: ROUND_MAX,
-    revealed: new Set(),
+    revealed: new Set(), // hints unlocked in the current round (visual)
   };
 
   const $ = id => document.getElementById(id);
@@ -877,8 +946,8 @@
   }
 
   function startRound() {
+    if (STATE.gameOver) return;
     STATE.answered = false;
-    STATE.potential = ROUND_MAX;
     STATE.revealed = new Set();
     STATE.currentIdx = pickCountry();
     STATE.recent.push(STATE.currentIdx);
@@ -944,10 +1013,11 @@
       } else {
         card.classList.add('locked');
         card.type = 'button';
-        card.disabled = STATE.answered;
+        const broke = STATE.money < h.cost;
+        card.disabled = STATE.answered || STATE.gameOver || broke;
         card.innerHTML = `
           <span class="hint-lock"><span class="ico">🔒</span>${h.label}</span>
-          <span class="hint-cost">Desbloquear · <b>−${h.cost}</b> pts</span>
+          <span class="hint-cost">${broke ? 'Sin plata' : `Desbloquear · <b>−$${h.cost}</b>`}</span>
         `;
         card.addEventListener('click', () => revealHint(h.id));
       }
@@ -956,12 +1026,14 @@
   }
 
   function revealHint(id) {
-    if (STATE.answered) return;
+    if (STATE.answered || STATE.gameOver) return;
     if (STATE.revealed.has(id)) return;
     const h = HINTS.find(x => x.id === id);
     if (!h) return;
+    if (STATE.money < h.cost) return; // can't afford — button is also disabled in UI
     STATE.revealed.add(id);
-    STATE.potential = Math.max(0, STATE.potential - h.cost);
+    STATE.money -= h.cost;
+    bumpMoneyChip();
     if (h.kind === 'reveal-options') {
       $('optionsRow').style.display = 'grid';
     }
@@ -970,6 +1042,7 @@
     }
     renderHints(COUNTRIES[STATE.currentIdx]);
     updateScore();
+    if (STATE.money <= 0) triggerGameOver();
   }
 
   function renderOptions(options) {
@@ -1027,7 +1100,7 @@
   }
 
   function submitGuess(countryIdx) {
-    if (STATE.answered) return;
+    if (STATE.answered || STATE.gameOver) return;
     STATE.answered = true;
     const correct = countryIdx === STATE.currentIdx;
     // Highlight any visible options.
@@ -1042,20 +1115,27 @@
     document.querySelectorAll('.hint.locked').forEach(b => b.disabled = true);
     $('guessInput').disabled = true;
     $('guessBtn').disabled   = true;
-    // Symmetric scoring: you gain what's left on a correct call, and lose
-    // the same amount on a wrong one — so being cautious (paying for hints)
-    // also caps your downside.
     let delta = 0;
     if (correct) {
       STATE.streak++;
-      delta = STATE.potential;
+      if (STATE.streak > STATE.maxStreak) STATE.maxStreak = STATE.streak;
+      delta = CORRECT_REWARD;
     } else {
       STATE.streak = 0;
-      delta = -STATE.potential;
+      delta = -WRONG_COST;
     }
-    STATE.totalScore += delta;
+    STATE.money += delta;
+    bumpMoneyChip();
     updateScore();
     showResult(correct, delta, countryIdx);
+    if (STATE.money <= 0) triggerGameOver();
+  }
+
+  function bumpMoneyChip() {
+    const chip = $('moneyChip');
+    chip.classList.remove('bump');
+    void chip.offsetWidth;
+    chip.classList.add('bump');
   }
 
   function showResult(correct, delta, guessedIdx) {
@@ -1064,11 +1144,11 @@
     card.classList.add('show', correct ? 'correct' : 'wrong');
     $('resultFlag').textContent = country.flag;
     if (correct) {
-      $('resultHead').textContent = `¡Correcto! +${delta} pts`;
+      $('resultHead').textContent = `¡Correcto! +$${delta}`;
       $('resultName').textContent = country.name;
     } else {
       const guessed = guessedIdx != null ? COUNTRIES[guessedIdx] : null;
-      $('resultHead').textContent = `No, era ${country.name} · ${delta} pts`;
+      $('resultHead').textContent = `No, era ${country.name} · −$${Math.abs(delta)}`;
       $('resultName').textContent = guessed
         ? `Tu respuesta: ${guessed.flag} ${guessed.name}`
         : '—';
@@ -1076,16 +1156,38 @@
   }
 
   function updateScore() {
-    $('totalScoreVal').textContent = STATE.totalScore;
     $('streakVal').textContent = STATE.streak;
-    $('potentialVal').textContent = STATE.potential;
-    const chip = $('potentialChip');
+    $('moneyVal').textContent = STATE.money;
+    const chip = $('moneyChip');
     chip.classList.remove('low', 'gone');
-    if (STATE.potential <= 0) chip.classList.add('gone');
-    else if (STATE.potential <= 40) chip.classList.add('low');
+    if (STATE.money <= 0)       chip.classList.add('gone');
+    else if (STATE.money <= 30) chip.classList.add('low');
+  }
+
+  function triggerGameOver() {
+    STATE.gameOver = true;
+    STATE.answered = true;
+    document.querySelectorAll('.option, .hint.locked').forEach(b => b.disabled = true);
+    $('guessInput').disabled = true;
+    $('guessBtn').disabled   = true;
+    $('gameOverStreak').textContent = STATE.maxStreak;
+    $('gameOverModal').classList.add('show');
+  }
+
+  function restartGame() {
+    STATE.money     = START_MONEY;
+    STATE.streak    = 0;
+    STATE.maxStreak = 0;
+    STATE.gameOver  = false;
+    STATE.answered  = false;
+    STATE.recent    = [];
+    $('gameOverModal').classList.remove('show');
+    updateScore();
+    startRound();
   }
 
   $('nextBtn').addEventListener('click', startRound);
+  $('restartBtn').addEventListener('click', restartGame);
   $('guessBtn').addEventListener('click', submitTypedGuess);
   $('guessInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); submitTypedGuess(); }

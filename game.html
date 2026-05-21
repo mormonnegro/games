@@ -1,0 +1,2262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Tiny World Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f4ede0;
+    --panel: #ffffff;
+    --ink: #2a2722;
+    --muted: #8a847a;
+    --line: #ebe3d2;
+    --line-soft: #f3ecdc;
+    --accent: #3a72c8;
+    --shadow: 0 18px 50px -20px rgba(50, 35, 10, 0.18), 0 2px 6px -2px rgba(50, 35, 10, 0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #app { position: fixed; inset: 0; z-index: 2; }
+  canvas { display: block; cursor: grab; }
+  canvas.placing { cursor: crosshair; }
+  canvas.dragging { cursor: grabbing; }
+
+  .brand {
+    position: fixed;
+    top: 26px; left: 28px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .brand .title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .brand .title em {
+    font-style: italic;
+    font-weight: 400;
+    color: #a08454;
+  }
+  .brand .sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  /* -------- Sims-style bottom dock -------- */
+  .dock {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 12;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -14px 40px -16px rgba(50, 35, 10, 0.18);
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+  .dock-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 8px 18px 0;
+    border-bottom: 1px solid var(--line-soft);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dock-tabs::-webkit-scrollbar { display: none; }
+  .dock-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 10px 16px 11px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .dock-tab:hover { color: var(--ink); }
+  .dock-tab.active {
+    color: var(--ink);
+    border-bottom-color: #d4a017;
+  }
+  .dock-items {
+    display: flex;
+    gap: 10px;
+    padding: 12px 18px 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .dock-item {
+    position: relative;
+    flex: 0 0 88px;
+    height: 108px;
+    background: var(--line-soft);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    padding: 6px 4px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  .dock-item:hover { background: #faf3e0; }
+  .dock-item:active { transform: translateY(1px); }
+  .dock-item.active {
+    background: #fff;
+    border-color: #d4a017;
+    box-shadow: 0 6px 18px -6px rgba(212, 160, 23, 0.45);
+  }
+  .dock-item.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .dock-item .disc {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #faf3e2, #ebe0c4);
+    box-shadow: inset 0 -3px 6px rgba(120, 90, 30, 0.08),
+                inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .dock-item canvas {
+    width: 100%; height: 100%;
+    display: block;
+  }
+  .dock-item .name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-top: 4px;
+    letter-spacing: 0.01em;
+    line-height: 1.1;
+  }
+  .dock-item .cost {
+    position: absolute;
+    top: 4px; right: 5px;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .dock-item .cost.cant { color: #c84848; border-color: #e8c8c8; }
+  .dock-item .limit {
+    position: absolute;
+    top: 4px; left: 5px;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 1px 6px;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+  .dock-item .limit.full { color: #c84848; border-color: #e8c8c8; }
+  .dock-item.eraser .disc {
+    background:
+      repeating-linear-gradient(45deg,
+        transparent, transparent 4px,
+        rgba(120, 90, 30, 0.25) 4px, rgba(120, 90, 30, 0.25) 8px),
+      radial-gradient(circle at 35% 30%, #faf3e2, #ebe0c4);
+  }
+  .dock-item.eraser canvas { display: none; }
+
+  /* legacy .controls/.btn removed — Reset/Clear now live inside the HUD */
+
+  /* -------- Combat mode -------- */
+  .combat-btn {
+    position: fixed;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 11;
+    background: #c84848;
+    color: #fff;
+    border: none;
+    padding: 11px 22px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    box-shadow: 0 8px 22px -8px rgba(200, 72, 72, 0.7), 0 1px 0 rgba(0,0,0,0.04);
+    transition: transform 0.12s, background 0.15s, box-shadow 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .combat-btn .icon { font-size: 16px; }
+  .combat-btn:hover { background: #b03c3c; transform: translateX(-50%) translateY(-1px); }
+  .combat-btn:active { transform: translateX(-50%) translateY(1px); }
+  body.combat .combat-btn { display: none; }
+
+  .crosshair {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+    font-size: 28px;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 50;
+    font-weight: 300;
+    display: none;
+  }
+  body.combat .crosshair { display: block; }
+  body.combat #app canvas { cursor: crosshair !important; }
+
+  .combat-hud {
+    position: fixed;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 11;
+    background: rgba(42, 39, 34, 0.92);
+    color: #fff;
+    border-radius: 14px;
+    padding: 10px 16px;
+    display: none;
+    align-items: center;
+    gap: 16px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(8px);
+  }
+  body.combat .combat-hud { display: flex; }
+  .hearts { display: flex; gap: 3px; font-size: 18px; line-height: 1; }
+  .heart.lost { opacity: 0.25; filter: grayscale(0.9); }
+  .heart.bump { animation: heart-pop 0.4s ease-out; }
+  @keyframes heart-pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+  .combat-stats {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .combat-stats b { font-weight: 700; }
+  .cs-sep { opacity: 0.35; }
+  .combat-exit {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: none;
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .combat-exit:hover { background: rgba(255,255,255,0.22); }
+
+  /* Hide farming UI while in combat */
+  body.combat .missions,
+  body.combat .dock,
+  body.combat .help,
+  body.combat .hud { display: none !important; }
+
+  /* Damage vignette flashes red briefly when player gets hit */
+  .damage-vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(200, 30, 30, 0.55) 100%);
+    opacity: 0;
+    z-index: 40;
+    transition: opacity 0.12s;
+  }
+  .damage-vignette.flash { opacity: 1; transition: opacity 0.05s; }
+
+  /* Game over */
+  .game-over {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 18, 14, 0.7);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .game-over.show { display: flex; }
+  .game-over-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 28px 36px;
+    min-width: 320px;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.4);
+    text-align: center;
+  }
+  .game-over-card h2 {
+    margin: 0 0 18px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 32px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .go-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-soft);
+    font-size: 14px;
+  }
+  .go-stat span { color: var(--muted); }
+  .go-stat b {
+    font-size: 18px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .go-actions {
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .go-btn {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.12s, transform 0.08s;
+  }
+  .go-btn:hover { background: #faf5ea; }
+  .go-btn:active { transform: translateY(1px); }
+  .go-btn.primary {
+    background: #c84848;
+    color: #fff;
+    border-color: transparent;
+  }
+  .go-btn.primary:hover { background: #b03c3c; }
+
+
+  .help {
+    position: fixed;
+    bottom: 178px; right: 28px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.7;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  @media (max-height: 760px) { .help { display: none; } }
+  .help kbd {
+    display: inline-block;
+    padding: 1.5px 5px;
+    border-radius: 4px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    font-size: 10.5px;
+    font-family: inherit;
+    color: var(--ink);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+    z-index: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.15 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* -------- HUD: top-right resource bar -------- */
+  .hud {
+    position: fixed;
+    top: 26px;
+    right: 28px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 14px 12px;
+    z-index: 10;
+    box-shadow: var(--shadow);
+    min-width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .hud-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .hud-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .hud-icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s, color 0.12s, transform 0.08s;
+    font-family: inherit;
+  }
+  .hud-icon-btn:hover { background: #faf5ea; color: var(--ink); }
+  .hud-icon-btn:active { transform: translateY(1px); }
+  .hud .res-row { display: flex; gap: 14px; justify-content: space-between; align-items: baseline; }
+  .hud .res {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    transition: color 0.2s;
+  }
+  .hud .res .ico { font-size: 13px; margin-right: 2px; }
+  .hud .res .cap { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .hud .res.bump { animation: bump 0.3s ease-out; }
+  @keyframes bump {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  .hud .xp-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .hud .xp-bar {
+    height: 6px;
+    background: var(--line-soft);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .hud .xp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #d4a017, #f0c641);
+    transition: width 0.4s ease;
+    border-radius: 3px;
+  }
+  .hud .xp-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* -------- Missions panel (left side) -------- */
+  .missions {
+    position: fixed;
+    top: 110px;
+    left: 28px;
+    width: 280px;
+    max-height: calc(100vh - 320px);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px 12px;
+    z-index: 10;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .missions-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .missions-header h3 {
+    margin: 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .missions-header h3 em {
+    font-style: italic;
+    font-weight: 400;
+    color: #d4a017;
+  }
+  .missions-counter {
+    font-size: 11px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .missions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .mission {
+    position: relative;
+    background: var(--line-soft);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: opacity 0.25s, transform 0.25s, background 0.18s, border-color 0.18s;
+  }
+  .mission.locked {
+    opacity: 0.55;
+  }
+  .mission.active {
+    background: #fff8e6;
+    border-color: #f0d97a;
+    box-shadow: 0 4px 14px -8px rgba(212, 160, 23, 0.55);
+  }
+  .mission.completing {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  .mission-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .mission-icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .mission-body { flex: 1; min-width: 0; }
+  .mission-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.25;
+    letter-spacing: 0.005em;
+  }
+  .mission-hint {
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.3;
+    display: none;
+  }
+  .mission.active .mission-hint { display: block; }
+  .mission-bar {
+    height: 4px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 2px;
+    margin-top: 7px;
+    overflow: hidden;
+  }
+  .mission-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6fb442, #a8d96a);
+    transition: width 0.4s ease;
+    border-radius: 2px;
+  }
+  .mission-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 10.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .mission-progress { font-weight: 600; }
+  .mission-reward {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(212, 160, 23, 0.12);
+    color: #8a6610;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 10px;
+  }
+  .mission.locked .mission-bar,
+  .mission.locked .mission-meta { display: none; }
+  .mission .lock-icon {
+    color: var(--muted);
+    font-size: 11px;
+    margin-left: auto;
+  }
+
+  /* Floating placement feedback */
+  .float-text {
+    position: fixed;
+    pointer-events: none;
+    font-size: 14px;
+    font-weight: 700;
+    color: #6fb442;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.8), 0 0 8px rgba(255,255,255,0.5);
+    z-index: 60;
+    transform: translate(-50%, 0);
+    animation: float-up 1s ease-out forwards;
+    font-variant-numeric: tabular-nums;
+  }
+  @keyframes float-up {
+    0%   { transform: translate(-50%, 0) scale(0.9); opacity: 0; }
+    15%  { transform: translate(-50%, -8px) scale(1.1); opacity: 1; }
+    100% { transform: translate(-50%, -55px) scale(0.95); opacity: 0; }
+  }
+
+  /* Growth toasts — bottom-left corner. */
+  .toasts {
+    position: fixed;
+    bottom: 18px; left: 18px;
+    z-index: 60;
+    display: flex;
+    flex-direction: column-reverse; /* newest on top of the stack */
+    gap: 8px;
+    align-items: flex-start;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--ink);
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    animation: toast-in 0.3s ease-out, toast-out 0.4s ease-in 2.6s forwards;
+    white-space: nowrap;
+  }
+  .toast .icon { margin-right: 8px; font-size: 14px; }
+  @keyframes toast-in {
+    from { transform: translateX(-12px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes toast-out {
+    to { transform: translateX(-12px); opacity: 0; }
+  }
+
+  /* Debug panel: bottom-right buttons to simulate token bursts. */
+  .debug-panel {
+    position: fixed;
+    bottom: 18px; right: 18px;
+    z-index: 50;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .debug-panel button {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 12px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background 0.12s, transform 0.06s;
+  }
+  .debug-panel button:hover  { background: #faf3e0; }
+  .debug-panel button:active { transform: translateY(1px); }
+
+  @media (max-width: 600px) {
+    .brand .title { font-size: 22px; }
+    .help { display: none; }
+    .brand { top: 16px; left: 16px; }
+    .brand .sub { display: none; }
+    .hud { top: 16px; right: 16px; left: auto; min-width: 0; padding: 8px 10px 10px; }
+    .hud-actions { display: none; }
+    .hud .res { font-size: 12.5px; }
+    .missions { top: auto; bottom: 200px; left: 16px; right: 16px; width: auto; max-height: 35vh; padding: 10px 12px; }
+    .missions .mission { padding: 8px 10px; }
+    .missions-header h3 { font-size: 15px; }
+    .toasts { bottom: 70px; left: 12px; }
+    .dock-tabs { padding: 6px 12px 0; }
+    .dock-tab { padding: 8px 10px 9px; font-size: 12px; }
+    .dock-items { padding: 10px 12px 12px; gap: 8px; }
+    .dock-item { flex: 0 0 78px; height: 100px; }
+    .dock-item .disc { width: 54px; height: 54px; }
+    .dock-item .name { font-size: 10.5px; }
+  }
+  /* Old catalog selectors kept as no-ops in case external markup lingers. */
+  .catalog, .catalog-toggle, .catalog-backdrop { display: none !important; }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div class="brand">
+    <div class="title">Forest <em>Grow</em></div>
+    <div class="sub">Plants itself as you spend Claude Code tokens · drag to orbit · scroll to zoom</div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <div class="debug-panel">
+    <button id="debugPlant" title="Simulate one Claude turn worth of tokens">
+      <span>🐛 +tokens</span>
+    </button>
+    <button id="debugBurst" title="Simulate ten turns at once">
+      <span>🐛 ×10</span>
+    </button>
+    <button id="debugClear" title="Clear forest + reset growth state">
+      <span>↺ reset</span>
+    </button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  /* =====================================================================
+     Tiny World Builder — single-file Three.js scene + tile editor
+     ===================================================================== */
+
+  // Helper defensivo para añadir listeners (evita TypeError si el elemento
+  // no existe en el DOM). Lo declaramos primero para que todo el resto del
+  // script lo pueda usar.
+  function on(id, event, handler) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(event, handler);
+  }
+
+  // Wrappear getElementById para que NUNCA devuelva null. Si el elemento no
+  // existe, devolvemos un proxy no-op que absorbe addEventListener, classList,
+  // setPointerCapture y demás métodos comunes sin fallar. Esto evita que un
+  // listener colgante a un elemento eliminado del DOM rompa todo el script.
+  const _getById = document.getElementById.bind(document);
+  const noopEl = new Proxy({}, {
+    get(_t, prop) {
+      if (prop === 'classList') return { add(){}, remove(){}, toggle(){}, contains(){ return false; } };
+      if (prop === 'style') return new Proxy({}, { set(){ return true; }, get(){ return ''; } });
+      if (prop === 'dataset') return {};
+      // Cualquier método devuelve una función no-op; cualquier propiedad escalar devuelve ''
+      return typeof prop === 'string' ? () => {} : undefined;
+    },
+    set() { return true; },
+  });
+  document.getElementById = function(id) {
+    return _getById(id) || noopEl;
+  };
+
+  // -------- constants --------
+  const GRID = 10;
+  const TILE = 1;
+  const TOP_H = 0.18;     // grass slab thickness
+  const DIRT_H = 0.55;    // dirt block height (visible side)
+
+  // -------- scene / renderer --------
+  const container = document.getElementById('app');
+  const canvasEl = document.createElement('canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.NoToneMapping;
+  container.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf4ede0);
+
+  // -------- camera (perspective) --------
+  let viewSize = 9;
+  const aspect0 = window.innerWidth / window.innerHeight;
+  // narrow FOV + far distance gives the "miniature/telephoto" look that
+  // sits closest to the iso aesthetic while still showing real depth.
+  const persCam = new THREE.PerspectiveCamera(28, aspect0, 0.1, 200);
+  const camera = persCam;
+
+  // orbit state — `azimuth`/`polar` son el valor renderizado actual,
+  // `targetAzimuth`/`targetPolar` son el objetivo que el usuario está arrastrando.
+  // Cada frame el valor renderizado se interpola hacia el objetivo con un
+  // factor de damping, lo que da una sensación suave en vez de saltos directos.
+  let azimuth = Math.PI * 0.25;
+  let polar   = Math.PI * 0.32;
+  let targetAzimuth = azimuth;
+  let targetPolar   = polar;
+  let targetViewSize;                 // se inicializa después de declarar viewSize
+  const ORBIT_DAMPING = 0.18;         // 0 = no se mueve, 1 = salto inmediato
+  const ZOOM_DAMPING  = 0.35;
+  const target = new THREE.Vector3(0, 0, 0);
+
+  function updateCamera() {
+    // radius scales with viewSize so wheel-zoom moves the camera in/out.
+    const r = viewSize * 4.2;
+    camera.position.x = target.x + r * Math.sin(polar) * Math.cos(azimuth);
+    camera.position.y = target.y + r * Math.cos(polar);
+    camera.position.z = target.z + r * Math.sin(polar) * Math.sin(azimuth);
+    camera.lookAt(target);
+  }
+  updateCamera();
+
+
+  // -------- lighting --------
+  // Neutral hemisphere — warm sky was dyeing everything cream-yellow.
+  const hemi = new THREE.HemisphereLight(0xffffff, 0xb39879, 0.30);
+  scene.add(hemi);
+
+  const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+  sun.position.set(7, 12, 5);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -18;
+  sun.shadow.camera.right = 18;
+  sun.shadow.camera.top = 18;
+  sun.shadow.camera.bottom = -18;
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 50;
+  sun.shadow.bias = -0.0006;
+  sun.shadow.radius = 3;
+  scene.add(sun);
+  // No ambient — hemi handles fill, ambient just compresses contrast & saturation.
+
+  // -------- geometry helpers --------
+  // A rounded extruded slab — used for tile pieces.
+  function roundedSlab(size, height, radius = 0.07) {
+    const w = size / 2;
+    const r = Math.min(radius, w - 0.01);
+    const shape = new THREE.Shape();
+    shape.moveTo(-w + r, -w);
+    shape.lineTo(w - r, -w);
+    shape.quadraticCurveTo(w, -w, w, -w + r);
+    shape.lineTo(w, w - r);
+    shape.quadraticCurveTo(w, w, w - r, w);
+    shape.lineTo(-w + r, w);
+    shape.quadraticCurveTo(-w, w, -w, w - r);
+    shape.lineTo(-w, -w + r);
+    shape.quadraticCurveTo(-w, -w, -w + r, -w);
+
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: height,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      bevelSize: 0.04,
+      bevelThickness: 0.04,
+      curveSegments: 4
+    });
+    geo.rotateX(-Math.PI / 2);
+    // After rotation Y spans [0, height]
+    return geo;
+  }
+
+  // A rounded box — for some objects we want a softer cube look.
+  function roundedBox(w, h, d, r = 0.05) {
+    const shape = new THREE.Shape();
+    const hw = w / 2, hd = d / 2;
+    const rr = Math.min(r, hw - 0.001, hd - 0.001);
+    shape.moveTo(-hw + rr, -hd);
+    shape.lineTo(hw - rr, -hd);
+    shape.quadraticCurveTo(hw, -hd, hw, -hd + rr);
+    shape.lineTo(hw, hd - rr);
+    shape.quadraticCurveTo(hw, hd, hw - rr, hd);
+    shape.lineTo(-hw + rr, hd);
+    shape.quadraticCurveTo(-hw, hd, -hw, hd - rr);
+    shape.lineTo(-hw, -hd + rr);
+    shape.quadraticCurveTo(-hw, -hd, -hw + rr, -hd);
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: h,
+      bevelEnabled: true,
+      bevelSegments: 1,
+      bevelSize: 0.02,
+      bevelThickness: 0.02,
+      curveSegments: 3
+    });
+    geo.rotateX(-Math.PI / 2);
+    geo.translate(0, 0, 0);
+    return geo;
+  }
+
+  // -------- materials --------
+  // Lambert (not Standard): non-PBR diffuse only, much more direct color response.
+  // Stylized low-poly looks better with flat shading than physical energy conservation.
+  const M = {
+    grass:     new THREE.MeshLambertMaterial({ color: 0xb0d949 }),
+    grassEdge: new THREE.MeshLambertMaterial({ color: 0x95c138 }),
+    dirt:      new THREE.MeshLambertMaterial({ color: 0x7d4519 }),
+    dirtRich:  new THREE.MeshLambertMaterial({ color: 0x462b15 }),
+    path:      new THREE.MeshLambertMaterial({ color: 0xf2d29c }),
+    water:     new THREE.MeshLambertMaterial({ color: 0x3a8fcc }),
+
+    trunk:     new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    trunkD:    new THREE.MeshLambertMaterial({ color: 0x3e2510 }),  // shadow / base flare
+    trunkLt:   new THREE.MeshLambertMaterial({ color: 0x7a4d28 }),  // sun-side highlight
+    leaves:    new THREE.MeshLambertMaterial({ color: 0x86d139 }),
+    leavesDk:  new THREE.MeshLambertMaterial({ color: 0x5fab26 }),
+    leavesLt:  new THREE.MeshLambertMaterial({ color: 0xa8e052 }),  // highlight green
+    pineCone:  new THREE.MeshLambertMaterial({ color: 0x6a3a18 }),
+    oakBerry:  new THREE.MeshLambertMaterial({ color: 0xd4382a }),
+
+    // Extra species — driven by Claude Code token usage (auto-growth).
+    pineLeaf:    new THREE.MeshLambertMaterial({ color: 0x2f6a32 }),
+    pineLeafD:   new THREE.MeshLambertMaterial({ color: 0x1f4d22 }),
+    birchBark:   new THREE.MeshLambertMaterial({ color: 0xece6d6 }),
+    birchBarkD:  new THREE.MeshLambertMaterial({ color: 0x9a937e }),
+    birchLeaf:   new THREE.MeshLambertMaterial({ color: 0xc8e07a }),
+    cherryTrunk: new THREE.MeshLambertMaterial({ color: 0x6a3a22 }),
+    cherryLeaf:  new THREE.MeshLambertMaterial({ color: 0xf4b8c8 }),
+    cherryLeafD: new THREE.MeshLambertMaterial({ color: 0xd989a0 }),
+    willowLeaf:  new THREE.MeshLambertMaterial({ color: 0xc6d76b }),
+    willowLeafD: new THREE.MeshLambertMaterial({ color: 0xa3b855 }),
+    bushLeaf:    new THREE.MeshLambertMaterial({ color: 0x6dc23a }),
+    bushLeafD:   new THREE.MeshLambertMaterial({ color: 0x4f9628 }),
+
+    // Additional species — adds variety so the canopy doesn't feel monoculture.
+    mapleLeaf:    new THREE.MeshLambertMaterial({ color: 0xe07a2a }),
+    mapleLeafD:   new THREE.MeshLambertMaterial({ color: 0xb44d18 }),
+    palmTrunk:    new THREE.MeshLambertMaterial({ color: 0x8a6240 }),
+    palmFrond:    new THREE.MeshLambertMaterial({ color: 0x5fa83a }),
+    palmFrondD:   new THREE.MeshLambertMaterial({ color: 0x3f7a26 }),
+    acaciaLeaf:   new THREE.MeshLambertMaterial({ color: 0xb9d556 }),
+    acaciaLeafD:  new THREE.MeshLambertMaterial({ color: 0x8aa83c }),
+    magnoliaLeaf: new THREE.MeshLambertMaterial({ color: 0xf8f4ec }),
+    magnoliaLeafD:new THREE.MeshLambertMaterial({ color: 0xe2dbc6 }),
+    cypressLeaf:  new THREE.MeshLambertMaterial({ color: 0x4a7a3c }),
+    cypressLeafD: new THREE.MeshLambertMaterial({ color: 0x325a28 }),
+    appleLeaf:    new THREE.MeshLambertMaterial({ color: 0x70b840 }),
+    appleFruit:   new THREE.MeshLambertMaterial({ color: 0xd4382a }),
+    mushroomStem: new THREE.MeshLambertMaterial({ color: 0xf4ecd6 }),
+    mushroomCap:  new THREE.MeshLambertMaterial({ color: 0xc8362a }),
+    mushroomSpot: new THREE.MeshLambertMaterial({ color: 0xf8f4ec }),
+
+    // Ground decorations and ambient critters — for that cozy feel.
+    flowerPink:   new THREE.MeshLambertMaterial({ color: 0xf28ab2 }),
+    flowerWhite:  new THREE.MeshLambertMaterial({ color: 0xf8f0e0 }),
+    flowerYellow: new THREE.MeshLambertMaterial({ color: 0xf4d24a }),
+    flowerPurple: new THREE.MeshLambertMaterial({ color: 0xb070d0 }),
+    flowerStem:   new THREE.MeshLambertMaterial({ color: 0x4f8c20 }),
+    stoneGrey:    new THREE.MeshLambertMaterial({ color: 0xa9a59a }),
+    stoneGreyD:   new THREE.MeshLambertMaterial({ color: 0x807a70 }),
+    fernLeaf:     new THREE.MeshLambertMaterial({ color: 0x4d8a2c }),
+    miniCap:      new THREE.MeshLambertMaterial({ color: 0xe07a3a }),  // orange mushroom cap
+    miniCap2:     new THREE.MeshLambertMaterial({ color: 0xb04dc0 }),  // purple mushroom cap
+    butterflyA:   new THREE.MeshLambertMaterial({ color: 0xf28ab2 }),
+    butterflyB:   new THREE.MeshLambertMaterial({ color: 0xf4d24a }),
+    butterflyC:   new THREE.MeshLambertMaterial({ color: 0xe07ab2 }),
+    butterflyD:   new THREE.MeshLambertMaterial({ color: 0xa4d4f0 }),
+
+    wallCream: new THREE.MeshLambertMaterial({ color: 0xf2dfb0 }),
+    wallTrim:  new THREE.MeshLambertMaterial({ color: 0xe5cf99 }),
+    roofBlue:  new THREE.MeshLambertMaterial({ color: 0x2a6dd1 }),
+    roofBlueD: new THREE.MeshLambertMaterial({ color: 0x1d4d9c }),
+    door:      new THREE.MeshLambertMaterial({ color: 0x7a4a2e }),
+    woodTrim:  new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    windowB:   new THREE.MeshLambertMaterial({ color: 0x2a6dd1 }),
+    chimney:   new THREE.MeshLambertMaterial({ color: 0xc9c4ba }),
+    step:      new THREE.MeshLambertMaterial({ color: 0xa9a49a }),
+    knob:      new THREE.MeshLambertMaterial({ color: 0xe8c050 }),
+
+    fence:     new THREE.MeshLambertMaterial({ color: 0x7d4519 }),
+    cropLeaf:  new THREE.MeshLambertMaterial({ color: 0x96d943 }),
+    cropStem:  new THREE.MeshLambertMaterial({ color: 0x5e9c2e }),
+
+    millStone: new THREE.MeshLambertMaterial({ color: 0xe8dfc8 }),
+    millStoneD:new THREE.MeshLambertMaterial({ color: 0xc4b893 }),
+    millRoof:  new THREE.MeshLambertMaterial({ color: 0x8a3d2a }),
+    millBlade: new THREE.MeshLambertMaterial({ color: 0xf2dfb0 }),
+    millFrame: new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+
+    barnRed:   new THREE.MeshLambertMaterial({ color: 0xa83828 }),
+    barnRedD:  new THREE.MeshLambertMaterial({ color: 0x7d2a1c }),
+    barnRoof:  new THREE.MeshLambertMaterial({ color: 0x3a2418 }),
+    barnRoofD: new THREE.MeshLambertMaterial({ color: 0x251610 }),
+    barnTrim:  new THREE.MeshLambertMaterial({ color: 0xf2ece0 }),
+    barnHay:   new THREE.MeshLambertMaterial({ color: 0xd4a04c }),
+
+    hover:     new THREE.MeshBasicMaterial({ color: 0x2a2722, transparent: true, opacity: 0.18, depthWrite: false }),
+    hoverErase:new THREE.MeshBasicMaterial({ color: 0xb84838, transparent: true, opacity: 0.28, depthWrite: false }),
+  };
+
+  function castReceive(obj) {
+    obj.traverse(c => {
+      if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+    });
+    return obj;
+  }
+
+  // -------- tile factory --------
+  function makeTile(terrain) {
+    const g = new THREE.Group();
+    g.userData = { kind: 'tile', terrain };
+
+    // dirt block (sides + bottom of tile)
+    const dirt = new THREE.Mesh(roundedSlab(TILE * 0.98, DIRT_H, 0.06), M.dirt);
+    dirt.position.y = -DIRT_H;
+    g.add(dirt);
+
+    // top cap
+    let topMat = M.grass;
+    if (terrain === 'path')  topMat = M.path;
+    if (terrain === 'water') topMat = M.water;
+    if (terrain === 'dirt')  topMat = M.dirtRich;
+
+    const top = new THREE.Mesh(roundedSlab(TILE * 0.98, TOP_H, 0.06), topMat);
+    top.position.y = 0;
+    g.add(top);
+
+    // Grass tiles get a random cozy decoration ~35% of the time. Decorations
+    // live on the tile, so they persist underneath whatever tree grows there.
+    if (terrain === 'grass') {
+      const r = Math.random();
+      if      (r < 0.12) g.add(makeFlowerPatch());
+      else if (r < 0.20) g.add(makeMiniMushrooms());
+      else if (r < 0.27) g.add(makeStonePatch());
+      else if (r < 0.35) g.add(makeFernPatch());
+    }
+
+    // path scuff: little dimple on path tiles
+    if (terrain === 'path') {
+      const scuff = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.02, 0.08),
+        new THREE.MeshStandardMaterial({ color: 0xd4be8c, roughness: 0.95 })
+      );
+      scuff.position.set((Math.random() - 0.5) * 0.4, TOP_H + 0.005, (Math.random() - 0.5) * 0.4);
+      g.add(scuff);
+    }
+
+    castReceive(g);
+    return g;
+  }
+
+  // -------- ground decorations --------
+  // Each helper returns a group of tiny meshes sitting just above the tile top.
+  // They're added as children of a grass tile and stay there permanently —
+  // even when a tree grows on the same tile, the decorations remain underneath.
+  const FLOWER_MATS = [M.flowerPink, M.flowerWhite, M.flowerYellow, M.flowerPurple];
+
+  function makeFlowerPatch() {
+    const g = new THREE.Group();
+    const count = 3 + Math.floor(Math.random() * 3); // 3-5 flowers
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 0.7;
+      const z = (Math.random() - 0.5) * 0.7;
+      const stem = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.08, 0.02), M.flowerStem);
+      stem.position.set(x, TOP_H + 0.04, z);
+      g.add(stem);
+      const petalMat = FLOWER_MATS[Math.floor(Math.random() * FLOWER_MATS.length)];
+      const petal = new THREE.Mesh(roundedBox(0.07, 0.05, 0.07, 0.02), petalMat);
+      petal.position.set(x, TOP_H + 0.11, z);
+      g.add(petal);
+    }
+    return g;
+  }
+
+  function makeMiniMushrooms() {
+    const g = new THREE.Group();
+    const count = 2 + Math.floor(Math.random() * 3);
+    const caps = [M.mushroomCap, M.miniCap, M.miniCap2];
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 0.55;
+      const z = (Math.random() - 0.5) * 0.55;
+      const stem = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.06, 0.03), M.mushroomStem);
+      stem.position.set(x, TOP_H + 0.03, z);
+      g.add(stem);
+      const cap = new THREE.Mesh(roundedBox(0.10, 0.05, 0.10, 0.03), caps[Math.floor(Math.random() * caps.length)]);
+      cap.position.set(x, TOP_H + 0.09, z);
+      g.add(cap);
+      // Optional tiny white speck on the cap.
+      if (Math.random() < 0.5) {
+        const spot = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.02, 0.03), M.flowerWhite);
+        spot.position.set(x + 0.02, TOP_H + 0.12, z);
+        g.add(spot);
+      }
+    }
+    return g;
+  }
+
+  function makeStonePatch() {
+    const g = new THREE.Group();
+    const count = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 0.55;
+      const z = (Math.random() - 0.5) * 0.55;
+      const stone = new THREE.Mesh(
+        roundedBox(0.14 + Math.random() * 0.08, 0.08, 0.12 + Math.random() * 0.06, 0.04),
+        Math.random() < 0.5 ? M.stoneGrey : M.stoneGreyD,
+      );
+      stone.position.set(x, TOP_H + 0.04, z);
+      stone.rotation.y = Math.random() * Math.PI;
+      g.add(stone);
+    }
+    return g;
+  }
+
+  function makeFernPatch() {
+    const g = new THREE.Group();
+    const count = 3 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * 0.55;
+      const z = (Math.random() - 0.5) * 0.55;
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.04), M.fernLeaf);
+      blade.position.set(x, TOP_H + 0.08, z);
+      blade.rotation.z = (Math.random() - 0.5) * 0.5;
+      blade.rotation.y = Math.random() * Math.PI;
+      g.add(blade);
+    }
+    return g;
+  }
+
+  // -------- object factories --------
+  // Each species is split into a `trunk` subgroup and a `canopy` subgroup so
+  // we can stretch only the trunk in Y as the tree matures, lifting the
+  // canopy with it without distorting the canopy shapes.
+  function buildTree(species, trunkParts, canopyParts, trunkTopY) {
+    const g = new THREE.Group();
+    const trunkG  = new THREE.Group();
+    const canopyG = new THREE.Group();
+    for (const m of trunkParts)  trunkG.add(m);
+    for (const m of canopyParts) canopyG.add(m);
+    g.add(trunkG);
+    g.add(canopyG);
+    g.userData = {
+      kind: 'tree', species,
+      swayPhase: Math.random() * Math.PI * 2,
+      trunk: trunkG, canopy: canopyG, trunkTop: trunkTopY,
+    };
+    castReceive(g);
+    return g;
+  }
+
+  const TREE_SPECIES = [
+    'oak', 'pine', 'birch', 'cherry', 'willow', 'bush',
+    'maple', 'palm', 'acacia', 'magnolia',
+    'cypress', 'apple', 'mushroom',
+  ];
+  function makeTree(species) {
+    switch (species) {
+      case 'pine':     return makePine();
+      case 'birch':    return makeBirch();
+      case 'cherry':   return makeCherry();
+      case 'willow':   return makeWillow();
+      case 'bush':     return makeBush();
+      case 'maple':    return makeMaple();
+      case 'palm':     return makePalm();
+      case 'acacia':   return makeAcacia();
+      case 'magnolia': return makeMagnolia();
+      case 'cypress':  return makeCypress();
+      case 'apple':    return makeApple();
+      case 'mushroom': return makeMushroom();
+      default:         return makeOak();
+    }
+  }
+
+  function makeOak() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), M.trunk);
+    trunk.position.y = 0.25;
+    // Root flare — wider darker bump at the base.
+    const flare = new THREE.Mesh(roundedBox(0.28, 0.10, 0.28, 0.05), M.trunkD);
+    flare.position.y = 0.05;
+    // Side branch nub.
+    const nub = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.06, 0.06), M.trunkLt);
+    nub.position.set(0.13, 0.38, 0);
+
+    // Canopy with darker shadow clump + lighter highlight clump + a few
+    // red berry dots for texture.
+    const lower = new THREE.Mesh(roundedBox(0.62, 0.42, 0.62, 0.08), M.leaves);
+    lower.position.y = 0.5;
+    const shadow = new THREE.Mesh(roundedBox(0.46, 0.22, 0.46, 0.06), M.leavesDk);
+    shadow.position.set(-0.10, 0.42, 0.08);
+    const upper = new THREE.Mesh(roundedBox(0.42, 0.32, 0.42, 0.06), M.leaves);
+    upper.position.y = 0.92;
+    const highlight = new THREE.Mesh(roundedBox(0.26, 0.18, 0.26, 0.05), M.leavesLt);
+    highlight.position.set(0.10, 0.98, -0.10);
+    const tip = new THREE.Mesh(roundedBox(0.22, 0.18, 0.22, 0.04), M.leaves);
+    tip.position.y = 1.18;
+
+    const berries = [];
+    for (const [x, y, z] of [[0.22, 0.52, 0.18], [-0.18, 0.66, -0.16], [0.06, 0.86, 0.20]]) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 5), M.oakBerry);
+      b.position.set(x, y, z);
+      berries.push(b);
+    }
+    return buildTree('oak', [trunk, flare, nub], [lower, shadow, upper, highlight, tip, ...berries], 0.5);
+  }
+
+  function makePine() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.3, 0.14), M.trunk);
+    trunk.position.y = 0.15;
+    const flare = new THREE.Mesh(roundedBox(0.22, 0.08, 0.22, 0.04), M.trunkD);
+    flare.position.y = 0.04;
+
+    const canopy = [];
+    const tiers = [
+      { y: 0.32, w: 0.62, h: 0.40, mat: M.pineLeafD },
+      { y: 0.66, w: 0.50, h: 0.36, mat: M.pineLeaf  },
+      { y: 0.96, w: 0.38, h: 0.32, mat: M.pineLeafD },
+      { y: 1.22, w: 0.24, h: 0.26, mat: M.pineLeaf  },
+    ];
+    for (const t of tiers) {
+      const m = new THREE.Mesh(roundedBox(t.w, t.h, t.w, 0.05), t.mat);
+      m.position.y = t.y + t.h / 2;
+      canopy.push(m);
+    }
+    // Sun-lit highlight wedge on one side of the lower tier.
+    const sunHi = new THREE.Mesh(roundedBox(0.18, 0.30, 0.18, 0.04), M.leavesLt);
+    sunHi.position.set(0.18, 0.50, 0.18);
+    canopy.push(sunHi);
+    const tip = new THREE.Mesh(roundedBox(0.10, 0.18, 0.10, 0.03), M.pineLeaf);
+    tip.position.y = 1.52;
+    canopy.push(tip);
+
+    // A few small brown pine cones hanging on the canopy.
+    for (const [x, y, z] of [[0.16, 0.46, -0.12], [-0.14, 0.78, 0.10], [0.08, 1.04, 0.14]]) {
+      const cone = new THREE.Mesh(roundedBox(0.06, 0.10, 0.06, 0.02), M.pineCone);
+      cone.position.set(x, y, z);
+      canopy.push(cone);
+    }
+    return buildTree('pine', [trunk, flare], canopy, 0.3);
+  }
+
+  function makeBirch() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.7, 0.14), M.birchBark);
+    trunk.position.y = 0.35;
+    const trunkParts = [trunk];
+    // Bark stripes — varied widths and offsets for a hand-drawn look.
+    const stripeData = [
+      { y: 0.15, w: 0.18, h: 0.05 },
+      { y: 0.30, w: 0.14, h: 0.03 },
+      { y: 0.47, w: 0.17, h: 0.05 },
+      { y: 0.60, w: 0.13, h: 0.03 },
+    ];
+    for (const s of stripeData) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(s.w, s.h, 0.07), M.birchBarkD);
+      stripe.position.set(0, s.y, 0.075);
+      trunkParts.push(stripe);
+    }
+    // Tiny dead branch nub poking out.
+    const nub = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.04), M.birchBarkD);
+    nub.position.set(0.10, 0.42, 0);
+    trunkParts.push(nub);
+
+    const lower = new THREE.Mesh(roundedBox(0.50, 0.36, 0.50, 0.07), M.birchLeaf);
+    lower.position.y = 0.82;
+    const accent = new THREE.Mesh(roundedBox(0.34, 0.22, 0.34, 0.06), M.leavesLt);
+    accent.position.set(-0.10, 0.84, 0.10);
+    const upper = new THREE.Mesh(roundedBox(0.32, 0.28, 0.32, 0.05), M.birchLeaf);
+    upper.position.y = 1.16;
+    return buildTree('birch', trunkParts, [lower, accent, upper], 0.7);
+  }
+
+  function makeCherry() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.85, 0.16), M.cherryTrunk);
+    trunk.position.y = 0.425;
+    const flare = new THREE.Mesh(roundedBox(0.24, 0.08, 0.24, 0.04), M.trunkD);
+    flare.position.y = 0.04;
+    // Diagonal branch nub coming out partway up.
+    const branch = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.05), M.cherryTrunk);
+    branch.position.set(0.10, 0.62, 0);
+    branch.rotation.z = -0.35;
+
+    const canopy = [];
+    const blobs = [
+      { x:  0.00, y: 0.82, z:  0.00, s: 0.66, h: 0.46, mat: M.cherryLeaf  },
+      { x:  0.18, y: 0.96, z:  0.10, s: 0.42, h: 0.34, mat: M.cherryLeafD },
+      { x: -0.16, y: 0.92, z: -0.12, s: 0.42, h: 0.32, mat: M.cherryLeaf  },
+      { x:  0.04, y: 1.14, z: -0.06, s: 0.32, h: 0.26, mat: M.cherryLeafD },
+      { x:  0.22, y: 0.74, z: -0.10, s: 0.28, h: 0.22, mat: M.cherryLeaf  }, // extra puff
+      { x: -0.20, y: 1.04, z:  0.08, s: 0.24, h: 0.20, mat: M.cherryLeafD }, // extra puff
+    ];
+    for (const b of blobs) {
+      const m = new THREE.Mesh(roundedBox(b.s, b.h, b.s, 0.08), b.mat);
+      m.position.set(b.x, b.y, b.z);
+      canopy.push(m);
+    }
+    // Tiny petal flecks scattered IN the canopy (darker pink for depth).
+    for (const [x, y, z] of [[0.20, 0.86, 0.20], [-0.18, 0.78, -0.20], [0.04, 1.22, 0.10]]) {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.03, 0.04), M.cherryLeafD);
+      f.position.set(x, y, z);
+      canopy.push(f);
+    }
+    return buildTree('cherry', [trunk, flare, branch], canopy, 0.85);
+  }
+
+  function makeWillow() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.42, 0.20), M.trunk);
+    trunk.position.y = 0.21;
+    const flare = new THREE.Mesh(roundedBox(0.30, 0.08, 0.30, 0.04), M.trunkD);
+    flare.position.y = 0.04;
+
+    const canopy = [];
+    const main = new THREE.Mesh(roundedBox(0.78, 0.30, 0.78, 0.10), M.willowLeaf);
+    main.position.y = 0.62;
+    canopy.push(main);
+    // Darker shadow blob on the underside.
+    const under = new THREE.Mesh(roundedBox(0.58, 0.16, 0.58, 0.07), M.willowLeafD);
+    under.position.set(0.06, 0.50, -0.04);
+    canopy.push(under);
+    // 8 drooping tendrils (was 4) of varying lengths.
+    const tendrils = [
+      [ 0.32,  0.32, 0.26], [-0.32,  0.32, 0.22],
+      [ 0.32, -0.32, 0.28], [-0.32, -0.32, 0.20],
+      [ 0.36,  0.00, 0.18], [-0.36,  0.00, 0.24],
+      [ 0.00,  0.36, 0.16], [ 0.00, -0.36, 0.18],
+    ];
+    for (const [dx, dz, len] of tendrils) {
+      const drop = new THREE.Mesh(new THREE.BoxGeometry(0.07, len, 0.07), M.willowLeafD);
+      drop.position.set(dx, 0.58 - len / 2, dz);
+      canopy.push(drop);
+    }
+    const tip = new THREE.Mesh(roundedBox(0.30, 0.18, 0.30, 0.06), M.leavesLt);
+    tip.position.y = 0.86;
+    canopy.push(tip);
+    return buildTree('willow', [trunk, flare], canopy, 0.42);
+  }
+
+  // Bush: no trunk + tiny red berries scattered on top for life.
+  function makeBush() {
+    const main = new THREE.Mesh(roundedBox(0.46, 0.30, 0.46, 0.10), M.bushLeaf);
+    main.position.y = 0.15;
+    const lobe1 = new THREE.Mesh(roundedBox(0.26, 0.22, 0.26, 0.07), M.bushLeafD);
+    lobe1.position.set(0.12, 0.22, -0.10);
+    const lobe2 = new THREE.Mesh(roundedBox(0.22, 0.20, 0.22, 0.06), M.bushLeaf);
+    lobe2.position.set(-0.14, 0.20, 0.10);
+    const accent = new THREE.Mesh(roundedBox(0.14, 0.12, 0.14, 0.04), M.leavesLt);
+    accent.position.set(0.05, 0.29, 0.10);
+    const berries = [];
+    for (const [x, y, z] of [[0.10, 0.30, 0.08], [-0.10, 0.26, -0.05], [0.16, 0.18, -0.16]]) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 5), M.oakBerry);
+      b.position.set(x, y, z);
+      berries.push(b);
+    }
+    return buildTree('bush', [], [main, lobe1, lobe2, accent, ...berries], 0);
+  }
+
+  function makeMaple() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), M.trunk);
+    trunk.position.y = 0.275;
+    const flare = new THREE.Mesh(roundedBox(0.28, 0.10, 0.28, 0.04), M.trunkD);
+    flare.position.y = 0.05;
+
+    const lower = new THREE.Mesh(roundedBox(0.66, 0.42, 0.66, 0.09), M.mapleLeafD);
+    lower.position.y = 0.62;
+    // Mixed yellow accent — autumn variation inside the canopy.
+    const yellowAcc = new THREE.Mesh(roundedBox(0.38, 0.24, 0.38, 0.07), M.flowerYellow);
+    yellowAcc.position.set(-0.12, 0.66, 0.10);
+    const upper = new THREE.Mesh(roundedBox(0.44, 0.32, 0.44, 0.07), M.mapleLeaf);
+    upper.position.y = 1.00;
+    const redAcc = new THREE.Mesh(roundedBox(0.24, 0.18, 0.24, 0.05), M.mapleLeafD);
+    redAcc.position.set(0.14, 1.02, -0.08);
+    const tip = new THREE.Mesh(roundedBox(0.22, 0.18, 0.22, 0.05), M.mapleLeafD);
+    tip.position.y = 1.26;
+    // Falling leaf dots near the trunk base for autumn vibe.
+    const fallen = [];
+    for (const [x, z] of [[0.18, 0.20], [-0.22, 0.06], [0.08, -0.24]]) {
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.06), M.mapleLeaf);
+      leaf.position.set(x, 0.02, z);
+      fallen.push(leaf);
+    }
+    return buildTree('maple', [trunk, flare], [lower, yellowAcc, upper, redAcc, tip, ...fallen], 0.55);
+  }
+
+  function makePalm() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.1, 0.12), M.palmTrunk);
+    trunk.position.y = 0.55;
+    const trunkParts = [trunk];
+    // Trunk ring segments — palm trees have visible bands.
+    for (let i = 0; i < 4; i++) {
+      const ring = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.03, 0.14), M.trunkD);
+      ring.position.y = 0.22 + i * 0.22;
+      trunkParts.push(ring);
+    }
+
+    const canopy = [];
+    const FROND_COUNT = 7; // more fronds for a fuller crown
+    for (let i = 0; i < FROND_COUNT; i++) {
+      const a = (i / FROND_COUNT) * Math.PI * 2;
+      const mat = (i % 2) ? M.palmFrondD : M.palmFrond;
+      const frond = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.05, 0.10), mat);
+      frond.position.set(Math.cos(a) * 0.20, 1.12, Math.sin(a) * 0.20);
+      frond.rotation.y = -a;
+      frond.rotation.z = -0.42;
+      canopy.push(frond);
+      // Tip of each frond is brighter.
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.04, 0.07), M.leavesLt);
+      tip.position.set(Math.cos(a) * 0.55, 1.00, Math.sin(a) * 0.55);
+      tip.rotation.y = -a;
+      tip.rotation.z = -0.42;
+      canopy.push(tip);
+    }
+    const crown = new THREE.Mesh(roundedBox(0.18, 0.10, 0.18, 0.04), M.palmFrondD);
+    crown.position.y = 1.16;
+    canopy.push(crown);
+    // 3 coconut clusters hanging at the base of the fronds.
+    for (const [ax] of [[0], [2 * Math.PI / 3], [4 * Math.PI / 3]]) {
+      const c = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), M.trunkD);
+      c.position.set(Math.cos(ax) * 0.14, 1.00, Math.sin(ax) * 0.14);
+      canopy.push(c);
+    }
+    return buildTree('palm', trunkParts, canopy, 1.1);
+  }
+
+  function makeAcacia() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.85, 0.14), M.trunk);
+    trunk.position.y = 0.425;
+    const flare = new THREE.Mesh(roundedBox(0.24, 0.08, 0.24, 0.04), M.trunkD);
+    flare.position.y = 0.04;
+    // Sub-branch forking off near the top — savanna acacia trunks fork.
+    const fork = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.30, 0.08), M.trunk);
+    fork.position.set(0.12, 0.78, 0);
+    fork.rotation.z = -0.5;
+
+    const umbrella = new THREE.Mesh(roundedBox(0.94, 0.18, 0.94, 0.08), M.acaciaLeaf);
+    umbrella.position.y = 0.96;
+    const under = new THREE.Mesh(roundedBox(0.66, 0.12, 0.66, 0.06), M.acaciaLeafD);
+    under.position.y = 0.86;
+    const hilight = new THREE.Mesh(roundedBox(0.34, 0.08, 0.34, 0.04), M.leavesLt);
+    hilight.position.set(0.18, 1.06, -0.10);
+    // Tiny yellow flower dots scattered on the canopy.
+    const flowers = [];
+    for (const [x, z] of [[0.30, 0.20], [-0.26, 0.22], [0.20, -0.28], [-0.32, -0.10]]) {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.05), M.flowerYellow);
+      f.position.set(x, 1.06, z);
+      flowers.push(f);
+    }
+    return buildTree('acacia', [trunk, flare, fork], [umbrella, under, hilight, ...flowers], 0.85);
+  }
+
+  function makeMagnolia() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.85, 0.16), M.cherryTrunk);
+    trunk.position.y = 0.425;
+    const flare = new THREE.Mesh(roundedBox(0.24, 0.08, 0.24, 0.04), M.trunkD);
+    flare.position.y = 0.04;
+    const branch = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.05), M.cherryTrunk);
+    branch.position.set(-0.10, 0.66, 0);
+    branch.rotation.z = 0.4;
+
+    const canopy = [];
+    const blobs = [
+      { x:  0.00, y: 0.82, z:  0.00, s: 0.66, h: 0.46, mat: M.magnoliaLeaf  },
+      { x:  0.18, y: 0.96, z:  0.10, s: 0.42, h: 0.34, mat: M.magnoliaLeafD },
+      { x: -0.16, y: 0.92, z: -0.12, s: 0.42, h: 0.32, mat: M.magnoliaLeaf  },
+      { x:  0.04, y: 1.14, z: -0.06, s: 0.32, h: 0.26, mat: M.magnoliaLeafD },
+      { x:  0.22, y: 0.78, z: -0.16, s: 0.26, h: 0.22, mat: M.magnoliaLeaf  },
+    ];
+    for (const b of blobs) {
+      const m = new THREE.Mesh(roundedBox(b.s, b.h, b.s, 0.08), b.mat);
+      m.position.set(b.x, b.y, b.z);
+      canopy.push(m);
+    }
+    // A few yellow pollen-like specks for warmth.
+    for (const [x, y, z] of [[0.18, 1.00, 0.12], [-0.20, 0.88, -0.16], [0.02, 1.22, 0.06]]) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.03, 0.04), M.flowerYellow);
+      p.position.set(x, y, z);
+      canopy.push(p);
+    }
+    return buildTree('magnolia', [trunk, flare, branch], canopy, 0.85);
+  }
+
+  // Cypress: narrow, tall, columnar (Italian cypress vibe).
+  function makeCypress() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.32, 0.10), M.trunk);
+    trunk.position.y = 0.16;
+    const flare = new THREE.Mesh(roundedBox(0.18, 0.06, 0.18, 0.03), M.trunkD);
+    flare.position.y = 0.03;
+
+    const canopy = [];
+    const tiers = [
+      { y: 0.32, w: 0.30, h: 0.42, mat: M.cypressLeaf  },
+      { y: 0.74, w: 0.26, h: 0.38, mat: M.cypressLeafD },
+      { y: 1.12, w: 0.18, h: 0.30, mat: M.cypressLeaf  },
+    ];
+    for (const t of tiers) {
+      const m = new THREE.Mesh(roundedBox(t.w, t.h, t.w, 0.04), t.mat);
+      m.position.y = t.y + t.h / 2;
+      canopy.push(m);
+    }
+    // Vertical dark stripes — texture suggesting tight foliage layers.
+    for (const [x, z] of [[0.13, 0.04], [-0.10, 0.10], [0.04, -0.13]]) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.95, 0.03), M.cypressLeafD);
+      stripe.position.set(x, 0.78, z);
+      canopy.push(stripe);
+    }
+    const tip = new THREE.Mesh(roundedBox(0.08, 0.10, 0.08, 0.02), M.leavesLt);
+    tip.position.y = 1.46;
+    canopy.push(tip);
+    return buildTree('cypress', [trunk, flare], canopy, 0.32);
+  }
+
+  // Apple: oak-like silhouette + apple dots in mixed red/yellow, plus a
+  // fallen apple at the base.
+  function makeApple() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), M.trunk);
+    trunk.position.y = 0.25;
+    const flare = new THREE.Mesh(roundedBox(0.28, 0.10, 0.28, 0.04), M.trunkD);
+    flare.position.y = 0.05;
+
+    const canopy = [];
+    const main = new THREE.Mesh(roundedBox(0.62, 0.46, 0.62, 0.09), M.appleLeaf);
+    main.position.y = 0.55;
+    canopy.push(main);
+    const shadow = new THREE.Mesh(roundedBox(0.42, 0.20, 0.42, 0.06), M.leavesDk);
+    shadow.position.set(-0.06, 0.40, 0.06);
+    canopy.push(shadow);
+    const top = new THREE.Mesh(roundedBox(0.36, 0.28, 0.36, 0.06), M.appleLeaf);
+    top.position.y = 0.94;
+    canopy.push(top);
+    const hilight = new THREE.Mesh(roundedBox(0.22, 0.14, 0.22, 0.04), M.leavesLt);
+    hilight.position.set(0.12, 0.96, -0.10);
+    canopy.push(hilight);
+
+    // 7 fruits — mostly red, two yellow for variety.
+    const dots = [
+      { x:  0.22, y: 0.60, z:  0.22, mat: M.appleFruit },
+      { x: -0.20, y: 0.55, z:  0.18, mat: M.appleFruit },
+      { x:  0.18, y: 0.72, z: -0.20, mat: M.flowerYellow },
+      { x: -0.16, y: 0.80, z: -0.08, mat: M.appleFruit },
+      { x:  0.00, y: 0.96, z:  0.10, mat: M.appleFruit },
+      { x: -0.22, y: 0.62, z: -0.18, mat: M.flowerYellow },
+      { x:  0.10, y: 0.40, z:  0.18, mat: M.appleFruit },
+    ];
+    for (const d of dots) {
+      const apple = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), d.mat);
+      apple.position.set(d.x, d.y, d.z);
+      canopy.push(apple);
+    }
+    // A fallen apple lying near the trunk base.
+    const fallen = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), M.appleFruit);
+    fallen.position.set(0.22, 0.05, 0.22);
+    canopy.push(fallen);
+    return buildTree('apple', [trunk, flare], canopy, 0.5);
+  }
+
+  // Mushroom tree: pale stem with skirt ring + red cap with gills + white spots.
+  function makeMushroom() {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), M.mushroomStem);
+    trunk.position.y = 0.25;
+    // "Skirt" ring on the stem (classic mushroom annulus).
+    const ring = new THREE.Mesh(roundedBox(0.24, 0.04, 0.24, 0.02), M.mushroomSpot);
+    ring.position.y = 0.38;
+    const trunkParts = [trunk, ring];
+
+    const canopy = [];
+    // Visible pale gills under the cap.
+    const gills = new THREE.Mesh(roundedBox(0.68, 0.06, 0.68, 0.08), M.mushroomSpot);
+    gills.position.y = 0.50;
+    canopy.push(gills);
+    const cap = new THREE.Mesh(roundedBox(0.74, 0.36, 0.74, 0.18), M.mushroomCap);
+    cap.position.y = 0.68;
+    canopy.push(cap);
+    // Darker shadow ring around the rim.
+    const rim = new THREE.Mesh(roundedBox(0.70, 0.05, 0.70, 0.10), M.trunkD);
+    rim.position.y = 0.54;
+    canopy.push(rim);
+
+    const spots = [
+      [ 0.16, 0.80,  0.12], [-0.18, 0.80, -0.10],
+      [ 0.04, 0.84, -0.22], [-0.10, 0.82,  0.20],
+      [ 0.22, 0.74,  0.00], [-0.02, 0.86,  0.08],
+    ];
+    for (const [x, y, z] of spots) {
+      const s = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), M.mushroomSpot);
+      s.position.set(x, y, z);
+      canopy.push(s);
+    }
+    return buildTree('mushroom', trunkParts, canopy, 0.5);
+  }
+
+  // -------- world data --------
+  // world[x][z] stores intent: terrain + the kind of object on it (string or null).
+  // cellMeshes[key] stores the rendered meshes (tile + object). The object mesh
+  // is rebuilt from world state + neighbor context, so adjacency-aware kinds
+  // (fences, houses) re-render when a neighbor changes.
+  const world = [];
+  const cellMeshes = {}; // 'x,z' -> { tile, object }
+
+  for (let x = 0; x < GRID; x++) {
+    world[x] = [];
+    for (let z = 0; z < GRID; z++) world[x][z] = { terrain: 'grass', kind: null, floors: 1 };
+  }
+
+  const MAX_FLOORS = 3;
+
+  const worldGroup = new THREE.Group();
+  scene.add(worldGroup);
+
+  function tilePos(x, z) {
+    return new THREE.Vector3(x - GRID / 2 + 0.5, 0, z - GRID / 2 + 0.5);
+  }
+
+  // -------- drop-in animation system --------
+  // Each tile/object that wants to "land" gets pushed into dropAnims with a delay,
+  // then ticks toward its target Y per frame. While landing, obj.userData.landing
+  // is set so other position-Y animations (crop bob, smoke origin) yield to it.
+  const dropAnims = [];
+  const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+  const easeOutBack = t => {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  };
+  function animateDrop(obj, distance, dur, delay, easing) {
+    const baseY = obj.position.y;
+    obj.position.y = baseY + distance;
+    obj.userData.landing = true;
+    dropAnims.push({ obj, baseY, distance, t: -delay, dur, easing });
+  }
+  function tickDropAnims(dt) {
+    for (let i = dropAnims.length - 1; i >= 0; i--) {
+      const a = dropAnims[i];
+      a.t += dt;
+      if (a.t < 0) continue;
+      const u = Math.min(1, a.t / a.dur);
+      a.obj.position.y = a.baseY + a.distance * (1 - a.easing(u));
+      if (u >= 1) {
+        a.obj.position.y = a.baseY;
+        a.obj.userData.landing = false;
+        dropAnims.splice(i, 1);
+      }
+    }
+  }
+
+  // -------- low-level renderers (build the actual meshes from world state) --------
+  function renderCellTile(x, z, opts) {
+    const { animate = true, delay = 0 } = opts || {};
+    const key = x + ',' + z;
+    let entry = cellMeshes[key];
+    if (!entry) entry = cellMeshes[key] = { tile: null, object: null };
+    if (entry.tile) {
+      worldGroup.remove(entry.tile);
+      disposeGroup(entry.tile);
+    }
+    const tile = makeTile(world[x][z].terrain);
+    const p = tilePos(x, z);
+    tile.position.copy(p);
+    tile.userData.gx = x;
+    tile.userData.gz = z;
+    worldGroup.add(tile);
+    entry.tile = tile;
+    if (animate) animateDrop(tile, 2.4, 0.42, delay, easeOutCubic);
+  }
+
+  function renderCellObject(x, z, opts) {
+    const { animate = false, delay = 0 } = opts || {};
+    const key = x + ',' + z;
+    let entry = cellMeshes[key];
+    if (!entry) entry = cellMeshes[key] = { tile: null, object: null };
+    // Siempre limpiamos primero el mesh viejo. Si la celda no debe renderizar
+    // nada (no-anchor en un cluster, kind=null, etc.), el limpiar igual es
+    // necesario — sino quedan meshes huérfanos cuando una celda deja de ser
+    // anchor o cambia de kind.
+    if (entry.object) {
+      worldGroup.remove(entry.object);
+      disposeGroup(entry.object);
+      entry.object = null;
+    }
+
+    const kind = world[x][z].kind;
+    if (kind !== 'tree') return;            // forest-only — anything else is a no-op
+
+    const cell = world[x][z];
+    const mesh = makeTree(cell.species);
+    const { xz, trunkStretch } = maturityScale(cell.maturity || 0);
+    mesh.scale.set(xz, xz, xz);
+    // Only the trunk subgroup stretches in Y; the canopy translates upward by
+    // the same world-distance so it stays glued to the new trunk top.
+    const tu = mesh.userData;
+    if (tu.trunk)  tu.trunk.scale.y = trunkStretch;
+    if (tu.canopy) tu.canopy.position.y = tu.trunkTop * (trunkStretch - 1);
+    const p = tilePos(x, z);
+    mesh.position.set(p.x, TOP_H, p.z);
+    mesh.userData.gx = x;
+    mesh.userData.gz = z;
+    mesh.userData.baseY = TOP_H;
+    worldGroup.add(mesh);
+    entry.object = mesh;
+    if (animate) animateDrop(mesh, 2.0, 0.5, delay, easeOutBack);
+  }
+
+  // Two-phase tree growth:
+  //   Phase 1 (m = 0..4):  sapling → fully mature. Uniform scale ramps up.
+  //   Phase 2 (m = 5..10): only the trunk stretches in Y (gentle). The forest
+  //                        plateaus at MAX_MATURITY rather than growing
+  //                        forever — so the "fully grown" state is reachable.
+  // Cozy scale: trees feel like decorations, not towers. Phase-2 stretch is
+  // gentle and capped quickly so the forest plateaus at a homely max height.
+  const MATURITY_BASE_SCALES = [0.55, 0.7, 0.85, 1.0, 1.15];
+  const MATURITY_BASE_MAX    = MATURITY_BASE_SCALES.length - 1; // = 4
+  const TRUNK_STRETCH_STEP   = 0.10;   // each phase-2 step adds 10% trunk height
+  const MAX_MATURITY         = 7;      // ~1.3× trunk × 1.15 base = ~1.5× at the cap
+
+  function maturityScale(m) {
+    if (m <= MATURITY_BASE_MAX) {
+      return { xz: MATURITY_BASE_SCALES[m], trunkStretch: 1 };
+    }
+    const extra = m - MATURITY_BASE_MAX;
+    return {
+      xz: MATURITY_BASE_SCALES[MATURITY_BASE_MAX],
+      trunkStretch: 1 + extra * TRUNK_STRETCH_STEP,
+    };
+  }
+
+  function setCell(x, z, opts) {
+    const { terrain, kind = null, species, maturity, tileDelay = 0, objectDelay = 0, animate = true, forceTile = false } = opts;
+    const prev = world[x][z] || { terrain: null, kind: null };
+    const terrainChanged = prev.terrain !== terrain;
+    const kindChanged    = (prev.kind || null) !== (kind || null);
+    const newSpecies = kind === 'tree'
+      ? (species !== undefined ? species : (kindChanged ? 'oak' : prev.species))
+      : undefined;
+    const newMaturity = kind === 'tree'
+      ? (maturity !== undefined ? maturity : (kindChanged ? 0 : (prev.maturity || 0)))
+      : undefined;
+    const speciesChanged  = (prev.species || null)  !== (newSpecies  || null);
+    const maturityChanged = (prev.maturity || 0)    !== (newMaturity || 0);
+    world[x][z] = { terrain, kind: kind || null, species: newSpecies, maturity: newMaturity };
+
+    if (terrainChanged || forceTile) {
+      renderCellTile(x, z, { animate, delay: tileDelay });
+    }
+    if (!kindChanged && !speciesChanged && !maturityChanged) return;
+    renderCellObject(x, z, { animate, delay: objectDelay });
+  }
+
+  function disposeGroup(group) {
+    group.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+    });
+  }
+
+  // -------- initial scene (matches the reference image) --------
+  // Lay an empty grass field. Trees only appear via auto-growth (driven by
+  // Claude Code token usage); nothing is preset.
+  function loadInitialScene() {
+    for (const key in cellMeshes) {
+      const e = cellMeshes[key];
+      if (e.tile) { worldGroup.remove(e.tile); disposeGroup(e.tile); }
+      if (e.object) { worldGroup.remove(e.object); disposeGroup(e.object); }
+    }
+    for (const k of Object.keys(cellMeshes)) delete cellMeshes[k];
+    for (let x = 0; x < GRID; x++)
+      for (let z = 0; z < GRID; z++)
+        world[x][z] = { terrain: null, kind: null, floors: 1 };
+    dropAnims.length = 0;
+
+    // Diagonal stagger: tiles drop in from the near corner to the far corner.
+    const TILE_STAGGER = 0.035;
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        setCell(x, z, {
+          terrain: 'grass', kind: null,
+          tileDelay: (x + z) * TILE_STAGGER,
+        });
+      }
+    }
+  }
+
+
+  // -------- input: drag-to-orbit, scroll-to-zoom (passive game: no clicks) --------
+  let pointerDown = null;
+  let lastPointer = null;
+
+  renderer.domElement.addEventListener('pointerdown', e => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    pointerDown = { x: e.clientX, y: e.clientY };
+    lastPointer = { x: e.clientX, y: e.clientY };
+    renderer.domElement.classList.add('dragging');
+    renderer.domElement.setPointerCapture(e.pointerId);
+  });
+
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (!pointerDown) return;
+    const ddx = e.clientX - lastPointer.x;
+    const ddy = e.clientY - lastPointer.y;
+    targetAzimuth -= ddx * 0.005;
+    targetPolar = Math.max(0.18, Math.min(1.25, targetPolar - ddy * 0.004));
+    lastPointer = { x: e.clientX, y: e.clientY };
+  });
+
+  renderer.domElement.addEventListener('pointerup', () => {
+    renderer.domElement.classList.remove('dragging');
+    pointerDown = null;
+    lastPointer = null;
+  });
+
+  renderer.domElement.addEventListener('pointercancel', () => {
+    renderer.domElement.classList.remove('dragging');
+    pointerDown = null;
+  });
+
+  renderer.domElement.addEventListener('wheel', e => {
+    e.preventDefault();
+    const delta = Math.max(-100, Math.min(100, e.deltaY));
+    targetViewSize = Math.max(4, Math.min(15, targetViewSize + delta * 0.015));
+  }, { passive: false });
+
+
+
+  // -------- butterflies --------
+  // A handful of butterflies on elliptical orbits over the forest. Each one
+  // has its own centre, radii, speed, and bobbing height, so the group never
+  // looks synchronised.
+  const butterflies = [];
+  const BUTTERFLY_MATS = [M.butterflyA, M.butterflyB, M.butterflyC, M.butterflyD];
+
+  function makeButterfly() {
+    const g = new THREE.Group();
+    const mat = BUTTERFLY_MATS[Math.floor(Math.random() * BUTTERFLY_MATS.length)];
+    const wingL = new THREE.Mesh(roundedBox(0.10, 0.015, 0.08, 0.03), mat);
+    const wingR = new THREE.Mesh(roundedBox(0.10, 0.015, 0.08, 0.03), mat);
+    // Wings hinge along the body (x = 0).
+    wingL.geometry.translate(-0.05, 0, 0);
+    wingR.geometry.translate( 0.05, 0, 0);
+    g.add(wingL);
+    g.add(wingR);
+    g.userData = { wingL, wingR };
+    return g;
+  }
+
+  function spawnButterflies(n = 5) {
+    for (let i = 0; i < n; i++) {
+      const b = makeButterfly();
+      const u = b.userData;
+      u.cx = (Math.random() - 0.5) * GRID * 0.3;
+      u.cz = (Math.random() - 0.5) * GRID * 0.3;
+      u.rx = 1.8 + Math.random() * 2.2;
+      u.rz = 1.8 + Math.random() * 2.2;
+      u.speed = 0.18 + Math.random() * 0.18;
+      u.phase = Math.random() * Math.PI * 2;
+      u.heightBase = 2.2 + Math.random() * 1.2;
+      u.heightAmp  = 0.3 + Math.random() * 0.4;
+      u.flapPhase  = Math.random() * Math.PI * 2;
+      scene.add(b);
+      butterflies.push(b);
+    }
+  }
+
+  function tickButterflies(t) {
+    for (const b of butterflies) {
+      const u = b.userData;
+      const a = t * u.speed + u.phase;
+      b.position.x = u.cx + Math.cos(a) * u.rx;
+      b.position.z = u.cz + Math.sin(a) * u.rz;
+      b.position.y = u.heightBase + Math.sin(t * 1.8 + u.phase) * u.heightAmp;
+      b.rotation.y = -a + Math.PI / 2;
+      const flap = Math.sin(t * 16 + u.flapPhase) * 0.7;
+      u.wingL.rotation.y =  flap;
+      u.wingR.rotation.y = -flap;
+    }
+  }
+
+  // -------- animation loop --------
+  let prevT = 0;
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const t = now / 1000;
+    const dt = prevT ? Math.min(t - prevT, 0.05) : 0;
+    prevT = t;
+
+    // Camera smoothing — exponential damping that's framerate-independent.
+    const orbitRate = -Math.log(1 - ORBIT_DAMPING) * 60;
+    const zoomRate  = -Math.log(1 - ZOOM_DAMPING)  * 60;
+    const orbitK = 1 - Math.exp(-orbitRate * dt);
+    const zoomK  = 1 - Math.exp(-zoomRate  * dt);
+
+    const dAz = targetAzimuth - azimuth;
+    const dPo = targetPolar   - polar;
+    const dVs = targetViewSize - viewSize;
+    let cameraDirty = false;
+    if (Math.abs(dAz) > 1e-5) { azimuth += dAz * orbitK; cameraDirty = true; }
+    else if (azimuth !== targetAzimuth) { azimuth = targetAzimuth; cameraDirty = true; }
+    if (Math.abs(dPo) > 1e-5) { polar += dPo * orbitK; cameraDirty = true; }
+    else if (polar !== targetPolar) { polar = targetPolar; cameraDirty = true; }
+    if (Math.abs(dVs) > 1e-4) { viewSize += dVs * zoomK; onResize(); }
+    else if (viewSize !== targetViewSize) { viewSize = targetViewSize; onResize(); }
+    if (cameraDirty) updateCamera();
+
+    // Tile/object drop-in animations (replay on load, fresh plantings).
+    if (dropAnims.length) tickDropAnims(dt);
+
+    // Tree sway — only kind we render now.
+    for (const key in cellMeshes) {
+      const obj = cellMeshes[key].object;
+      if (!obj) continue;
+      if (obj.userData.kind === 'tree') {
+        obj.rotation.z = Math.sin(t * 0.85 + obj.userData.swayPhase) * 0.022;
+        obj.rotation.x = Math.cos(t * 0.65 + obj.userData.swayPhase) * 0.012;
+      }
+    }
+
+    tickButterflies(t);
+
+    renderer.render(scene, camera);
+  }
+
+  // -------- resize --------
+  function onResize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    const aspect = w / h;
+
+    persCam.aspect = aspect;
+    persCam.updateProjectionMatrix();
+
+    renderer.setSize(w, h);
+    updateCamera();
+  }
+  window.addEventListener('resize', onResize);
+
+
+  // Tiny toast helper — used by the auto-growth poller to surface new plants.
+  function showToast(text, icon) {
+    const host = document.getElementById('toasts');
+    if (!host || !host.appendChild) return;
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = (icon ? '<span class="icon">' + icon + '</span>' : '') + text;
+    host.appendChild(el);
+    setTimeout(() => el.remove(), 3200);
+  }
+
+  // =====================================================================
+  // Auto-growth driven by Claude Code token usage.
+  //
+  // The local Node server (server.js) reads ~/.claude/projects/<cwd>/*.jsonl
+  // and exposes a /api/usage endpoint with cumulative token counts split by
+  // type (input / output / cacheCreate / cacheRead). We poll every few
+  // seconds. Tokens are credited into per-channel debt counters; whenever a
+  // channel's debt crosses its "cost per plant", we plant one vegetation
+  // tile of that channel's preferred species on a random empty grass cell.
+  //
+  // We persist the growth log + last-seen total in localStorage so that a
+  // page refresh keeps the city you've grown, and new tokens keep extending
+  // it instead of replanting from scratch.
+  // =====================================================================
+  const GROW = {
+    SAVE_KEY: 'cityGrow_v1',
+    POLL_MS:  5000,
+    CHANNELS: {
+      // Each channel maps a token type to a pool of species and a cost. Cache
+      // reads are abundant (cheap, low cost), output is precious (high cost,
+      // showy trees). Tuning these knobs reshapes the city's character.
+      // cacheRead is by far the most abundant token type in a typical Claude
+      // turn (often 10-100× output). With a low cost it floods the map with
+      // bushes; bumping it to 25k means bushes/mushrooms stay a minor accent
+      // instead of monopolising the ground.
+      output:      { costPerPlant: 1500,  pool: ['oak', 'cherry', 'maple', 'magnolia', 'apple'],   weight: 1.0 },
+      cacheCreate: { costPerPlant: 4000,  pool: ['pine', 'willow', 'acacia', 'palm', 'cypress'],  weight: 0.9 },
+      cacheRead:   { costPerPlant: 25000, pool: ['bush', 'mushroom'],                             weight: 1.0 },
+      input:       { costPerPlant: 500,   pool: ['birch'],                                        weight: 1.0 },
+    },
+    state: null,
+    pollHandle: null,
+  };
+
+  function loadGrowState() {
+    try {
+      const raw = localStorage.getItem(GROW.SAVE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  }
+  function saveGrowState() {
+    try { localStorage.setItem(GROW.SAVE_KEY, JSON.stringify(GROW.state)); } catch {}
+  }
+
+  function replayGrowthLog() {
+    const log = GROW.state && GROW.state.log;
+    if (!Array.isArray(log) || !log.length) return;
+    for (const entry of log) {
+      const { x, z, species, maturity = 0 } = entry;
+      if (x < 0 || x >= GRID || z < 0 || z >= GRID) continue;
+      const cell = world[x][z];
+      // Skip if a non-tree kind got placed here since (defensive — shouldn't
+      // happen in pure auto-growth, but cheap to check).
+      if (cell && cell.kind && cell.kind !== 'tree') continue;
+      if (cell && cell.terrain !== 'grass') continue;
+      setCell(x, z, {
+        terrain: 'grass', kind: 'tree', species, maturity,
+        animate: false,
+      });
+    }
+  }
+
+  function findRandomEmptyGrassCell() {
+    const candidates = [];
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (c && c.terrain === 'grass' && !c.kind) candidates.push([x, z]);
+      }
+    }
+    if (!candidates.length) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  // Pick a tree that isn't fully mature yet. Find the lowest maturity present
+  // and pick randomly among those — so the forest matures roughly evenly,
+  // even as MAX_MATURITY climbs into the dozens.
+  function findRandomImmatureTree() {
+    let minM = Infinity;
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (!c || c.kind !== 'tree') continue;
+        const m = c.maturity || 0;
+        if (m < MAX_MATURITY && m < minM) minM = m;
+      }
+    }
+    if (minM === Infinity) return null;
+    const candidates = [];
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (c && c.kind === 'tree' && (c.maturity || 0) === minM) {
+          candidates.push([x, z]);
+        }
+      }
+    }
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  // Bushes and mushrooms are "undergrowth" — they get displaced when a real
+  // tree wants to take their spot. Real trees never get displaced.
+  const UNDERGROWTH = new Set(['bush', 'mushroom']);
+
+  function findRandomUndergrowthCell() {
+    const candidates = [];
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (c && c.kind === 'tree' && UNDERGROWTH.has(c.species)) {
+          candidates.push([x, z]);
+        }
+      }
+    }
+    if (!candidates.length) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  function plantOne(species) {
+    // Phase 1: empty grass available → plant a fresh sapling.
+    const empty = findRandomEmptyGrassCell();
+    if (empty) {
+      const [x, z] = empty;
+      setCell(x, z, {
+        terrain: 'grass', kind: 'tree', species, maturity: 0,
+        animate: true,
+      });
+      GROW.state.log.push({ x, z, species, maturity: 0 });
+      return true;
+    }
+    // Phase 2: if we're planting a real tree (not undergrowth), displace a
+    // bush/mushroom — real trees overtake the floor cover.
+    if (!UNDERGROWTH.has(species)) {
+      const undergrowthSpot = findRandomUndergrowthCell();
+      if (undergrowthSpot) {
+        const [x, z] = undergrowthSpot;
+        setCell(x, z, {
+          terrain: 'grass', kind: 'tree', species, maturity: 0,
+          animate: true,
+        });
+        GROW.state.log.push({ x, z, species, maturity: 0 });
+        return true;
+      }
+    }
+    // Phase 3: no empties, no undergrowth to displace → mature an existing
+    // tree instead. Keeps the forest responding even after the map saturates.
+    const tree = findRandomImmatureTree();
+    if (!tree) return false;
+    const [x, z] = tree;
+    const cell = world[x][z];
+    const newMat = Math.min((cell.maturity || 0) + 1, MAX_MATURITY);
+    setCell(x, z, {
+      terrain: 'grass', kind: 'tree', species: cell.species, maturity: newMat,
+      animate: true,
+    });
+    GROW.state.log.push({ x, z, species: cell.species, maturity: newMat });
+    return true;
+  }
+
+  function spendChannel(channelName) {
+    const ch = GROW.CHANNELS[channelName];
+    const s  = GROW.state.debt;
+    let planted = 0;
+    while (s[channelName] >= ch.costPerPlant) {
+      const sp = ch.pool[Math.floor(Math.random() * ch.pool.length)];
+      const ok = plantOne(sp);
+      if (!ok) { s[channelName] = 0; break; } // map is full, drop debt
+      s[channelName] -= ch.costPerPlant;
+      planted++;
+      // Hard cap per tick to avoid an avalanche when first-load catches up.
+      if (planted >= 4) break;
+    }
+    return planted;
+  }
+
+  async function pollUsage() {
+    let data;
+    try {
+      const res = await fetch('/api/usage', { cache: 'no-store' });
+      if (!res.ok) return;
+      data = await res.json();
+    } catch { return; } // server not running — silent fail, game still playable
+
+    const last = GROW.state.last;
+    const delta = {
+      input:       Math.max(0, (data.input       || 0) - (last.input       || 0)),
+      output:      Math.max(0, (data.output      || 0) - (last.output      || 0)),
+      cacheCreate: Math.max(0, (data.cacheCreate || 0) - (last.cacheCreate || 0)),
+      cacheRead:   Math.max(0, (data.cacheRead   || 0) - (last.cacheRead   || 0)),
+    };
+
+    // First poll: dumping all historical tokens (potentially millions) at
+    // once would saturate the map instantly. Instead, plant a small welcome
+    // batch from each channel — enough to prove the system works and give
+    // the player a populated city — then set the baseline to current totals
+    // so future deltas are pure incremental growth.
+    if (!GROW.state.seeded) {
+      GROW.state.seeded = true;
+      const WELCOME_PER_CHANNEL = 3;
+      for (const k of Object.keys(GROW.CHANNELS)) {
+        GROW.state.debt[k] = GROW.CHANNELS[k].costPerPlant * WELCOME_PER_CHANNEL;
+        spendChannel(k);
+        GROW.state.debt[k] = 0;
+      }
+      GROW.state.last = {
+        input: data.input || 0, output: data.output || 0,
+        cacheCreate: data.cacheCreate || 0, cacheRead: data.cacheRead || 0,
+      };
+      saveGrowState();
+      return;
+    }
+
+    let totalPlanted = 0;
+    for (const k of Object.keys(GROW.CHANNELS)) {
+      GROW.state.debt[k] = (GROW.state.debt[k] || 0) + delta[k];
+      totalPlanted += spendChannel(k);
+    }
+
+    GROW.state.last = {
+      input: data.input || 0, output: data.output || 0,
+      cacheCreate: data.cacheCreate || 0, cacheRead: data.cacheRead || 0,
+    };
+    if (totalPlanted > 0 && typeof showToast === 'function') {
+      showToast('+' + totalPlanted + ' planted', '🌱');
+    }
+    saveGrowState();
+  }
+
+  function initGrowth() {
+    GROW.state = loadGrowState() || {
+      seeded: false,
+      last: { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 },
+      debt: { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 },
+      log:  [],
+    };
+    // Ensure shape after schema bumps.
+    GROW.state.log = GROW.state.log || [];
+    GROW.state.debt = GROW.state.debt || { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 };
+    GROW.state.last = GROW.state.last || { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 };
+
+    replayGrowthLog();
+    pollUsage();
+    GROW.pollHandle = setInterval(pollUsage, GROW.POLL_MS);
+  }
+
+  // -------- debug buttons --------
+  // Simulate one "typical Claude turn" worth of tokens per click: ~one plant
+  // per channel. The injected tokens go straight into the debt counters, so
+  // the per-poll cap of 4 plants per channel still applies (just like real
+  // usage). Use ×10 for a burst that fills the map quickly.
+  function debugAddTokens(mult = 1) {
+    if (!GROW.state) return;
+    GROW.state.debt.output      += 1500 * mult;
+    GROW.state.debt.cacheCreate += 4000 * mult;
+    GROW.state.debt.cacheRead   += 8000 * mult;
+    GROW.state.debt.input       += 500  * mult;
+    let total = 0;
+    // For ×10 we call spendChannel multiple times so the 4-per-call cap
+    // doesn't strand most of the injected debt.
+    const passes = Math.max(1, Math.ceil(mult));
+    for (let i = 0; i < passes; i++) {
+      for (const k of Object.keys(GROW.CHANNELS)) total += spendChannel(k);
+    }
+    if (total > 0) showToast('+' + total + ' grew (debug)', '🐛');
+    else           showToast('forest fully mature', '🌲');
+    saveGrowState();
+  }
+
+  function debugClearForest() {
+    // Wipe localStorage growth state and the rendered trees, leaving an
+    // empty grass field.
+    try { localStorage.removeItem(GROW.SAVE_KEY); } catch {}
+    GROW.state = {
+      seeded: true,
+      last: GROW.state ? GROW.state.last : { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 },
+      debt: { input: 0, output: 0, cacheCreate: 0, cacheRead: 0 },
+      log:  [],
+    };
+    saveGrowState();
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        if (world[x][z] && world[x][z].kind === 'tree') {
+          setCell(x, z, { terrain: 'grass', kind: null, animate: false });
+        }
+      }
+    }
+    showToast('forest cleared', '↺');
+  }
+
+  document.getElementById('debugPlant').addEventListener('click', () => debugAddTokens(1));
+  document.getElementById('debugBurst').addEventListener('click', () => debugAddTokens(10));
+  document.getElementById('debugClear').addEventListener('click', debugClearForest);
+
+  // -------- boot --------
+  targetViewSize = viewSize;
+  loadInitialScene();
+  spawnButterflies(5);
+  onResize();
+  initGrowth();
+  requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
