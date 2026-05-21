@@ -327,6 +327,11 @@
     cabinRoof: new THREE.MeshLambertMaterial({ color: 0x6e4528 }),
     cabinRoofD:new THREE.MeshLambertMaterial({ color: 0x4a2d18 }),
     cabinStone:new THREE.MeshLambertMaterial({ color: 0x9a9388 }),
+    smoke:     new THREE.MeshLambertMaterial({ color: 0xf2eee4 }),
+    smokeDk:   new THREE.MeshLambertMaterial({ color: 0xd8d2c3 }),
+    leafGreen: new THREE.MeshLambertMaterial({ color: 0x5fab26 }),
+    flowerBox: new THREE.MeshLambertMaterial({ color: 0x8a5a3b }),
+    mat:       new THREE.MeshLambertMaterial({ color: 0xa55a3f }),
     millStone: new THREE.MeshLambertMaterial({ color: 0xe8dfc8 }),
     millStoneD:new THREE.MeshLambertMaterial({ color: 0xc4b893 }),
     millRoof:  new THREE.MeshLambertMaterial({ color: 0x8a3d2a }),
@@ -442,117 +447,203 @@
     return g;
   }
 
+  // Palettes used to randomize the door + shutter colour per house, so each
+  // placed house in the village looks subtly different.
+  const HOUSE_PALETTES = [
+    { door: 0xe87499, doorD: 0xb84e75, shutter: 0x6ab7d4 },  // pink + blue
+    { door: 0x6ec07a, doorD: 0x408a4f, shutter: 0xe8a878 },  // mint + peach
+    { door: 0x6ab7d4, doorD: 0x3a85a8, shutter: 0xe8a878 },  // blue + peach
+    { door: 0xd4905a, doorD: 0xa86838, shutter: 0xb0d949 },  // orange + green
+    { door: 0xc88adc, doorD: 0x9056a6, shutter: 0xffd56a },  // lilac + yellow
+    { door: 0xf4a261, doorD: 0xb87435, shutter: 0xe5e0c0 },  // peach + cream
+  ];
+  const FLOWER_COLORS = [0xe87499, 0xffd56a, 0xff6b9d, 0xc88adc, 0xff7a4f, 0xffe89a];
+
+  // A small wooden flowerbox sitting under a window, with cute spherical
+  // flowers on top. Adds itself to `parent`.
+  function addFlowerBox(parent, x, y, z) {
+    const box = new THREE.Mesh(roundedBox(0.20, 0.05, 0.06, 0.018), M.flowerBox);
+    box.position.set(x, y, z);
+    parent.add(box);
+    // Random flower picks for variety.
+    const palette = [];
+    for (let i = 0; i < 4; i++) {
+      palette.push(FLOWER_COLORS[Math.floor(Math.random() * FLOWER_COLORS.length)]);
+    }
+    for (let i = 0; i < 4; i++) {
+      const fx = x + (i - 1.5) * 0.048;
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.020, 8, 8), M.leafGreen);
+      leaf.position.set(fx, y + 0.035, z);
+      parent.add(leaf);
+      const flower = new THREE.Mesh(
+        new THREE.SphereGeometry(0.016, 8, 8),
+        new THREE.MeshLambertMaterial({ color: palette[i] }),
+      );
+      flower.position.set(fx, y + 0.060, z);
+      parent.add(flower);
+    }
+  }
+
+  // Three puffy smoke balls rising from a chimney for that "casa con hogar
+  // encendido" vibe.
+  function addSmokeCurl(parent, x, y, z) {
+    const s1 = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 10), M.smoke);
+    s1.position.set(x - 0.01, y + 0.02, z + 0.01);
+    parent.add(s1);
+    const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), M.smoke);
+    s2.position.set(x + 0.04, y + 0.08, z - 0.02);
+    parent.add(s2);
+    const s3 = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 10), M.smokeDk);
+    s3.position.set(x + 0.01, y + 0.13, z + 0.02);
+    parent.add(s3);
+  }
+
   // ---------- building builders ----------
   function makeHouse() {
     const g = new THREE.Group();
-    const W = 0.72, D = 0.58, H = 0.42, RIDGE = 0.26;
-    // Stone foundation
-    const found = new THREE.Mesh(new THREE.BoxGeometry(W + 0.06, 0.08, D + 0.06), M.foundation);
-    found.position.y = 0.04; g.add(found);
-    const foundD = new THREE.Mesh(new THREE.BoxGeometry(W + 0.07, 0.02, D + 0.07), M.foundationD);
-    foundD.position.y = 0.07; g.add(foundD);
-    // Walls
-    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), M.wallCream);
-    body.position.y = 0.08 + H / 2; g.add(body);
-    // Top wall trim
-    const topTrim = new THREE.Mesh(new THREE.BoxGeometry(W + 0.02, 0.025, D + 0.02), M.wallTrim);
-    topTrim.position.y = 0.08 + H; g.add(topTrim);
-    // Triangular gables on front and back
-    const gableFront = gableWall(W, RIDGE, M.wallCream);
-    gableFront.position.set(0, 0.08 + H, D / 2 - 0.012);
-    g.add(gableFront);
-    const gableBack = gableWall(W, RIDGE, M.wallCream);
-    gableBack.position.set(0, 0.08 + H, -D / 2 + 0.012);
-    g.add(gableBack);
-    // Pitched roof on top of the gables
-    const roof = pitchedRoof(W + 0.10, D, RIDGE, M.roofTile, M.roofTileD, 0.08);
-    roof.position.y = 0.08 + H;
-    g.add(roof);
-    // Door (front centre)
-    const door = makeFramedDoor(0.16, 0.26, M.door, M.doorFrame);
-    door.position.set(0, 0.08 + 0.13 + 0.01, D / 2);
+    const W = 0.70, D = 0.58, H = 0.38, RIDGE = 0.28;
+    const baseY = 0.08;
+    const pal = HOUSE_PALETTES[Math.floor(Math.random() * HOUSE_PALETTES.length)];
+    const doorMat   = new THREE.MeshLambertMaterial({ color: pal.door });
+    const doorDMat  = new THREE.MeshLambertMaterial({ color: pal.doorD });
+    const shutterMat = new THREE.MeshLambertMaterial({ color: pal.shutter });
+
+    // Soft rounded stone foundation
+    const found = new THREE.Mesh(roundedBox(W + 0.08, 0.08, D + 0.08, 0.06), M.foundation);
+    found.position.y = 0; g.add(found);
+    // Chubby rounded walls
+    const body = new THREE.Mesh(roundedBox(W, H, D, 0.07), M.wallCream);
+    body.position.y = baseY; g.add(body);
+    // Soft trim band at the top of the wall
+    const trim = new THREE.Mesh(roundedBox(W + 0.025, 0.03, D + 0.025, 0.08), M.wallTrim);
+    trim.position.y = baseY + H - 0.014; g.add(trim);
+    // Triangular gables filling the wall up to the ridge
+    const gF = gableWall(W, RIDGE, M.wallCream);
+    gF.position.set(0, baseY + H, D / 2 - 0.012); g.add(gF);
+    const gB = gableWall(W, RIDGE, M.wallCream);
+    gB.position.set(0, baseY + H, -D / 2 + 0.012); g.add(gB);
+    // Pitched roof with generous overhang
+    const roof = pitchedRoof(W + 0.18, D, RIDGE, M.roofTile, M.roofTileD, 0.11);
+    roof.position.y = baseY + H; g.add(roof);
+
+    // Cute pill-shaped door (rounded all around) in a happy colour
+    const doorH = 0.30;
+    const doorFrame = new THREE.Mesh(roundedBox(0.22, doorH + 0.03, 0.025, 0.10), doorDMat);
+    doorFrame.position.set(0, baseY + (doorH + 0.03) / 2 - 0.01, D / 2);
+    g.add(doorFrame);
+    const door = new THREE.Mesh(roundedBox(0.18, doorH, 0.026, 0.08), doorMat);
+    door.position.set(0, baseY + doorH / 2 - 0.005, D / 2 + 0.01);
     g.add(door);
-    // Stone step at the doorway
-    const step = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.07), M.foundationD);
-    step.position.set(0, 0.10, D / 2 + 0.04);
-    g.add(step);
-    // Two windows on the front, flanking the door
-    const winL = makeFramedWindow(0.13, 0.14);
-    winL.position.set(-0.22, 0.08 + 0.25, D / 2 + 0.005);
-    g.add(winL);
-    const winR = makeFramedWindow(0.13, 0.14);
-    winR.position.set(0.22, 0.08 + 0.25, D / 2 + 0.005);
-    g.add(winR);
-    // Side windows
-    const winSide = makeFramedWindow(0.11, 0.13);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.018, 12, 12), M.knob);
+    knob.position.set(0.052, baseY + doorH / 2 - 0.02, D / 2 + 0.025);
+    g.add(knob);
+    // Welcome mat
+    const mat = new THREE.Mesh(roundedSlab(0.22, 0.018, 0.04), M.mat);
+    mat.position.set(0, 0.005, D / 2 + 0.10);
+    g.add(mat);
+
+    // Two windows flanking the door, each with shutters and a flower box.
+    function addWindowWithShutters(parent, x, y, z, w, h) {
+      const win = makeFramedWindow(w, h);
+      win.position.set(x, y, z + 0.005);
+      parent.add(win);
+      const sw = 0.05, sh = h + 0.02;
+      const sL = new THREE.Mesh(roundedBox(sw, sh, 0.018, 0.012), shutterMat);
+      sL.position.set(x - (w / 2 + sw / 2 + 0.005), y, z + 0.012);
+      parent.add(sL);
+      const sR = new THREE.Mesh(roundedBox(sw, sh, 0.018, 0.012), shutterMat);
+      sR.position.set(x + (w / 2 + sw / 2 + 0.005), y, z + 0.012);
+      parent.add(sR);
+    }
+    addWindowWithShutters(g, -0.22, baseY + 0.24, D / 2, 0.13, 0.13);
+    addWindowWithShutters(g,  0.22, baseY + 0.24, D / 2, 0.13, 0.13);
+    // Flower boxes under each front window
+    addFlowerBox(g, -0.22, baseY + 0.14, D / 2 + 0.04);
+    addFlowerBox(g,  0.22, baseY + 0.14, D / 2 + 0.04);
+    // Side window
+    const winSide = makeFramedWindow(0.12, 0.13);
     winSide.rotation.y = Math.PI / 2;
-    winSide.position.set(W / 2 + 0.005, 0.08 + 0.24, 0);
+    winSide.position.set(W / 2 + 0.005, baseY + 0.24, 0);
     g.add(winSide);
-    // Brick chimney with cap, set off-centre on the back-right
-    const chimX = 0.18, chimZ = -0.12;
-    const chimBody = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.32, 0.11), M.chimney);
-    chimBody.position.set(chimX, 0.08 + H + 0.16, chimZ);
-    g.add(chimBody);
-    const chimCap = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.03, 0.14), M.chimneyCap);
-    chimCap.position.set(chimX, 0.08 + H + 0.33, chimZ);
-    g.add(chimCap);
+
+    // Brick chimney with rounded body + cap + smoke curl
+    const chimX = 0.20, chimZ = -0.14;
+    const chimBody = new THREE.Mesh(roundedBox(0.12, 0.32, 0.12, 0.022), M.chimney);
+    chimBody.position.set(chimX, baseY + H, chimZ); g.add(chimBody);
+    const chimCap = new THREE.Mesh(roundedBox(0.16, 0.03, 0.16, 0.030), M.chimneyCap);
+    chimCap.position.set(chimX, baseY + H + 0.33, chimZ); g.add(chimCap);
+    addSmokeCurl(g, chimX, baseY + H + 0.37, chimZ);
+
     castReceive(g);
     return g;
   }
 
   function makeCabin() {
     const g = new THREE.Group();
-    const W = 0.56, D = 0.50, H = 0.34, RIDGE = 0.22;
-    // Stone foundation
-    const found = new THREE.Mesh(new THREE.BoxGeometry(W + 0.06, 0.06, D + 0.06), M.cabinStone);
-    found.position.y = 0.03; g.add(found);
-    // Log wall body
-    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), M.cabinWood);
-    body.position.y = 0.06 + H / 2; g.add(body);
-    // Horizontal log seam lines (dark)
+    const W = 0.56, D = 0.50, H = 0.32, RIDGE = 0.22;
+    const baseY = 0.06;
+    const pal = HOUSE_PALETTES[Math.floor(Math.random() * HOUSE_PALETTES.length)];
+    const shutterMat = new THREE.MeshLambertMaterial({ color: pal.shutter });
+
+    // Rounded stone foundation
+    const found = new THREE.Mesh(roundedBox(W + 0.08, 0.06, D + 0.08, 0.05), M.cabinStone);
+    found.position.y = 0; g.add(found);
+    // Chubby rounded log wall
+    const body = new THREE.Mesh(roundedBox(W, H, D, 0.06), M.cabinWood);
+    body.position.y = baseY; g.add(body);
+    // Horizontal log seam lines
     for (let i = 1; i <= 4; i++) {
-      const seam = new THREE.Mesh(new THREE.BoxGeometry(W + 0.005, 0.012, D + 0.005), M.cabinDark);
-      seam.position.y = 0.06 + (i / 5) * H;
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(W + 0.012, 0.012, D + 0.012), M.cabinDark);
+      seam.position.y = baseY + (i / 5) * H;
       g.add(seam);
     }
-    // Log ends pop slightly past the corners (4 vertical ridges)
+    // Log ends popping past the corners
     for (const [sx, sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) {
-      const corner = new THREE.Mesh(new THREE.BoxGeometry(0.035, H, 0.035), M.cabinDark);
-      corner.position.set(sx * (W / 2 + 0.012), 0.06 + H / 2, sz * (D / 2 + 0.012));
+      const corner = new THREE.Mesh(roundedBox(0.045, H, 0.045, 0.018), M.cabinDark);
+      corner.position.set(sx * (W / 2 + 0.012), baseY, sz * (D / 2 + 0.012));
       g.add(corner);
     }
-    // Gables (logs)
-    const gableF = gableWall(W, RIDGE, M.cabinWood);
-    gableF.position.set(0, 0.06 + H, D / 2 - 0.012);
-    g.add(gableF);
-    const gableB = gableWall(W, RIDGE, M.cabinWood);
-    gableB.position.set(0, 0.06 + H, -D / 2 + 0.012);
-    g.add(gableB);
-    // Cedar-shingle pitched roof
-    const roof = pitchedRoof(W + 0.10, D, RIDGE, M.cabinRoof, M.cabinRoofD, 0.08);
-    roof.position.y = 0.06 + H;
-    g.add(roof);
-    // Rustic plank door
-    const door = makeFramedDoor(0.14, 0.22, M.cabinDark, M.cabinRoofD);
-    door.position.set(-0.09, 0.06 + 0.11 + 0.01, D / 2);
+    // Gables and roof
+    const gF = gableWall(W, RIDGE, M.cabinWood);
+    gF.position.set(0, baseY + H, D / 2 - 0.012); g.add(gF);
+    const gB = gableWall(W, RIDGE, M.cabinWood);
+    gB.position.set(0, baseY + H, -D / 2 + 0.012); g.add(gB);
+    const roof = pitchedRoof(W + 0.14, D, RIDGE, M.cabinRoof, M.cabinRoofD, 0.09);
+    roof.position.y = baseY + H; g.add(roof);
+
+    // Cute rounded door in a happy colour
+    const doorH = 0.24;
+    const doorMat = new THREE.MeshLambertMaterial({ color: pal.door });
+    const doorDMat = new THREE.MeshLambertMaterial({ color: pal.doorD });
+    const doorFrame = new THREE.Mesh(roundedBox(0.18, doorH + 0.03, 0.022, 0.085), doorDMat);
+    doorFrame.position.set(-0.10, baseY + (doorH + 0.03) / 2 - 0.01, D / 2);
+    g.add(doorFrame);
+    const door = new THREE.Mesh(roundedBox(0.15, doorH, 0.024, 0.07), doorMat);
+    door.position.set(-0.10, baseY + doorH / 2 - 0.005, D / 2 + 0.01);
     g.add(door);
-    // One window with shutter accents
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.016, 12, 12), M.knob);
+    knob.position.set(-0.06, baseY + doorH / 2 - 0.02, D / 2 + 0.024);
+    g.add(knob);
+
+    // Window with shutters + flower box
+    const wx = 0.14, wy = baseY + 0.20;
     const win = makeFramedWindow(0.13, 0.13);
-    win.position.set(0.13, 0.06 + 0.22, D / 2 + 0.005);
+    win.position.set(wx, wy, D / 2 + 0.005);
     g.add(win);
-    const shutterL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.018), M.cabinDark);
-    shutterL.position.set(0.04, 0.06 + 0.22, D / 2 + 0.005);
-    g.add(shutterL);
-    const shutterR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.018), M.cabinDark);
-    shutterR.position.set(0.22, 0.06 + 0.22, D / 2 + 0.005);
-    g.add(shutterR);
-    // Stone chimney off the back
-    const chim = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.40, 0.10), M.cabinStone);
-    chim.position.set(-0.20, 0.06 + 0.20, -D / 2 - 0.04);
-    g.add(chim);
-    const chimCap = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.13), M.chimneyCap);
-    chimCap.position.set(-0.20, 0.06 + 0.42, -D / 2 - 0.04);
-    g.add(chimCap);
+    const sL = new THREE.Mesh(roundedBox(0.05, 0.15, 0.018, 0.012), shutterMat);
+    sL.position.set(wx - 0.10, wy, D / 2 + 0.012); g.add(sL);
+    const sR = new THREE.Mesh(roundedBox(0.05, 0.15, 0.018, 0.012), shutterMat);
+    sR.position.set(wx + 0.10, wy, D / 2 + 0.012); g.add(sR);
+    addFlowerBox(g, wx, wy - 0.10, D / 2 + 0.04);
+
+    // Stone chimney with smoke curl
+    const chimX = -0.20, chimZ = -D / 2 - 0.04;
+    const chim = new THREE.Mesh(roundedBox(0.13, 0.40, 0.10, 0.022), M.cabinStone);
+    chim.position.set(chimX, baseY + 0.16, chimZ); g.add(chim);
+    const chimCap = new THREE.Mesh(roundedBox(0.16, 0.03, 0.13, 0.030), M.chimneyCap);
+    chimCap.position.set(chimX, baseY + 0.40, chimZ); g.add(chimCap);
+    addSmokeCurl(g, chimX, baseY + 0.44, chimZ);
+
     castReceive(g);
     return g;
   }
