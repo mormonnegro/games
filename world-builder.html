@@ -484,15 +484,31 @@
 
   function makePond() {
     const g = new THREE.Group();
-    // sand rim
-    const rim = new THREE.Mesh(roundedSlab(TILE * 0.85, TOP_H + 0.02, 0.08), M.sand);
-    g.add(rim);
-    // water surface
-    const water = new THREE.Mesh(roundedSlab(TILE * 0.68, TOP_H + 0.005, 0.06), M.water);
-    water.position.y = -0.01; g.add(water);
-    const wave = new THREE.Mesh(roundedSlab(TILE * 0.45, TOP_H - 0.04, 0.06), M.waterDk);
-    wave.position.y = 0.005; g.add(wave);
-    castReceive(g);
+    // Flat water sheet at grass level (puddle look). We nudge the top a hair
+    // above the surrounding grass to avoid Z-fighting.
+    const H = 0.05;
+    const BASE = -H + 0.005;              // local y of slab bottom
+    const SURFACE = BASE + H;             // local y of water top
+
+    const water = new THREE.Mesh(roundedSlab(TILE * 0.98, H, 0.10), M.water);
+    water.position.y = BASE;
+    water.receiveShadow = true;
+    g.add(water);
+
+    // Darker centre for a sense of depth.
+    const deep = new THREE.Mesh(roundedSlab(TILE * 0.55, H * 1.05, 0.07), M.waterDk);
+    deep.position.y = BASE + 0.006;
+    deep.receiveShadow = true;
+    g.add(deep);
+
+    // Bright shimmer ripples on the surface.
+    const shimmerMat = new THREE.MeshBasicMaterial({ color: 0xeaf6ff, transparent: true, opacity: 0.75 });
+    const s1 = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.006, 0.04), shimmerMat);
+    s1.position.set(0.06, SURFACE + 0.001, -0.18);
+    g.add(s1);
+    const s2 = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.006, 0.025), shimmerMat);
+    s2.position.set(-0.16, SURFACE + 0.001, 0.12);
+    g.add(s2);
     return g;
   }
 
