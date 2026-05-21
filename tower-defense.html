@@ -31,6 +31,8 @@
   #app { position: fixed; inset: 0; z-index: 2; }
   canvas { display: block; cursor: grab; }
   canvas.placing { cursor: crosshair; }
+  /* over-tower wins over placing so the player sees "click to inspect" cursor */
+  canvas.over-tower { cursor: pointer; }
   canvas.dragging { cursor: grabbing; }
 
   .brand {
@@ -572,7 +574,7 @@
         <span class="ico">❤️</span><span class="val">20</span>
       </div>
       <div class="res" id="resGold" title="Gold — earn by killing enemies">
-        <span class="ico">🪙</span><span class="val">120</span>
+        <span class="ico">🪙</span><span class="val">250</span>
       </div>
       <div class="res" id="resWave" title="Current wave">
         <span class="ico">⚔️</span><span class="val">0</span><span style="color:var(--muted); font-weight:500; margin-left:2px;">/ 15</span>
@@ -653,7 +655,7 @@
 
   <div class="help">
     Click a tower in the dock, then click an empty grass tile to place<br/>
-    <kbd>1</kbd>–<kbd>4</kbd> select tower · <kbd>S</kbd> sell · <kbd>R</kbd> reset · <kbd>Space</kbd> start wave
+    <kbd>1</kbd>–<kbd>6</kbd> select tower · <kbd>S</kbd> sell · <kbd>R</kbd> reset · <kbd>Space</kbd> start wave
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -895,6 +897,22 @@
     platformStone: new THREE.MeshLambertMaterial({ color: 0xb8b0a0 }),
     platformStoneD: new THREE.MeshLambertMaterial({ color: 0x8a8276 }),
     eye:         new THREE.MeshBasicMaterial({ color: 0x1a1410 }),
+    // Frost tower
+    frostCrystal:new THREE.MeshLambertMaterial({ color: 0x9fd9ff }),
+    frostIce:    new THREE.MeshLambertMaterial({ color: 0xe6f5ff }),
+    frostHalo:   new THREE.MeshBasicMaterial({ color: 0xb2e0ff, transparent: true, opacity: 0.30 }),
+    // Sniper tower
+    sniperSteel: new THREE.MeshLambertMaterial({ color: 0x4a4f55 }),
+    sniperDark:  new THREE.MeshLambertMaterial({ color: 0x222428 }),
+    sniperGlass: new THREE.MeshBasicMaterial({ color: 0x88d8ff }),
+    // Beacon tower
+    beaconGold:  new THREE.MeshLambertMaterial({ color: 0xe6b73f }),
+    beaconGoldD: new THREE.MeshLambertMaterial({ color: 0xb38318 }),
+    beaconGlow:  new THREE.MeshBasicMaterial({ color: 0xffd76a }),
+    beaconHalo:  new THREE.MeshBasicMaterial({ color: 0xffb83a, transparent: true, opacity: 0.28 }),
+    beaconGem:   new THREE.MeshBasicMaterial({ color: 0xffe89a }),
+    // Slow tint on enemies
+    slowTint:    new THREE.Color(0x3a7cc7),
   });
 
   // -------- Archer unit (a person on a wooden platform with a bow) --------
@@ -1227,6 +1245,96 @@
     return g;
   }
 
+  // -------- Frost tower (ice crystal cluster) --------
+  function makeFrostTower() {
+    const g = new THREE.Group();
+    // Snowy stone base with icy rim
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.40, 0.08, 14), M.platformStone);
+    base.position.y = 0.04; g.add(base);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.025, 6, 18), M.frostIce);
+    rim.rotation.x = Math.PI / 2; rim.position.y = 0.08; g.add(rim);
+    // Central pedestal
+    const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.28, 10), M.platformStoneD);
+    pedestal.position.y = 0.22; g.add(pedestal);
+    // Crystal cluster (tall central + two side shards)
+    const crystalGeom = new THREE.OctahedronGeometry(0.18, 0);
+    const c1 = new THREE.Mesh(crystalGeom, M.frostCrystal);
+    c1.position.set(0, 0.62, 0); c1.scale.set(0.85, 1.7, 0.85); g.add(c1);
+    const c2 = new THREE.Mesh(crystalGeom, M.frostCrystal);
+    c2.position.set(0.15, 0.52, 0.05); c2.scale.set(0.55, 1.0, 0.55); c2.rotation.y = 0.4; g.add(c2);
+    const c3 = new THREE.Mesh(crystalGeom, M.frostCrystal);
+    c3.position.set(-0.13, 0.50, -0.05); c3.scale.set(0.50, 0.95, 0.50); c3.rotation.y = -0.6; g.add(c3);
+    // Frost halo
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 14), M.frostHalo);
+    halo.position.y = 0.62; g.add(halo);
+    castReceive(g);
+    g.userData = { kind: 'frost', crystals: [c1, c2, c3], halo };
+    return g;
+  }
+
+  // -------- Sniper tower (watchtower with marksman) --------
+  function makeSniper() {
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 0.08, 12), M.platformStone);
+    base.position.y = 0.04; g.add(base);
+    // Tall trunk
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.72, 10), M.platformStoneD);
+    trunk.position.y = 0.44; g.add(trunk);
+    // Crow's nest (octagonal-ish wood platform)
+    const nest = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.26, 0.12, 12), M.cannonWood);
+    nest.position.y = 0.86; g.add(nest);
+    const nestTrim = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.022, 6, 14), M.cannonWoodD);
+    nestTrim.rotation.x = Math.PI / 2; nestTrim.position.y = 0.92; g.add(nestTrim);
+    // Marksman torso + head (hooded)
+    const torso = new THREE.Mesh(roundedBox(0.20, 0.20, 0.18, 0.03), M.hood);
+    torso.position.y = 1.06; g.add(torso);
+    const head = new THREE.Mesh(roundedBox(0.13, 0.12, 0.13, 0.02), M.skin);
+    head.position.y = 1.22; g.add(head);
+    const hoodTop = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.10, 8), M.hood);
+    hoodTop.position.y = 1.32; g.add(hoodTop);
+    // Long rifle barrel along +z
+    const rifleGroup = new THREE.Group();
+    rifleGroup.position.set(0, 1.10, 0);
+    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.66), M.sniperDark);
+    barrel.position.set(0, 0, 0.34); rifleGroup.add(barrel);
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.07, 0.16), M.cannonWoodD);
+    stock.position.set(0, -0.02, 0.04); rifleGroup.add(stock);
+    const scope = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.06, 0.12), M.sniperSteel);
+    scope.position.set(0, 0.06, 0.22); rifleGroup.add(scope);
+    const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.02, 8), M.sniperGlass);
+    lens.rotation.x = Math.PI / 2; lens.position.set(0, 0.06, 0.28); rifleGroup.add(lens);
+    g.add(rifleGroup);
+    castReceive(g);
+    g.userData = { kind: 'sniper', rifleGroup };
+    return g;
+  }
+
+  // -------- Beacon tower (golden brazier, support buff) --------
+  function makeBeacon() {
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.44, 0.10, 14), M.platformStone);
+    base.position.y = 0.05; g.add(base);
+    // Stone pillar
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.46, 12), M.platformStoneD);
+    pillar.position.y = 0.33; g.add(pillar);
+    // Brazier bowl (gold)
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.20, 0.16, 14), M.beaconGold);
+    bowl.position.y = 0.64; g.add(bowl);
+    const bowlRim = new THREE.Mesh(new THREE.TorusGeometry(0.30, 0.025, 6, 18), M.beaconGoldD);
+    bowlRim.rotation.x = Math.PI / 2; bowlRim.position.y = 0.71; g.add(bowlRim);
+    // Inner glow + halo
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 14), M.beaconGlow);
+    glow.position.y = 0.80; g.add(glow);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.30, 14, 14), M.beaconHalo);
+    halo.position.y = 0.80; g.add(halo);
+    // Floating gem cluster above the flame
+    const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.10, 0), M.beaconGem);
+    gem.position.y = 1.08; g.add(gem);
+    castReceive(g);
+    g.userData = { kind: 'beacon', glow, halo, gem };
+    return g;
+  }
+
   // -------- Enemy mesh (reused from combat) --------
   const _enemyBodyGeom = new THREE.BoxGeometry(0.45, 0.60, 0.45);
   const _enemyEyeGeom  = new THREE.SphereGeometry(0.05, 6, 6);
@@ -1475,43 +1583,78 @@
       id: 'arrow', label: 'Archer', desc: 'Hooded ranger',
       cost: 20, refund: 12,
       damage: 1, range: 2.4, fireRate: 1.8,
-      projectile: 'arrow',
+      projectile: 'arrow', damageType: 'physical',
       build: makeArcher,
     },
     cannon: {
       id: 'cannon', label: 'Cannon', desc: 'Splash damage',
       cost: 55, refund: 30,
       damage: 4, range: 2.7, fireRate: 0.7,
-      projectile: 'cannon', splash: 0.8,
+      projectile: 'cannon', splash: 0.8, damageType: 'explosive',
       build: makeCannon,
     },
     magic: {
       id: 'magic', label: 'Wizard', desc: 'Long range bolt',
       cost: 100, refund: 60,
       damage: 3, range: 4.5, fireRate: 1.3,
-      projectile: 'magic', pierce: 2,
+      projectile: 'magic', pierce: 2, damageType: 'arcane',
       build: makeWizard,
+    },
+    frost: {
+      id: 'frost', label: 'Frost', desc: 'AoE chill',
+      cost: 75, refund: 45,
+      damage: 1, range: 2.2, fireRate: 1.0,
+      projectile: 'frost', damageType: 'frost',
+      aoe: true,                 // No projectile, pulses radius
+      slowFactor: 0.45,          // Speed multiplier while slowed
+      slowDuration: 1.5,         // Seconds the slow persists
+      build: makeFrostTower,
+    },
+    sniper: {
+      id: 'sniper', label: 'Sniper', desc: 'Long range, pierces armor',
+      cost: 140, refund: 80,
+      damage: 9, range: 6.5, fireRate: 0.45,
+      projectile: 'sniper', damageType: 'piercing',
+      build: makeSniper,
+    },
+    beacon: {
+      id: 'beacon', label: 'Beacon', desc: 'Buffs nearby towers',
+      cost: 110, refund: 65,
+      damage: 0, range: 2.3, fireRate: 1.0,
+      support: true,             // No targeting, only buffs
+      buff: { damage: 0.30, fireRate: 0.25 },
+      damageType: 'none',
+      build: makeBeacon,
     },
   };
 
-  const TOOL_LIST = ['arrow', 'cannon', 'magic', 'sell'];
+  const TOOL_LIST = ['arrow', 'cannon', 'magic', 'frost', 'sniper', 'beacon', 'sell'];
+
+  // Dock categories — each entry maps to a tab. `items` references TOOL_LIST ids.
+  const TOWER_CATEGORIES = [
+    { id: 'attack',  label: 'Attack',  items: ['arrow', 'cannon', 'magic', 'sniper'] },
+    { id: 'support', label: 'Support', items: ['frost', 'beacon'] },
+    { id: 'tools',   label: 'Tools',   items: ['sell'] },
+  ];
 
   // -------- projectile pools --------
   const _projGeoms = {
     arrow:  new THREE.SphereGeometry(0.06, 8, 8),
     cannon: new THREE.SphereGeometry(0.11, 10, 10),
     magic:  new THREE.SphereGeometry(0.08, 8, 8),
+    sniper: new THREE.SphereGeometry(0.04, 8, 8),
   };
   const _projMats = {
     arrow:  new THREE.MeshBasicMaterial({ color: 0xffe55c }),
     cannon: new THREE.MeshBasicMaterial({ color: 0x2a2722 }),
     magic:  new THREE.MeshBasicMaterial({ color: 0x9b6bff }),
+    sniper: new THREE.MeshBasicMaterial({ color: 0xfff4c0 }),
   };
 
   // -------- game state --------
   const STATE = {
     lives: 20, maxLives: 20,
-    gold: 120,
+    gold: 250,
     wave: 0,
     maxWave: 15,
     kills: 0,
@@ -1605,16 +1748,24 @@
   // -------- wave generator --------
   function buildWave(n) {
     // n is wave index 1..maxWave. Returns array of {type, delay}.
+    // Specialist enemy types unlock progressively so the player meets each new
+    // threat with a few waves to react and (hopefully) buy the counter tower.
     const out = [];
     const baseCount = 6 + Math.floor(n * 1.6);
-    const eliteEvery = n >= 3 ? Math.max(4, 8 - Math.floor(n / 2)) : 99;
-    const bossEvery  = n >= 6 ? Math.max(6, 12 - Math.floor(n / 2)) : 99;
     const interval = Math.max(0.45, 1.2 - n * 0.05);
     let t = 0.6;
+    // Weighted bag of "regular" enemy types. Grunt is always majority.
+    const bag = ['grunt', 'grunt', 'grunt', 'grunt'];
+    if (n >= 2) bag.push('swift', 'swift');
+    if (n >= 4) bag.push('armored', 'armored');
+    if (n >= 7) bag.push('healer');
+    const eliteEvery = n >= 3 ? Math.max(4, 8 - Math.floor(n / 2)) : 99;
+    const bossEvery  = n >= 6 ? Math.max(6, 12 - Math.floor(n / 2)) : 99;
     for (let i = 0; i < baseCount; i++) {
-      let type = 'grunt';
+      let type;
       if (i > 0 && i % bossEvery === 0) type = 'boss';
-      else if (i % eliteEvery === 0 && i > 0) type = 'elite';
+      else if (i > 0 && i % eliteEvery === 0) type = 'elite';
+      else type = bag[Math.floor(Math.random() * bag.length)];
       out.push({ type, delay: t });
       t += interval;
     }
@@ -1622,10 +1773,16 @@
   }
 
   // -------- enemy types --------
+  // `resist` maps damageType → multiplier (1 = full damage, <1 reduced, >1 extra).
+  // `regen` is HP regenerated per second up to maxHp.
   const ENEMY_TYPES = {
-    grunt: { hp: 3, speed: 1.6, color: 0xc94848, reward: 6,  scale: 1.0 },
-    elite: { hp: 8, speed: 1.2, color: 0x6b2a82, reward: 14, scale: 1.15 },
-    boss:  { hp: 26, speed: 0.9, color: 0x2a2722, reward: 40, scale: 1.5 },
+    grunt:   { hp: 3,  speed: 1.6, color: 0xc94848, reward: 6,  scale: 1.0 },
+    elite:   { hp: 8,  speed: 1.2, color: 0x6b2a82, reward: 14, scale: 1.15 },
+    boss:    { hp: 26, speed: 0.9, color: 0x2a2722, reward: 40, scale: 1.5 },
+    swift:   { hp: 2,  speed: 2.7, color: 0xf2c04a, reward: 8,  scale: 0.85 },
+    armored: { hp: 12, speed: 1.0, color: 0x6a7e95, reward: 16, scale: 1.10,
+               resist: { physical: 0.45, arcane: 0.65, explosive: 1.0, piercing: 1.30, frost: 0.85 } },
+    healer:  { hp: 10, speed: 1.1, color: 0x4caa7c, reward: 18, scale: 1.05, regen: 1.4 },
   };
 
   function scaleEnemyForWave(base, wave) {
@@ -1635,6 +1792,8 @@
       color: base.color,
       reward: base.reward + Math.floor(wave * 0.6),
       scale: base.scale,
+      resist: base.resist || null,
+      regen: base.regen || 0,
     };
   }
 
@@ -1662,6 +1821,10 @@
       pathIndex: 0,        // index of *next* waypoint
       bobPhase: Math.random() * Math.PI * 2,
       reached: false,
+      resist: cfg.resist,
+      regen: cfg.regen,
+      slow: null,          // { factor, timer } when chilled
+      _tinted: false,
     });
   }
 
@@ -1692,6 +1855,32 @@
   }
   function getStats(tower) {
     return getStatsAtLevel(tower, tower.level || 1);
+  }
+  // Includes any aura buffs from nearby Beacons. Use this in combat math;
+  // use getStats() in UI (info panel) where we want to show the base values.
+  function getEffectiveStats(tower) {
+    const stats = getStats(tower);
+    if (tower.config.support) return stats;
+    let buffDmg = 1, buffRate = 1;
+    for (const b of STATE.towers) {
+      if (b === tower || !b.config.support) continue;
+      const bs = getStats(b);
+      const dx = b.group.position.x - tower.group.position.x;
+      const dz = b.group.position.z - tower.group.position.z;
+      if (dx * dx + dz * dz <= bs.range * bs.range) {
+        const bd = 1 + (b.config.buff?.damage ?? 0);
+        const br = 1 + (b.config.buff?.fireRate ?? 0);
+        if (bd > buffDmg)  buffDmg = bd;
+        if (br > buffRate) buffRate = br;
+      }
+    }
+    if (buffDmg === 1 && buffRate === 1) return stats;
+    return {
+      ...stats,
+      damage:   Math.max(1, Math.round(stats.damage * buffDmg)),
+      fireRate: stats.fireRate * buffRate,
+      _buffed: true,
+    };
   }
   function getUpgradeCost(tower) {
     if (tower.level >= MAX_LEVEL) return Infinity;
@@ -1835,6 +2024,14 @@
     const next = getStatsAtLevel(tower, tower.level + 1);
     const arrow = '<span style="color:var(--muted); margin:0 4px;">→</span>';
     const hi = v => `<span style="color:#5fa033; font-weight:700;">${v}</span>`;
+    // Support towers only benefit from range scaling — buff% stays constant.
+    if (tower.config.support) {
+      const buf = tower.config.buff || {};
+      document.getElementById('infoDmg').textContent  = `+${Math.round((buf.damage   || 0) * 100)}%`;
+      document.getElementById('infoRate').textContent = `+${Math.round((buf.fireRate || 0) * 100)}%`;
+      document.getElementById('infoRange').innerHTML = `${cur.range.toFixed(1)}${arrow}${hi(next.range.toFixed(1))}`;
+      return;
+    }
     document.getElementById('infoDmg').innerHTML   = `${cur.damage}${arrow}${hi(next.damage)}`;
     document.getElementById('infoRange').innerHTML = `${cur.range.toFixed(1)}${arrow}${hi(next.range.toFixed(1))}`;
     document.getElementById('infoRate').innerHTML  = `${cur.fireRate.toFixed(1)}/s${arrow}${hi(next.fireRate.toFixed(1) + '/s')}`;
@@ -1862,9 +2059,29 @@
     const pipsEmpty  = '☆'.repeat(MAX_LEVEL - tower.level);
     document.getElementById('infoName').textContent = tower.config.label + ' tower';
     document.getElementById('infoLevel').textContent = pipsFilled + pipsEmpty;
-    document.getElementById('infoDmg').textContent = stats.damage;
+    if (tower.config.support) {
+      const buf = tower.config.buff || {};
+      const dmgPct  = Math.round((buf.damage   || 0) * 100);
+      const ratePct = Math.round((buf.fireRate || 0) * 100);
+      document.getElementById('infoDmg').textContent = `+${dmgPct}%`;
+      document.getElementById('infoRate').textContent = `+${ratePct}%`;
+    } else {
+      // Show base → buffed transition in gold when a Beacon is in range.
+      const eff = getEffectiveStats(tower);
+      const buffed = !!eff._buffed;
+      const arrow = '<span style="color:#d4a017; margin:0 4px;">↗</span>';
+      const hi    = v => `<span style="color:#d4a017; font-weight:700;">${v}</span>`;
+      const dmgBaseLabel = tower.config.aoe ? `${stats.damage} + slow` : String(stats.damage);
+      if (buffed) {
+        const dmgBuffLabel = tower.config.aoe ? `${eff.damage} + slow` : String(eff.damage);
+        document.getElementById('infoDmg').innerHTML  = `${dmgBaseLabel}${arrow}${hi(dmgBuffLabel)}`;
+        document.getElementById('infoRate').innerHTML = `${stats.fireRate.toFixed(1)}/s${arrow}${hi(eff.fireRate.toFixed(1) + '/s')}`;
+      } else {
+        document.getElementById('infoDmg').textContent  = dmgBaseLabel;
+        document.getElementById('infoRate').textContent = stats.fireRate.toFixed(1) + '/s';
+      }
+    }
     document.getElementById('infoRange').textContent = stats.range.toFixed(1);
-    document.getElementById('infoRate').textContent = stats.fireRate.toFixed(1) + '/s';
     document.getElementById('infoKills').textContent = tower.kills;
     const refundEl = document.getElementById('infoRefund');
     if (refundEl) refundEl.textContent = getSellRefund(tower);
@@ -2065,20 +2282,46 @@
         if (t >= 1) delete tower._dropT;
       }
 
+      // Support towers (Beacon) never aim or fire — buff is read in
+      // getEffectiveStats() by nearby attackers.
+      if (tower.config.support) continue;
+
       tower.cooldown -= dt;
       if (tower.cooldown > 0) continue;
+
+      const stats = getEffectiveStats(tower);
+
+      // Frost: pulse-style AoE that ignores targeting and just hits everything
+      // in range with a slow + small damage.
+      if (tower.config.aoe) {
+        const tp = tower.group.position;
+        const r2 = stats.range * stats.range;
+        let didHit = false;
+        for (const en of STATE.enemies) {
+          if (en.reached || en.hp <= 0) continue;
+          const dx = en.mesh.position.x - tp.x;
+          const dz = en.mesh.position.z - tp.z;
+          if (dx * dx + dz * dz <= r2) {
+            applySlow(en, tower.config.slowFactor, tower.config.slowDuration);
+            if (stats.damage > 0) hitEnemy(en, stats.damage, { tower });
+            didHit = true;
+          }
+        }
+        if (didHit) spawnChillRing(tp.x, tp.z, stats.range);
+        tower.cooldown = 1 / stats.fireRate;
+        continue;
+      }
 
       const target = findTargetForTower(tower);
       if (!target) continue;
 
-      // All three units rotate to face the target; the model's "front" is +z.
+      // All shooting units rotate to face the target; the model's "front" is +z.
       const tp = tower.group.position;
       const dx = target.mesh.position.x - tp.x;
       const dz = target.mesh.position.z - tp.z;
       tower.group.rotation.y = Math.atan2(dx, dz);
 
       fireProjectile(tower, target);
-      const stats = getStats(tower);
       tower.cooldown = 1 / stats.fireRate;
     }
   }
@@ -2101,14 +2344,18 @@
     if (ud && ud.kind === 'cannon' && ud.barrelPivot) {
       ud.recoilT = 1.0;
     }
-    const stats = getStats(tower);
+    const stats = getEffectiveStats(tower);
+    let projSpeed = 9;
+    if (tower.config.id === 'magic')  projSpeed = 15;
+    if (tower.config.id === 'sniper') projSpeed = 24; // hitscan-feel
     STATE.projectiles.push({
       mesh: proj,
       target,
       damage: stats.damage,
-      speed: 9 + (tower.config.id === 'magic' ? 6 : 0),
+      speed: projSpeed,
       tower,
       kind: tower.config.projectile,
+      damageType: tower.config.damageType || 'physical',
       splash: stats.splash || 0,
       pierce: stats.pierce || 0,
       pierced: new Set(),
@@ -2121,6 +2368,31 @@
       if (en.reached || en.hp <= 0) continue;
       en.bobPhase += dt * 6;
       en.mesh.position.y = TOP_H + 0.30 + Math.abs(Math.sin(en.bobPhase)) * 0.05;
+
+      // Status: slow ticks down, regen heals up to maxHp.
+      let speedMult = 1;
+      if (en.slow && en.slow.timer > 0) {
+        en.slow.timer -= dt;
+        speedMult = en.slow.factor;
+        // Re-paint every frame so a brief hit-flash doesn't strand us on black.
+        if (en.mesh.material && en.mesh.material.emissive) {
+          en.mesh.material.emissive.setHex(0x2a5e9c);
+        }
+        en._tinted = true;
+      } else if (en._tinted) {
+        if (en.mesh.material && en.mesh.material.emissive) {
+          en.mesh.material.emissive.setHex(0x000000);
+        }
+        en._tinted = false;
+      }
+      if (en.regen > 0 && en.hp > 0 && en.hp < en.maxHp) {
+        en.hp = Math.min(en.maxHp, en.hp + en.regen * dt);
+        if (en.hpBar && en.hpBar.userData.fill) {
+          const pct = Math.max(0, en.hp / en.maxHp);
+          en.hpBar.userData.fill.scale.x = Math.max(0.001, pct);
+          en.hpBar.userData.fill.position.x = -en.hpBar.userData.baseW * (1 - pct) / 2;
+        }
+      }
 
       // Walk to next waypoint
       const wp = pathCoords[en.pathIndex + 1];
@@ -2142,7 +2414,7 @@
       if (d < 0.05) {
         en.pathIndex++;
       } else {
-        const step = en.speed * dt;
+        const step = en.speed * speedMult * dt;
         const moveX = (dx / d) * Math.min(step, d);
         const moveZ = (dz / d) * Math.min(step, d);
         en.mesh.position.x += moveX;
@@ -2196,6 +2468,11 @@
 
   function hitEnemy(en, dmg, proj) {
     if (en.hp <= 0 || en.reached) return;
+    // Apply damage-type resistance / vulnerability.
+    const dt = proj && proj.damageType ? proj.damageType : 'physical';
+    if (en.resist && en.resist[dt] != null) {
+      dmg = Math.max(1, Math.round(dmg * en.resist[dt]));
+    }
     en.hp -= dmg;
     en.hpBar.visible = true;
     const pct = Math.max(0, en.hp / en.maxHp);
@@ -2243,6 +2520,37 @@
       requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
+  }
+
+  // Expanding cyan ring centered on a Frost tower's pulse. Scales out to
+  // `radius` over the lifetime, fading as it goes.
+  const _chillGeom = new THREE.RingGeometry(0.95, 1.0, 32);
+  function spawnChillRing(x, z, radius) {
+    const mat = new THREE.MeshBasicMaterial({ color: 0xa8e0ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+    const m = new THREE.Mesh(_chillGeom, mat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, TOP_H + 0.04, z);
+    scene.add(m);
+    const start = performance.now();
+    function step() {
+      const t = (performance.now() - start) / 450;
+      if (t >= 1) { scene.remove(m); mat.dispose(); return; }
+      m.scale.setScalar(radius * (0.2 + t * 0.85));
+      mat.opacity = 0.6 * (1 - t);
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Apply (or refresh) a slow status on an enemy. Keeps the stronger of the
+  // current and incoming slow factors; resets the timer to the longer of the two.
+  function applySlow(en, factor, duration) {
+    if (!en.slow || en.slow.timer <= 0) {
+      en.slow = { factor, timer: duration };
+    } else {
+      en.slow.factor = Math.min(en.slow.factor, factor);
+      en.slow.timer  = Math.max(en.slow.timer,  duration);
+    }
   }
 
   // -------- damage feedback (vignette flash via toast bumper) --------
@@ -2405,7 +2713,7 @@
     STATE.projectiles = [];
     STATE.spawnQueue = [];
     STATE.lives = STATE.maxLives;
-    STATE.gold = 120;
+    STATE.gold = 250;
     STATE.wave = 0;
     STATE.kills = 0;
     STATE.inWave = false;
@@ -2575,13 +2883,87 @@
   // user to wiggle the mouse to see the range preview.
   const _lastPointer = { x: null, y: null };
 
+  // -------- ghost tower preview --------
+  // A semi-transparent copy of the currently selected tower that follows the
+  // cursor over placeable cells, so the player can see what they're about to
+  // build before clicking.
+  let ghostTower = null;
+  let ghostToolId = null;
+  function disposeGhost(g) {
+    g.traverse(node => {
+      if (node.isMesh && node.material) {
+        if (Array.isArray(node.material)) node.material.forEach(m => m.dispose());
+        else node.material.dispose();
+      }
+    });
+  }
+  function buildGhost(toolId) {
+    const cfg = TOWERS[toolId];
+    if (!cfg) return null;
+    const g = cfg.build();
+    g.traverse(node => {
+      if (node.isMesh && node.material) {
+        const tone = (m) => {
+          const c = m.clone();
+          c.transparent = true;
+          c.opacity = 0.50;
+          c.depthWrite = false;
+          return c;
+        };
+        node.material = Array.isArray(node.material)
+          ? node.material.map(tone)
+          : tone(node.material);
+        node.castShadow = false;
+        node.receiveShadow = false;
+      }
+    });
+    g.userData = { _validOpacity: 0.50 };
+    return g;
+  }
+  function ensureGhost() {
+    if (STATE.selectedTool === ghostToolId) return ghostTower;
+    if (ghostTower) {
+      scene.remove(ghostTower);
+      disposeGhost(ghostTower);
+      ghostTower = null;
+    }
+    if (STATE.selectedTool && STATE.selectedTool !== 'sell') {
+      ghostTower = buildGhost(STATE.selectedTool);
+      if (ghostTower) {
+        ghostTower.visible = false;
+        scene.add(ghostTower);
+      }
+    }
+    ghostToolId = STATE.selectedTool;
+    return ghostTower;
+  }
+  function setGhostOpacity(g, op) {
+    if (g.userData._lastOpacity === op) return;
+    g.userData._lastOpacity = op;
+    g.traverse(node => {
+      if (node.isMesh && node.material) {
+        const apply = (m) => { m.opacity = op; };
+        if (Array.isArray(node.material)) node.material.forEach(apply);
+        else apply(node.material);
+      }
+    });
+  }
+  function hideGhost() {
+    if (ghostTower) ghostTower.visible = false;
+  }
+  function setOverTowerCursor(over) {
+    renderer.domElement.classList.toggle('over-tower', over);
+  }
+
   function updateHover(clientX, clientY) {
     if (clientX != null) { _lastPointer.x = clientX; _lastPointer.y = clientY; }
+    ensureGhost();
 
     if (!STATE.selectedTool) {
       // No tool selected — just highlight whichever tower is under the cursor.
       const cell = pickTile(clientX, clientY);
-      if (cell && world[cell.x][cell.z].tower) {
+      const overTower = !!(cell && world[cell.x][cell.z].tower);
+      if (overTower) {
         hoverMesh.material = M.hoverGood;
         hoverMesh.visible = true;
         const p = tilePos(cell.x, cell.z);
@@ -2589,6 +2971,8 @@
       } else {
         hoverMesh.visible = false;
       }
+      hideGhost();
+      setOverTowerCursor(overTower);
       return;
     }
 
@@ -2597,6 +2981,8 @@
     if (STATE.selectedTool === 'sell') {
       if (!cell) {
         hoverMesh.visible = false;
+        hideGhost();
+        setOverTowerCursor(false);
         if (!STATE.selectedTower) hideRangeIndicator();
         return;
       }
@@ -2605,6 +2991,9 @@
       hoverMesh.material = tower ? M.hoverGood : M.hoverInvalid;
       hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
       hoverMesh.visible = true;
+      hideGhost();
+      // Sell-mode: pointer cursor when over a tower (it's the click target).
+      setOverTowerCursor(!!tower);
       if (tower) {
         setRangeIndicator(getStats(tower).range, p.x, p.z, 0xc84848);
       } else if (!STATE.selectedTower) {
@@ -2618,8 +3007,10 @@
 
     if (!cell) {
       // Cursor off-grid: still show the range so the user knows the radius,
-      // pinned to the centre of the board. Hover tile is hidden.
+      // pinned to the centre of the board. Hover tile + ghost are hidden.
       hoverMesh.visible = false;
+      hideGhost();
+      setOverTowerCursor(false);
       setRangeIndicator(cfg.range, 0, 0, 0xffd44a);
       rangeFill.material.opacity = 0.06;
       return;
@@ -2627,13 +3018,15 @@
     const p = tilePos(cell.x, cell.z);
     // Hovering over an existing tower while a build tool is active: clicking
     // opens that tower's info panel (it does NOT try to place). Preview its
-    // current range in gold instead of the placement range so the feedback
-    // matches what the click will do.
+    // current range in gold and switch the cursor to "pointer" so the user
+    // knows the click will inspect rather than build.
     const existingTower = world[cell.x][cell.z].tower;
     if (existingTower) {
       hoverMesh.material = M.hoverGood;
       hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
       hoverMesh.visible = true;
+      hideGhost();
+      setOverTowerCursor(true);
       setRangeIndicator(getStats(existingTower).range, p.x, p.z, 0xffd44a);
       rangeFill.material.opacity = 0.14;
       return;
@@ -2642,6 +3035,14 @@
     hoverMesh.material = valid ? M.hoverGood : M.hoverInvalid;
     hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
     hoverMesh.visible = true;
+    // Ghost preview on placeable tiles. Dim further when placement is invalid
+    // (path/water/not enough gold) so the red tile reads clearly.
+    if (ghostTower) {
+      ghostTower.visible = true;
+      ghostTower.position.set(p.x, TOP_H, p.z);
+      setGhostOpacity(ghostTower, valid ? 0.55 : 0.22);
+    }
+    setOverTowerCursor(false);
     // Range preview — green tint when placement is valid, red when not.
     const tint = valid ? 0x6fb442 : 0xc84848;
     setRangeIndicator(cfg.range, p.x, p.z, tint);
@@ -2670,7 +3071,10 @@
 
     // Empty grass cell with a build tool: try to place.
     if (STATE.selectedTool) {
-      placeTower(STATE.selectedTool, cell.x, cell.z);
+      const placed = placeTower(STATE.selectedTool, cell.x, cell.z);
+      // After a successful placement the cell now has a tower, so refresh
+      // hover so the ghost is hidden and the cursor flips to "pointer".
+      if (placed) updateHover(clientX, clientY);
       return;
     }
 
@@ -2716,84 +3120,130 @@
     return { scene: scn, camera: cam, group };
   }
 
+  // Currently active dock category id; persists across rebuilds.
+  let activeDockCategory = TOWER_CATEGORIES[0].id;
+
+  function setActiveDockCategory(catId) {
+    activeDockCategory = catId;
+    document.querySelectorAll('#dockTabs .dock-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.cat === catId);
+    });
+    document.querySelectorAll('#dockItems .dock-item').forEach(it => {
+      it.style.display = (it.dataset.cat === catId) ? '' : 'none';
+    });
+  }
+
   function buildDock() {
     const tabs = document.getElementById('dockTabs');
     const items = document.getElementById('dockItems');
     tabs.innerHTML = '';
     items.innerHTML = '';
-    // Single tab for now
-    const tab = document.createElement('button');
-    tab.className = 'dock-tab active';
-    tab.textContent = 'Towers';
-    tabs.appendChild(tab);
 
-    for (const toolId of TOOL_LIST) {
-      const item = document.createElement('button');
-      item.className = 'dock-item';
-      item.dataset.tool = toolId;
-      if (toolId === 'sell') item.classList.add('sell');
-
-      const disc = document.createElement('div');
-      disc.className = 'disc';
-      item.appendChild(disc);
-
-      if (toolId !== 'sell') {
-        const cfg = TOWERS[toolId];
-        const canvas = document.createElement('canvas');
-        canvas.width = 120;
-        canvas.height = 120;
-        disc.appendChild(canvas);
-        const ctx = canvas.getContext('2d');
-
-        const cost = document.createElement('span');
-        cost.className = 'cost';
-        cost.textContent = cfg.cost + ' 🪙';
-        item.appendChild(cost);
-
-        const name = document.createElement('span');
-        name.className = 'name';
-        name.textContent = cfg.label;
-        item.appendChild(name);
-
-        const desc = document.createElement('span');
-        desc.className = 'desc';
-        desc.textContent = `DMG ${cfg.damage} · RNG ${cfg.range.toFixed(1)}`;
-        item.appendChild(desc);
-
-        const prev = makePreviewScene(toolId);
-        previewItems.push({ toolId, ...prev, canvas, ctx });
-      } else {
-        const name = document.createElement('span');
-        name.className = 'name';
-        name.textContent = 'Sell';
-        item.appendChild(name);
-        const desc = document.createElement('span');
-        desc.className = 'desc';
-        desc.textContent = 'Refund 60%';
-        item.appendChild(desc);
-      }
-
-      item.addEventListener('click', () => {
-        if (item.classList.contains('disabled') && toolId !== 'sell') return;
-        if (STATE.selectedTool === toolId) {
-          STATE.selectedTool = null;
-        } else {
-          STATE.selectedTool = toolId;
-          closeInfoPanel();
-        }
-        updateActiveDockItem();
-      });
-
-      items.appendChild(item);
+    for (const cat of TOWER_CATEGORIES) {
+      const tab = document.createElement('button');
+      tab.className = 'dock-tab';
+      tab.dataset.cat = cat.id;
+      tab.textContent = cat.label;
+      tab.addEventListener('click', () => setActiveDockCategory(cat.id));
+      tabs.appendChild(tab);
     }
+
+    // Render every tower into the items row, tagged by category. Visibility is
+    // toggled by setActiveDockCategory so we keep canvas previews live across
+    // tab switches instead of rebuilding them.
+    for (const cat of TOWER_CATEGORIES) {
+      for (const toolId of cat.items) {
+        const item = document.createElement('button');
+        item.className = 'dock-item';
+        item.dataset.tool = toolId;
+        item.dataset.cat = cat.id;
+        if (toolId === 'sell') item.classList.add('sell');
+
+        const disc = document.createElement('div');
+        disc.className = 'disc';
+        item.appendChild(disc);
+
+        if (toolId !== 'sell') {
+          const cfg = TOWERS[toolId];
+          const canvas = document.createElement('canvas');
+          canvas.width = 120;
+          canvas.height = 120;
+          disc.appendChild(canvas);
+          const ctx = canvas.getContext('2d');
+
+          const cost = document.createElement('span');
+          cost.className = 'cost';
+          cost.textContent = cfg.cost + ' 🪙';
+          item.appendChild(cost);
+
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = cfg.label;
+          item.appendChild(name);
+
+          const desc = document.createElement('span');
+          desc.className = 'desc';
+          if (cfg.support) {
+            const buf = cfg.buff || {};
+            const parts = [];
+            if (buf.damage)   parts.push(`+${Math.round(buf.damage * 100)}% DMG`);
+            if (buf.fireRate) parts.push(`+${Math.round(buf.fireRate * 100)}% RATE`);
+            desc.textContent = parts.join(' · ');
+          } else if (cfg.aoe) {
+            desc.textContent = `AoE slow · RNG ${cfg.range.toFixed(1)}`;
+          } else {
+            desc.textContent = `DMG ${cfg.damage} · RNG ${cfg.range.toFixed(1)}`;
+          }
+          item.appendChild(desc);
+
+          const prev = makePreviewScene(toolId);
+          previewItems.push({ toolId, ...prev, canvas, ctx, dom: item });
+        } else {
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = 'Sell';
+          item.appendChild(name);
+          const desc = document.createElement('span');
+          desc.className = 'desc';
+          desc.textContent = 'Refund 60%';
+          item.appendChild(desc);
+        }
+
+        item.addEventListener('click', () => {
+          if (item.classList.contains('disabled') && toolId !== 'sell') return;
+          if (STATE.selectedTool === toolId) {
+            STATE.selectedTool = null;
+          } else {
+            STATE.selectedTool = toolId;
+            closeInfoPanel();
+          }
+          updateActiveDockItem();
+        });
+
+        items.appendChild(item);
+      }
+    }
+
+    setActiveDockCategory(activeDockCategory);
   }
 
   function updateActiveDockItem() {
+    // If the selected tool lives in a category that isn't currently shown
+    // (e.g. selected via keyboard shortcut), auto-switch to that category so
+    // the highlighted item is actually visible.
+    if (STATE.selectedTool) {
+      const cat = TOWER_CATEGORIES.find(c => c.items.includes(STATE.selectedTool));
+      if (cat && cat.id !== activeDockCategory) setActiveDockCategory(cat.id);
+    }
     document.querySelectorAll('.dock-item').forEach(it => {
       it.classList.toggle('active', it.dataset.tool === STATE.selectedTool);
     });
     if (!STATE.selectedTool) {
       hoverMesh.visible = false;
+      // Refresh hover so the ghost preview is torn down and the over-tower
+      // cursor still applies for click-to-inspect.
+      if (_lastPointer.x != null) updateHover(_lastPointer.x, _lastPointer.y);
+      else { ensureGhost(); setOverTowerCursor(false); }
       if (!STATE.selectedTower) hideRangeIndicator();
     } else if (STATE.selectedTool !== 'sell') {
       // Tool just got selected — show the range preview right away so the user
@@ -2818,7 +3268,10 @@
 
   function tickDockPreviews(t) {
     // Render each preview into its own canvas; rotate slowly for life.
+    // Skip items belonging to a hidden category so the GPU only draws what's
+    // actually visible on screen.
     for (const item of previewItems) {
+      if (item.dom && item.dom.style.display === 'none') continue;
       item.group.rotation.y = t * 0.4;
       previewRenderer.setSize(120, 120);
       previewRenderer.render(item.scene, item.camera);
@@ -2892,6 +3345,44 @@
         lg.userData._eliteHalo.material.opacity = 0.22 + Math.sin(t * 2.4) * 0.10;
         lg.userData._eliteRing.scale.setScalar(1.0 + Math.sin(t * 2.4) * 0.04);
       }
+
+      // Beacon buff aura: golden pulsing ring at the base while a beacon is in range.
+      if (!tower.config.support) {
+        const eff = getEffectiveStats(tower);
+        const buffed = !!eff._buffed;
+        if (buffed) {
+          if (!tower._buffAura) {
+            const ring = new THREE.Mesh(
+              new THREE.TorusGeometry(0.42, 0.04, 6, 24),
+              new THREE.MeshBasicMaterial({ color: 0xffc83a, transparent: true, opacity: 0.7 })
+            );
+            ring.rotation.x = Math.PI / 2;
+            ring.position.y = 0.02;
+            const spark = new THREE.Mesh(
+              new THREE.RingGeometry(0.30, 0.42, 24),
+              new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
+            );
+            spark.rotation.x = -Math.PI / 2;
+            spark.position.y = 0.012;
+            tower._buffAura = ring;
+            tower._buffGlow = spark;
+            tower.group.add(ring);
+            tower.group.add(spark);
+          }
+          tower._buffAura.visible = true;
+          tower._buffGlow.visible = true;
+          tower._buffAura.material.opacity = 0.55 + Math.sin(t * 2.6) * 0.20;
+          tower._buffAura.scale.setScalar(1.0 + Math.sin(t * 2.6) * 0.05);
+          tower._buffGlow.material.opacity = 0.20 + Math.sin(t * 2.6 + 0.5) * 0.10;
+        } else if (tower._buffAura) {
+          tower._buffAura.visible = false;
+          tower._buffGlow.visible = false;
+        }
+        if (tower._buffedLast !== buffed) {
+          tower._buffedLast = buffed;
+          if (STATE.selectedTower === tower && !_upgradeHovering) refreshInfoPanel();
+        }
+      }
     }
 
     // HP bars billboard
@@ -2935,7 +3426,10 @@
     if (e.key === '1') { STATE.selectedTool = STATE.selectedTool === 'arrow'  ? null : 'arrow';  updateActiveDockItem(); }
     if (e.key === '2') { STATE.selectedTool = STATE.selectedTool === 'cannon' ? null : 'cannon'; updateActiveDockItem(); }
     if (e.key === '3') { STATE.selectedTool = STATE.selectedTool === 'magic'  ? null : 'magic';  updateActiveDockItem(); }
-    if (e.key === '4' || e.key.toLowerCase() === 's') { STATE.selectedTool = STATE.selectedTool === 'sell' ? null : 'sell'; updateActiveDockItem(); }
+    if (e.key === '4') { STATE.selectedTool = STATE.selectedTool === 'frost'  ? null : 'frost';  updateActiveDockItem(); }
+    if (e.key === '5') { STATE.selectedTool = STATE.selectedTool === 'sniper' ? null : 'sniper'; updateActiveDockItem(); }
+    if (e.key === '6') { STATE.selectedTool = STATE.selectedTool === 'beacon' ? null : 'beacon'; updateActiveDockItem(); }
+    if (e.key.toLowerCase() === 's') { STATE.selectedTool = STATE.selectedTool === 'sell' ? null : 'sell'; updateActiveDockItem(); }
     if (e.key.toLowerCase() === 'r') openResetConfirm();
     if (e.key === 'Escape') {
       if (resetModal.classList.contains('show')) {
