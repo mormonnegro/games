@@ -1485,10 +1485,10 @@
   // and how many coins blocks award. Free mode is unaffected.
   // =====================================================================
   const DIFFICULTIES = {
-    easy:      { name: 'Fácil',     lavaInit: 0.25, accelStep: 0.04, accelEvery: 35, coinMult: 1.4 },
-    normal:    { name: 'Normal',    lavaInit: 0.40, accelStep: 0.06, accelEvery: 30, coinMult: 1.0 },
-    hard:      { name: 'Difícil',   lavaInit: 0.60, accelStep: 0.09, accelEvery: 25, coinMult: 0.65 },
-    nightmare: { name: 'Pesadilla', lavaInit: 0.85, accelStep: 0.13, accelEvery: 20, coinMult: 0.40 },
+    easy:      { name: 'Fácil',     lavaInit: 0.45, accelStep: 0.06, accelEvery: 30, coinMult: 1.4 },
+    normal:    { name: 'Normal',    lavaInit: 0.75, accelStep: 0.10, accelEvery: 25, coinMult: 1.0 },
+    hard:      { name: 'Difícil',   lavaInit: 1.05, accelStep: 0.13, accelEvery: 20, coinMult: 0.65 },
+    nightmare: { name: 'Pesadilla', lavaInit: 1.40, accelStep: 0.18, accelEvery: 15, coinMult: 0.40 },
   };
   function currentDifficulty() {
     return DIFFICULTIES[state.difficulty] || DIFFICULTIES.normal;
@@ -2720,7 +2720,7 @@
   function autoCost()  { return Math.floor(120 * Math.pow(1.85, state.shovel.auto)); }
   function luckCost()  { return Math.floor(200 * Math.pow(2.10, state.shovel.luck)); }
   function valueCost() { return Math.floor(300 * Math.pow(2.30, state.shovel.value)); }
-  function speedCost() { return Math.floor(180 * Math.pow(1.95, state.shovel.speed)); }
+  function speedCost() { return Math.floor(200 * Math.pow(2.50, state.shovel.speed)); }
   // Hits per second when click is held. Base 10/s, +1.5/s per Speed level.
   function holdHitsPerSec() { return 10 + state.shovel.speed * 1.5; }
 
