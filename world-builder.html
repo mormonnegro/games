@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Tiny World Builder · armá tu mundito</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f4ede0;
+    --panel: #ffffff;
+    --panel-soft: #fbf6ec;
+    --ink: #2a2722;
+    --muted: #8a847a;
+    --line: #ebe3d2;
+    --line-soft: #f3ecdc;
+    --gold: #d4a017;
+    --red: #c84848;
+    --green: #6fb442;
+    --shadow: 0 18px 50px -20px rgba(50, 35, 10, 0.18), 0 2px 6px -2px rgba(50, 35, 10, 0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #app { position: fixed; inset: 0; z-index: 2; }
+  canvas { display: block; cursor: grab; }
+  canvas.placing { cursor: crosshair; }
+  canvas.dragging { cursor: grabbing; }
+  canvas.over-tile { cursor: pointer; }
+
+  .brand {
+    position: fixed;
+    top: 22px; left: 26px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .brand .title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 30px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .brand .title em { font-style: italic; font-weight: 400; color: #a08454; }
+  .brand .sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Counter chip top-right */
+  .counter {
+    position: fixed;
+    top: 22px; right: 26px;
+    z-index: 10;
+    display: flex; gap: 8px;
+  }
+  .chip {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .chip .ico { font-size: 14px; }
+  .chip button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 0 0 6px;
+    border-left: 1px solid var(--line);
+    margin-left: 4px;
+  }
+  .chip button:hover { color: var(--ink); }
+
+  /* Bottom dock */
+  .dock {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 12;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -14px 40px -16px rgba(50, 35, 10, 0.18);
+    padding: 10px 18px 14px;
+  }
+  .dock-items {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .dock-items::-webkit-scrollbar { height: 6px; }
+  .dock-items::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  .dock-item {
+    flex: 0 0 96px;
+    height: 110px;
+    background: var(--line-soft);
+    border: 1px solid transparent;
+    border-radius: 14px;
+    padding: 8px 4px 6px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-family: inherit;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s, box-shadow 0.15s;
+  }
+  .dock-item:hover { background: #faf3e0; }
+  .dock-item:active { transform: translateY(1px); }
+  .dock-item.active {
+    background: #fff;
+    border-color: var(--gold);
+    box-shadow: 0 6px 18px -6px rgba(212, 160, 23, 0.45);
+  }
+  .dock-item.demolish.active { border-color: var(--red); box-shadow: 0 6px 18px -6px rgba(200, 72, 72, 0.45); }
+  .dock-item .icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #faf3e2, #ebe0c4);
+    box-shadow: inset 0 -3px 6px rgba(120, 90, 30, 0.08),
+                inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+    line-height: 1;
+  }
+  .dock-item.demolish .icon {
+    background: radial-gradient(circle at 35% 30%, #fbe6e0, #e8b8ad);
+  }
+  .dock-item .name {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-top: 2px;
+    letter-spacing: 0.01em;
+  }
+
+  /* Help text */
+  .help {
+    position: fixed;
+    bottom: 138px; left: 50%; transform: translateX(-50%);
+    z-index: 11;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--panel);
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    text-align: center;
+    pointer-events: none;
+  }
+  .help kbd {
+    background: var(--line-soft);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 10.5px;
+    font-family: inherit;
+  }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div class="brand">
+    <div class="title">Tiny <em>World Builder</em></div>
+    <div class="sub">Elegí un edificio del dock y clickeá una baldosa para construir</div>
+  </div>
+
+  <div class="counter">
+    <div class="chip" title="Cantidad de cosas que pusiste"><span class="ico">🏗️</span><span id="placedCount">0</span><button id="resetBtn" title="Limpiar todo">↺</button></div>
+  </div>
+
+  <div class="help">
+    Click izquierdo: construir · Click derecho: demoler · Drag: mover · Scroll: zoom · <kbd>1</kbd>–<kbd>8</kbd> elegir
+  </div>
+
+  <div class="dock">
+    <div class="dock-items" id="dockItems"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  // =====================================================================
+  // Tiny World Builder — single-file 3D town painter.
+  // Tile-based grid; pick a building from the dock and click a grass tile.
+  // Right-click removes whatever's on a tile. Drag to pan, scroll to zoom.
+  // No external state — your world persists in localStorage.
+  // =====================================================================
+
+  const GRID    = 16;
+  const TILE    = 1.0;
+  const TOP_H   = 0.16;
+  const DIRT_H  = 0.12;
+  const STORAGE_KEY = 'tinyWorldBuilder.v1';
+
+  // ---------- scene / renderer ----------
+  const container = document.getElementById('app');
+  const canvasEl = document.createElement('canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  container.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf4ede0);
+
+  // ---------- camera (telephoto iso-ish) ----------
+  const AZIMUTH = Math.PI * 0.25;
+  let   POLAR   = Math.PI * 0.28;
+  const FOV     = 24;
+  let   viewSize = 11;
+  const MIN_VIEW = 6, MAX_VIEW = 20;
+  const target = new THREE.Vector3(0, 0, 0);
+  const camera = new THREE.PerspectiveCamera(FOV, window.innerWidth / window.innerHeight, 0.1, 200);
+  function updateCamera() {
+    const r = viewSize * 4.6;
+    camera.position.x = target.x + r * Math.sin(POLAR) * Math.cos(AZIMUTH);
+    camera.position.y = target.y + r * Math.cos(POLAR);
+    camera.position.z = target.z + r * Math.sin(POLAR) * Math.sin(AZIMUTH);
+    camera.lookAt(target);
+  }
+  updateCamera();
+
+  // ---------- lights ----------
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb39879, 0.32));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+  sun.position.set(7, 14, 5);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -18;
+  sun.shadow.camera.right = 18;
+  sun.shadow.camera.top = 18;
+  sun.shadow.camera.bottom = -18;
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 60;
+  sun.shadow.bias = -0.0006;
+  sun.shadow.radius = 3;
+  scene.add(sun);
+
+  // ---------- geometry helpers ----------
+  function roundedBox(w, h, d, r = 0.05) {
+    const shape = new THREE.Shape();
+    const hw = w / 2, hd = d / 2;
+    const rr = Math.min(r, hw - 0.001, hd - 0.001);
+    shape.moveTo(-hw + rr, -hd);
+    shape.lineTo(hw - rr, -hd);
+    shape.quadraticCurveTo(hw, -hd, hw, -hd + rr);
+    shape.lineTo(hw, hd - rr);
+    shape.quadraticCurveTo(hw, hd, hw - rr, hd);
+    shape.lineTo(-hw + rr, hd);
+    shape.quadraticCurveTo(-hw, hd, -hw, hd - rr);
+    shape.lineTo(-hw, -hd + rr);
+    shape.quadraticCurveTo(-hw, -hd, -hw + rr, -hd);
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: h, bevelEnabled: true,
+      bevelSegments: 1, bevelSize: 0.02, bevelThickness: 0.02, curveSegments: 3
+    });
+    geo.rotateX(-Math.PI / 2);
+    return geo;
+  }
+  function roundedSlab(size, height, radius = 0.07) {
+    return roundedBox(size, height, size, radius);
+  }
+  function castReceive(obj) {
+    obj.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+    return obj;
+  }
+
+  // ---------- materials ----------
+  const M = {
+    grass:     new THREE.MeshLambertMaterial({ color: 0xb0d949 }),
+    grassDk:   new THREE.MeshLambertMaterial({ color: 0x95c138 }),
+    dirt:      new THREE.MeshLambertMaterial({ color: 0x7d4519 }),
+    trunk:     new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    leaves:    new THREE.MeshLambertMaterial({ color: 0x86d139 }),
+    leavesDk:  new THREE.MeshLambertMaterial({ color: 0x5fab26 }),
+    pineDark:  new THREE.MeshLambertMaterial({ color: 0x2f6e2e }),
+    pineLite:  new THREE.MeshLambertMaterial({ color: 0x4ea64a }),
+    wallCream: new THREE.MeshLambertMaterial({ color: 0xf2dfb0 }),
+    wallTrim:  new THREE.MeshLambertMaterial({ color: 0xe5cf99 }),
+    roofBlue:  new THREE.MeshLambertMaterial({ color: 0x2a6dd1 }),
+    roofBlueD: new THREE.MeshLambertMaterial({ color: 0x1d4d9c }),
+    door:      new THREE.MeshLambertMaterial({ color: 0x7a4a2e }),
+    windowB:   new THREE.MeshLambertMaterial({ color: 0x88c8ff }),
+    chimney:   new THREE.MeshLambertMaterial({ color: 0xc9c4ba }),
+    knob:      new THREE.MeshLambertMaterial({ color: 0xe8c050 }),
+    barnRed:   new THREE.MeshLambertMaterial({ color: 0xa83828 }),
+    barnRedD:  new THREE.MeshLambertMaterial({ color: 0x7d2a1c }),
+    barnRoof:  new THREE.MeshLambertMaterial({ color: 0x3a2418 }),
+    barnTrim:  new THREE.MeshLambertMaterial({ color: 0xf2ece0 }),
+    barnHay:   new THREE.MeshLambertMaterial({ color: 0xd4a04c }),
+    cabinWood: new THREE.MeshLambertMaterial({ color: 0x8a5a3b }),
+    cabinDark: new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    cabinRoof: new THREE.MeshLambertMaterial({ color: 0x3a2418 }),
+    millStone: new THREE.MeshLambertMaterial({ color: 0xe8dfc8 }),
+    millStoneD:new THREE.MeshLambertMaterial({ color: 0xc4b893 }),
+    millRoof:  new THREE.MeshLambertMaterial({ color: 0x8a3d2a }),
+    millBlade: new THREE.MeshLambertMaterial({ color: 0xf2dfb0 }),
+    millFrame: new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    water:     new THREE.MeshLambertMaterial({ color: 0x4aa3d8 }),
+    waterDk:   new THREE.MeshLambertMaterial({ color: 0x2c81b8 }),
+    sand:      new THREE.MeshLambertMaterial({ color: 0xf5e6b3 }),
+    rock:      new THREE.MeshLambertMaterial({ color: 0xa9a49a }),
+    rockDk:    new THREE.MeshLambertMaterial({ color: 0x7d7873 }),
+    hover:     new THREE.MeshBasicMaterial({ color: 0x2a2722, transparent: true, opacity: 0.18, depthWrite: false }),
+    hoverGood: new THREE.MeshBasicMaterial({ color: 0x6fb442, transparent: true, opacity: 0.28, depthWrite: false }),
+    hoverBad:  new THREE.MeshBasicMaterial({ color: 0xc84848, transparent: true, opacity: 0.28, depthWrite: false }),
+  };
+
+  // ---------- tile factory ----------
+  function makeTile() {
+    const g = new THREE.Group();
+    const dirt = new THREE.Mesh(roundedSlab(TILE * 0.98, DIRT_H, 0.06), M.dirt);
+    dirt.position.y = -DIRT_H;
+    g.add(dirt);
+    const top = new THREE.Mesh(roundedSlab(TILE * 0.98, TOP_H, 0.06), M.grass);
+    g.add(top);
+    if (Math.random() < 0.22) {
+      const fleck = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.04, 0.05), M.leavesDk);
+      fleck.position.set((Math.random() - 0.5) * 0.6, TOP_H + 0.01, (Math.random() - 0.5) * 0.6);
+      g.add(fleck);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // ---------- building builders ----------
+  function makeHouse() {
+    const g = new THREE.Group();
+    // walls
+    const body = new THREE.Mesh(roundedBox(0.68, 0.50, 0.56, 0.04), M.wallCream);
+    body.position.y = 0.25; g.add(body);
+    // trim around base
+    const trim = new THREE.Mesh(roundedBox(0.72, 0.06, 0.60, 0.04), M.wallTrim);
+    trim.position.y = 0.03; g.add(trim);
+    // roof (triangular prism approximated with rotated box)
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.22, 0.66), M.roofBlue);
+    roof.position.y = 0.62; g.add(roof);
+    // ridge accent
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.04, 0.10), M.roofBlueD);
+    ridge.position.y = 0.74; g.add(ridge);
+    // door
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.26, 0.04), M.door);
+    door.position.set(0, 0.13, 0.30); g.add(door);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), M.knob);
+    knob.position.set(0.05, 0.13, 0.32); g.add(knob);
+    // windows
+    const winL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.02), M.windowB);
+    winL.position.set(-0.22, 0.30, 0.29); g.add(winL);
+    const winR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.02), M.windowB);
+    winR.position.set( 0.22, 0.30, 0.29); g.add(winR);
+    // chimney
+    const chim = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.20, 0.10), M.chimney);
+    chim.position.set(0.22, 0.72, -0.10); g.add(chim);
+    castReceive(g);
+    return g;
+  }
+
+  function makeCabin() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(roundedBox(0.52, 0.40, 0.48, 0.03), M.cabinWood);
+    body.position.y = 0.20; g.add(body);
+    // dark log lines
+    for (let i = 0; i < 3; i++) {
+      const line = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.02, 0.50), M.cabinDark);
+      line.position.y = 0.10 + i * 0.10; g.add(line);
+    }
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.18, 0.56), M.cabinRoof);
+    roof.position.y = 0.50; g.add(roof);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 0.04), M.cabinDark);
+    door.position.set(0, 0.11, 0.26); g.add(door);
+    const win = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.10, 0.02), M.windowB);
+    win.position.set(0.18, 0.26, 0.25); g.add(win);
+    castReceive(g);
+    return g;
+  }
+
+  function makeBarn() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(roundedBox(0.72, 0.46, 0.62, 0.03), M.barnRed);
+    body.position.y = 0.23; g.add(body);
+    // white X trim on front door area
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.34, 0.04), M.barnRedD);
+    door.position.set(0, 0.17, 0.33); g.add(door);
+    const xL = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.03, 0.02), M.barnTrim);
+    xL.position.set(0, 0.17, 0.355); xL.rotation.z = Math.PI / 5; g.add(xL);
+    const xR = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.03, 0.02), M.barnTrim);
+    xR.position.set(0, 0.17, 0.355); xR.rotation.z = -Math.PI / 5; g.add(xR);
+    // hipped roof
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.24, 0.70), M.barnRoof);
+    roof.position.y = 0.60; g.add(roof);
+    // hay loft window
+    const loft = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.10, 0.04), M.barnHay);
+    loft.position.set(0, 0.56, 0.32); g.add(loft);
+    castReceive(g);
+    return g;
+  }
+
+  function makeWindmill() {
+    const g = new THREE.Group();
+    // round stone base (tapered)
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.70, 14), M.millStone);
+    base.position.y = 0.35; g.add(base);
+    // dark band
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, 0.06, 14), M.millStoneD);
+    band.position.y = 0.10; g.add(band);
+    // conical roof
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.30, 0.22, 14), M.millRoof);
+    roof.position.y = 0.82; g.add(roof);
+    // door
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 0.04), M.cabinDark);
+    door.position.set(0, 0.11, 0.30); g.add(door);
+    // blades on a rotating pivot at the front of the cone
+    const bladePivot = new THREE.Group();
+    bladePivot.position.set(0, 0.72, 0.30);
+    g.add(bladePivot);
+    for (let i = 0; i < 4; i++) {
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.62, 0.02), M.millBlade);
+      blade.position.y = 0.31;
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.62, 0.04), M.millFrame);
+      frame.position.y = 0.31;
+      const arm = new THREE.Group();
+      arm.add(blade); arm.add(frame);
+      arm.rotation.z = (i / 4) * Math.PI * 2;
+      bladePivot.add(arm);
+    }
+    castReceive(g);
+    g.userData = { kind: 'windmill', bladePivot };
+    return g;
+  }
+
+  function makeTree() {
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), M.trunk);
+    trunk.position.y = 0.25; g.add(trunk);
+    const lower = new THREE.Mesh(roundedBox(0.62, 0.42, 0.62, 0.08), M.leaves);
+    lower.position.y = 0.5; g.add(lower);
+    const upper = new THREE.Mesh(roundedBox(0.42, 0.32, 0.42, 0.06), M.leaves);
+    upper.position.y = 0.92; g.add(upper);
+    const tip = new THREE.Mesh(roundedBox(0.22, 0.18, 0.22, 0.04), M.leavesDk);
+    tip.position.y = 1.18; g.add(tip);
+    castReceive(g);
+    return g;
+  }
+
+  function makePine() {
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.3, 0.14), M.trunk);
+    trunk.position.y = 0.15; g.add(trunk);
+    const c1 = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.42, 8), M.pineDark);
+    c1.position.y = 0.46; g.add(c1);
+    const c2 = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.36, 8), M.pineLite);
+    c2.position.y = 0.78; g.add(c2);
+    const c3 = new THREE.Mesh(new THREE.ConeGeometry(0.20, 0.30, 8), M.pineDark);
+    c3.position.y = 1.04; g.add(c3);
+    castReceive(g);
+    return g;
+  }
+
+  function makePond() {
+    const g = new THREE.Group();
+    // sand rim
+    const rim = new THREE.Mesh(roundedSlab(TILE * 0.85, TOP_H + 0.02, 0.08), M.sand);
+    g.add(rim);
+    // water surface
+    const water = new THREE.Mesh(roundedSlab(TILE * 0.68, TOP_H + 0.005, 0.06), M.water);
+    water.position.y = -0.01; g.add(water);
+    const wave = new THREE.Mesh(roundedSlab(TILE * 0.45, TOP_H - 0.04, 0.06), M.waterDk);
+    wave.position.y = 0.005; g.add(wave);
+    castReceive(g);
+    return g;
+  }
+
+  function makeRocks() {
+    const g = new THREE.Group();
+    const r1 = new THREE.Mesh(roundedBox(0.30, 0.20, 0.30, 0.06), M.rock);
+    r1.position.set(0, 0.10, 0); g.add(r1);
+    const r2 = new THREE.Mesh(roundedBox(0.18, 0.14, 0.18, 0.04), M.rockDk);
+    r2.position.set(0.18, 0.07, 0.10); g.add(r2);
+    const r3 = new THREE.Mesh(roundedBox(0.14, 0.12, 0.14, 0.04), M.rock);
+    r3.position.set(-0.16, 0.06, -0.10); g.add(r3);
+    castReceive(g);
+    return g;
+  }
+
+  // ---------- building catalog ----------
+  const BUILDINGS = {
+    house:    { id: 'house',    label: 'Casa',      icon: '🏠', build: makeHouse },
+    cabin:    { id: 'cabin',    label: 'Cabaña',    icon: '🛖', build: makeCabin },
+    barn:     { id: 'barn',     label: 'Granero',   icon: '🚜', build: makeBarn },
+    windmill: { id: 'windmill', label: 'Molino',    icon: '🌬️', build: makeWindmill },
+    tree:     { id: 'tree',     label: 'Árbol',     icon: '🌳', build: makeTree },
+    pine:     { id: 'pine',     label: 'Pino',      icon: '🌲', build: makePine },
+    pond:     { id: 'pond',     label: 'Laguna',    icon: '💧', build: makePond },
+    rocks:    { id: 'rocks',    label: 'Piedras',   icon: '🪨', build: makeRocks },
+  };
+  const TOOL_LIST = ['house', 'cabin', 'barn', 'windmill', 'tree', 'pine', 'pond', 'rocks'];
+
+  // ---------- world state ----------
+  // Build the world grid (tiles).
+  const world = [];
+  const worldGroup = new THREE.Group();
+  scene.add(worldGroup);
+  for (let x = 0; x < GRID; x++) {
+    world[x] = [];
+    for (let z = 0; z < GRID; z++) {
+      const tile = makeTile();
+      tile.position.set((x - (GRID - 1) / 2) * TILE, 0, (z - (GRID - 1) / 2) * TILE);
+      worldGroup.add(tile);
+      world[x][z] = { tile, placed: null /* { id, mesh } */ };
+    }
+  }
+
+  function tilePos(x, z) {
+    return new THREE.Vector3(
+      (x - (GRID - 1) / 2) * TILE,
+      0,
+      (z - (GRID - 1) / 2) * TILE,
+    );
+  }
+
+  // Hover preview tile.
+  const hoverMesh = new THREE.Mesh(roundedSlab(TILE * 0.96, 0.05, 0.06), M.hoverGood);
+  hoverMesh.position.y = TOP_H + 0.005;
+  hoverMesh.visible = false;
+  worldGroup.add(hoverMesh);
+
+  // Ghost preview of the building under cursor.
+  let ghost = null;
+  let ghostToolId = null;
+  function disposeGhost(g) {
+    g.traverse(n => {
+      if (n.isMesh && n.material) {
+        if (Array.isArray(n.material)) n.material.forEach(m => m.dispose());
+        else n.material.dispose();
+      }
+    });
+  }
+  function buildGhost(toolId) {
+    const cfg = BUILDINGS[toolId];
+    if (!cfg) return null;
+    const g = cfg.build();
+    g.traverse(n => {
+      if (n.isMesh && n.material) {
+        const tone = m => {
+          const c = m.clone();
+          c.transparent = true;
+          c.opacity = 0.55;
+          c.depthWrite = false;
+          return c;
+        };
+        n.material = Array.isArray(n.material) ? n.material.map(tone) : tone(n.material);
+        n.castShadow = false;
+        n.receiveShadow = false;
+      }
+    });
+    g.position.y = TOP_H;
+    return g;
+  }
+  function ensureGhost() {
+    if (STATE.selectedTool === ghostToolId) return ghost;
+    if (ghost) { scene.remove(ghost); disposeGhost(ghost); ghost = null; }
+    if (STATE.selectedTool && STATE.selectedTool !== 'demolish') {
+      ghost = buildGhost(STATE.selectedTool);
+      if (ghost) { ghost.visible = false; scene.add(ghost); }
+    }
+    ghostToolId = STATE.selectedTool;
+    return ghost;
+  }
+  function setGhostOpacity(g, op) {
+    if (!g || g.userData._lastOp === op) return;
+    g.userData._lastOp = op;
+    g.traverse(n => {
+      if (n.isMesh && n.material) {
+        const apply = m => { m.opacity = op; };
+        if (Array.isArray(n.material)) n.material.forEach(apply);
+        else apply(n.material);
+      }
+    });
+  }
+
+  // ---------- game state ----------
+  const STATE = {
+    selectedTool: null,
+    placedCount: 0,
+    windmills: [],
+  };
+
+  // ---------- placement / removal ----------
+  function placeBuilding(toolId, x, z) {
+    if (toolId === 'demolish') { demolish(x, z); return; }
+    const cfg = BUILDINGS[toolId];
+    if (!cfg) return;
+    if (!world[x][z]) return;
+    if (world[x][z].placed) return; // already occupied
+    const mesh = cfg.build();
+    const p = tilePos(x, z);
+    mesh.position.set(p.x, TOP_H, p.z);
+    // small random rotation for variety on non-symmetric objects
+    if (toolId !== 'pond') mesh.rotation.y = (Math.random() - 0.5) * 0.4;
+    // drop-in animation
+    mesh.position.y = TOP_H + 1.0;
+    mesh.userData._dropFrom = mesh.position.y;
+    mesh.userData._dropT = 0;
+    scene.add(mesh);
+    world[x][z].placed = { id: toolId, mesh };
+    STATE.placedCount++;
+    if (toolId === 'windmill') STATE.windmills.push(mesh);
+    updateCounter();
+    saveWorld();
+  }
+  function demolish(x, z) {
+    const cell = world[x][z];
+    if (!cell || !cell.placed) return;
+    const { id, mesh } = cell.placed;
+    scene.remove(mesh);
+    mesh.traverse(n => {
+      if (n.isMesh && n.geometry && n.geometry.dispose && !sharedGeom(n.geometry)) n.geometry.dispose();
+    });
+    if (id === 'windmill') STATE.windmills = STATE.windmills.filter(m => m !== mesh);
+    cell.placed = null;
+    STATE.placedCount = Math.max(0, STATE.placedCount - 1);
+    updateCounter();
+    saveWorld();
+  }
+  function sharedGeom() { return false; } // every mesh creates its own geom in this build — safe to dispose.
+
+  // ---------- persistence ----------
+  function saveWorld() {
+    const data = [];
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (c.placed) data.push([x, z, c.placed.id]);
+      }
+    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+  }
+  function loadWorld() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      for (const [x, z, id] of data) {
+        if (!BUILDINGS[id] || !world[x] || !world[x][z]) continue;
+        const cfg = BUILDINGS[id];
+        const mesh = cfg.build();
+        const p = tilePos(x, z);
+        mesh.position.set(p.x, TOP_H, p.z);
+        mesh.rotation.y = (Math.random() - 0.5) * 0.4;
+        scene.add(mesh);
+        world[x][z].placed = { id, mesh };
+        if (id === 'windmill') STATE.windmills.push(mesh);
+        STATE.placedCount++;
+      }
+      updateCounter();
+    } catch {}
+  }
+  function clearWorld() {
+    for (let x = 0; x < GRID; x++) {
+      for (let z = 0; z < GRID; z++) {
+        const c = world[x][z];
+        if (c.placed) {
+          scene.remove(c.placed.mesh);
+          c.placed = null;
+        }
+      }
+    }
+    STATE.placedCount = 0;
+    STATE.windmills = [];
+    updateCounter();
+    saveWorld();
+  }
+
+  // ---------- HUD ----------
+  function updateCounter() {
+    document.getElementById('placedCount').textContent = STATE.placedCount;
+  }
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (STATE.placedCount === 0) return;
+    if (confirm('¿Borrar todo lo que construiste?')) clearWorld();
+  });
+
+  // ---------- dock UI ----------
+  function buildDock() {
+    const items = document.getElementById('dockItems');
+    items.innerHTML = '';
+    for (const id of TOOL_LIST) {
+      const cfg = BUILDINGS[id];
+      const btn = document.createElement('button');
+      btn.className = 'dock-item';
+      btn.dataset.tool = id;
+      btn.innerHTML = `
+        <div class="icon">${cfg.icon}</div>
+        <div class="name">${cfg.label}</div>
+      `;
+      btn.addEventListener('click', () => selectTool(id));
+      items.appendChild(btn);
+    }
+    // Demolish tool at the end.
+    const dem = document.createElement('button');
+    dem.className = 'dock-item demolish';
+    dem.dataset.tool = 'demolish';
+    dem.innerHTML = `
+      <div class="icon">🧨</div>
+      <div class="name">Demoler</div>
+    `;
+    dem.addEventListener('click', () => selectTool('demolish'));
+    items.appendChild(dem);
+  }
+  function selectTool(id) {
+    STATE.selectedTool = (STATE.selectedTool === id) ? null : id;
+    document.querySelectorAll('.dock-item').forEach(it => {
+      it.classList.toggle('active', it.dataset.tool === STATE.selectedTool);
+    });
+    renderer.domElement.classList.toggle('placing', !!STATE.selectedTool);
+    // Refresh ghost / hover.
+    ensureGhost();
+    if (_lastPointer.x != null) updateHover(_lastPointer.x, _lastPointer.y);
+  }
+
+  // ---------- input: pan + zoom + click ----------
+  const raycaster = new THREE.Raycaster();
+  const pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -TOP_H);
+  function pickGround(clientX, clientY) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    raycaster.setFromCamera(ndc, camera);
+    const v = new THREE.Vector3();
+    return raycaster.ray.intersectPlane(pickPlane, v) ? v : null;
+  }
+  function pickTile(clientX, clientY) {
+    const w = pickGround(clientX, clientY);
+    if (!w) return null;
+    const x = Math.round(w.x / TILE + (GRID - 1) / 2);
+    const z = Math.round(w.z / TILE + (GRID - 1) / 2);
+    if (x < 0 || x >= GRID || z < 0 || z >= GRID) return null;
+    return { x, z };
+  }
+
+  const _lastPointer = { x: null, y: null };
+  let dragging = false, dragLast = null, dragMoved = false;
+  const _panAnchor = { world: new THREE.Vector3(), target: new THREE.Vector3(), valid: false };
+
+  renderer.domElement.addEventListener('pointerdown', e => {
+    // Right click = demolish whatever's under the cursor (regardless of tool).
+    if (e.button === 2) {
+      const cell = pickTile(e.clientX, e.clientY);
+      if (cell) demolish(cell.x, cell.z);
+      return;
+    }
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    dragging = true;
+    dragMoved = false;
+    dragLast = { x: e.clientX, y: e.clientY };
+    const w = pickGround(e.clientX, e.clientY);
+    if (w) {
+      _panAnchor.world.copy(w);
+      _panAnchor.target.copy(target);
+      _panAnchor.valid = true;
+    } else _panAnchor.valid = false;
+    renderer.domElement.classList.add('dragging');
+    renderer.domElement.setPointerCapture(e.pointerId);
+  });
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (dragging) {
+      const dx = e.clientX - dragLast.x, dy = e.clientY - dragLast.y;
+      if (Math.hypot(dx, dy) > 4) dragMoved = true;
+      if (dragMoved && _panAnchor.valid) {
+        target.copy(_panAnchor.target);
+        updateCamera();
+        const cur = pickGround(e.clientX, e.clientY);
+        if (cur) {
+          target.x = _panAnchor.target.x + (_panAnchor.world.x - cur.x);
+          target.z = _panAnchor.target.z + (_panAnchor.world.z - cur.z);
+          const lim = GRID * 0.5;
+          target.x = Math.max(-lim, Math.min(lim, target.x));
+          target.z = Math.max(-lim, Math.min(lim, target.z));
+          updateCamera();
+        }
+      }
+    }
+    updateHover(e.clientX, e.clientY);
+  });
+  renderer.domElement.addEventListener('pointerup', e => {
+    if (dragging) {
+      const wasMoved = dragMoved;
+      dragging = false;
+      dragMoved = false;
+      _panAnchor.valid = false;
+      renderer.domElement.classList.remove('dragging');
+      try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
+      if (!wasMoved) handleClick(e.clientX, e.clientY);
+    }
+  });
+  renderer.domElement.addEventListener('pointercancel', () => {
+    dragging = false; dragMoved = false; _panAnchor.valid = false;
+    renderer.domElement.classList.remove('dragging');
+  });
+  renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+  renderer.domElement.addEventListener('wheel', e => {
+    e.preventDefault();
+    const delta = Math.sign(e.deltaY);
+    const newView = Math.max(MIN_VIEW, Math.min(MAX_VIEW, viewSize + delta * 0.6));
+    if (newView === viewSize) return;
+    const before = pickGround(e.clientX, e.clientY);
+    viewSize = newView;
+    onResize();
+    const after = before ? pickGround(e.clientX, e.clientY) : null;
+    if (before && after) {
+      target.x += (before.x - after.x);
+      target.z += (before.z - after.z);
+      const lim = GRID * 0.5;
+      target.x = Math.max(-lim, Math.min(lim, target.x));
+      target.z = Math.max(-lim, Math.min(lim, target.z));
+      updateCamera();
+    }
+  }, { passive: false });
+
+  function updateHover(clientX, clientY) {
+    _lastPointer.x = clientX; _lastPointer.y = clientY;
+    ensureGhost();
+    const cell = pickTile(clientX, clientY);
+    const overTile = !!cell;
+    renderer.domElement.classList.toggle('over-tile', overTile && !!cell && !!world[cell.x][cell.z].placed && !STATE.selectedTool);
+    if (!STATE.selectedTool) {
+      hoverMesh.visible = false;
+      if (ghost) ghost.visible = false;
+      return;
+    }
+    if (!cell) {
+      hoverMesh.visible = false;
+      if (ghost) ghost.visible = false;
+      return;
+    }
+    const p = tilePos(cell.x, cell.z);
+    const occupied = !!world[cell.x][cell.z].placed;
+    if (STATE.selectedTool === 'demolish') {
+      hoverMesh.material = occupied ? M.hoverGood : M.hoverBad;
+      hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
+      hoverMesh.visible = true;
+      if (ghost) ghost.visible = false;
+      return;
+    }
+    const valid = !occupied;
+    hoverMesh.material = valid ? M.hoverGood : M.hoverBad;
+    hoverMesh.position.set(p.x, TOP_H + 0.005, p.z);
+    hoverMesh.visible = true;
+    if (ghost) {
+      ghost.visible = true;
+      ghost.position.set(p.x, TOP_H, p.z);
+      setGhostOpacity(ghost, valid ? 0.55 : 0.20);
+    }
+  }
+  function handleClick(clientX, clientY) {
+    const cell = pickTile(clientX, clientY);
+    if (!cell) return;
+    if (!STATE.selectedTool) return;
+    if (STATE.selectedTool === 'demolish') {
+      demolish(cell.x, cell.z);
+      // Refresh hover so the empty tile reads correctly.
+      updateHover(clientX, clientY);
+      return;
+    }
+    if (world[cell.x][cell.z].placed) return; // can't stack
+    placeBuilding(STATE.selectedTool, cell.x, cell.z);
+    updateHover(clientX, clientY);
+  }
+
+  // ---------- keyboard shortcuts ----------
+  window.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    if (e.key >= '1' && e.key <= '8') {
+      const idx = parseInt(e.key, 10) - 1;
+      const id = TOOL_LIST[idx];
+      if (id) selectTool(id);
+    } else if (e.key.toLowerCase() === 'd') {
+      selectTool('demolish');
+    } else if (e.key === 'Escape') {
+      if (STATE.selectedTool) selectTool(STATE.selectedTool);
+    }
+  });
+
+  // ---------- resize ----------
+  function onResize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    updateCamera();
+  }
+  window.addEventListener('resize', onResize);
+
+  // ---------- animation loop ----------
+  let prevT = 0;
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const t = now / 1000;
+    const dt = prevT ? Math.min(t - prevT, 0.05) : 0;
+    prevT = t;
+
+    // Windmill blades spin.
+    for (const m of STATE.windmills) {
+      if (m.userData.bladePivot) m.userData.bladePivot.rotation.z = t * 0.8;
+    }
+    // Drop-in animation for newly placed buildings.
+    scene.traverse(obj => {
+      if (obj.userData && obj.userData._dropT != undefined) {
+        obj.userData._dropT += dt;
+        const T = 0.4;
+        const k = Math.min(1, obj.userData._dropT / T);
+        const ease = 1 - Math.pow(1 - k, 3);
+        obj.position.y = TOP_H + (obj.userData._dropFrom - TOP_H) * (1 - ease);
+        if (k >= 1) { delete obj.userData._dropT; delete obj.userData._dropFrom; }
+      }
+    });
+
+    renderer.render(scene, camera);
+  }
+
+  // ---------- boot ----------
+  buildDock();
+  loadWorld();
+  requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
