@@ -548,6 +548,81 @@
     100% { transform: scale(1); color: var(--accent-hi); }
   }
 
+  /* Tutorial overlay — fullscreen backdrop + centered card with steps */
+  .tutorial-backdrop {
+    position: fixed; inset: 0;
+    z-index: 100;
+    background: rgba(8, 4, 0, 0.78);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    animation: tut-fade-in 0.4s ease-out;
+  }
+  .tutorial-backdrop.hidden { display: none; }
+  .tutorial-card {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 18px;
+    padding: 32px 32px 24px;
+    box-shadow: 0 24px 60px -10px rgba(244, 168, 56, 0.5), 0 8px 24px -4px rgba(0,0,0,0.6);
+    max-width: 460px;
+    width: calc(100% - 40px);
+    color: var(--ink);
+    animation: tut-pop-in 0.5s cubic-bezier(0.22, 1.4, 0.32, 1);
+  }
+  .tutorial-card h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 32px;
+    font-weight: 600;
+    margin: 0 0 18px;
+    letter-spacing: -0.02em;
+    text-align: center;
+  }
+  .tutorial-card h2 em { color: var(--accent); font-style: italic; }
+  .tut-step {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .tut-ic {
+    font-size: 24px;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 32px;
+    text-align: center;
+  }
+  .tut-step b { color: var(--accent-hi); font-weight: 600; }
+  .tut-btn {
+    display: block;
+    margin: 18px auto 0;
+    background: linear-gradient(135deg, var(--accent), #d49920);
+    color: #1a1410;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 36px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 24px -6px rgba(244, 168, 56, 0.5);
+    transition: transform 0.08s;
+  }
+  .tut-btn:hover  { transform: translateY(-1px); }
+  .tut-btn:active { transform: translateY(1px); }
+  @keyframes tut-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes tut-pop-in {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
   @media (max-width: 700px) {
     .brand { top: 14px; left: 14px; }
     .hud-top { top: 14px; right: 14px; }
@@ -678,6 +753,30 @@
   <div class="ach-toasts" id="achToasts"></div>
 
   <button class="reset-btn" id="resetBtn" title="Wipe save and start over">↺ reset</button>
+
+  <!-- First-time tutorial overlay. Auto-shown on a fresh save. -->
+  <div class="tutorial-backdrop hidden" id="tutorial">
+    <div class="tutorial-card">
+      <h2>Deep <em>Dig</em></h2>
+      <div class="tut-step">
+        <span class="tut-ic">⛏️</span>
+        <div><b>Hacé click</b> en el pasto brillante de arriba para empezar a cavar. <b>Mantené apretado</b> para minar rápido.</div>
+      </div>
+      <div class="tut-step">
+        <span class="tut-ic">🪙</span>
+        <div>Cada bloque te da monedas. <b>Gastalas en upgrades</b> a la derecha (más daño, velocidad, suerte...).</div>
+      </div>
+      <div class="tut-step">
+        <span class="tut-ic">💎</span>
+        <div>Cuanto más bajes, mejores materiales y <b>bloques especiales</b> (cofres, geodas, bombas, cristales).</div>
+      </div>
+      <div class="tut-step">
+        <span class="tut-ic">💠</span>
+        <div>A partir de los 100m podés <b>prestigiar</b>: reiniciás pero ganás gemas que dan +5% monedas permanente.</div>
+      </div>
+      <button class="tut-btn" id="tutClose">¡A cavar!</button>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
@@ -1219,6 +1318,15 @@
     return materialCache.get(hex);
   }
 
+  // Shared transparent shell material for the tutorial "glow" on starter
+  // grass blocks. Opacity is animated in the render loop for a pulse effect.
+  const glowHaloMat = new THREE.MeshBasicMaterial({
+    color: 0xfff4a0,
+    transparent: true,
+    opacity: 0.35,
+    depthWrite: false,
+  });
+
   // Decorative ground on each side of the well, aligned with the first
   // mineable row (depth 0 block top is at y = -0.04). The well's first row
   // IS grass — that's what the player mines first — so we no longer cap the
@@ -1474,11 +1582,29 @@
       group = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
     }
 
+    // Tutorial glow: depth-0 grass blocks (the first 3 the player will ever
+    // mine) get a pulsing halo to draw the eye. Wraps the block in a Group
+    // so we can keep the original cube + a transparent oversized shell.
+    if (!block.boss && !block.special && block.mat === 'grass' && d === 0) {
+      const wrap = new THREE.Group();
+      wrap.add(group);
+      const halo = new THREE.Mesh(
+        new THREE.BoxGeometry(1.4, 1.4, 1.4),
+        glowHaloMat,
+      );
+      halo.userData.isHalo = true;
+      wrap.add(halo);
+      wrap.userData = { d, c, glow: true };
+      group = wrap;
+    }
+
     group.position.set(c - (COLS - 1) / 2, -d - 0.5, 0);
-    group.userData = { d, c };
+    if (!group.userData || group.userData.d === undefined) group.userData = { d, c };
     // Ensure children carry userData too so raycast hits register.
     if (group.children) {
-      for (const child of group.children) child.userData = { d, c };
+      for (const child of group.children) {
+        if (!child.userData.isHalo) child.userData = { d, c };
+      }
     }
     worldGroup.add(group);
     blockMeshes.set(key, group);
@@ -2319,6 +2445,8 @@
     updateBoostUI();
     // Torch flicker — warmth ebbs subtly so the cave feels alive.
     torch.intensity = 1.35 + Math.sin(t * 3.2) * 0.10 + (Math.random() - 0.5) * 0.06;
+    // Pulse the starter-grass halo material so the tutorial glow breathes.
+    glowHaloMat.opacity = 0.20 + Math.abs(Math.sin(t * 2.4)) * 0.40;
     refreshBlocks();
     updateCamera();
     // Biome visuals — runs every frame so transitions stay smooth.
@@ -2339,6 +2467,24 @@
   updateHud();
   onResize();
   cameraTargetY = -(state.depth + 2);
+
+  // Tutorial: show on first ever visit, or whenever the player has reset and
+  // is at depth 0 with no progress. Persisted via localStorage so it stops
+  // appearing once dismissed.
+  const TUT_KEY = 'deepDig_tut_seen';
+  function maybeShowTutorial() {
+    let seen = false;
+    try { seen = localStorage.getItem(TUT_KEY) === '1'; } catch {}
+    if (seen) return;
+    document.getElementById('tutorial').classList.remove('hidden');
+  }
+  document.getElementById('tutClose').addEventListener('click', () => {
+    document.getElementById('tutorial').classList.add('hidden');
+    try { localStorage.setItem(TUT_KEY, '1'); } catch {}
+    sfx.click();
+  });
+  maybeShowTutorial();
+
   requestAnimationFrame(animate);
   </script>
 </body>
