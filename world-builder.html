@@ -484,31 +484,32 @@
 
   function makePond() {
     const g = new THREE.Group();
-    // Flat water sheet at grass level (puddle look). We nudge the top a hair
-    // above the surrounding grass to avoid Z-fighting.
-    const H = 0.05;
-    const BASE = -H + 0.005;              // local y of slab bottom
-    const SURFACE = BASE + H;             // local y of water top
-
-    const water = new THREE.Mesh(roundedSlab(TILE * 0.98, H, 0.10), M.water);
-    water.position.y = BASE;
-    water.receiveShadow = true;
+    // Square water slab sitting ON TOP of the grass tile so it reads as a
+    // shallow body of water. Full TILE width with no rounding means adjacent
+    // ponds merge into one continuous surface.
+    const H = 0.07;
+    const water = new THREE.Mesh(
+      new THREE.BoxGeometry(TILE, H, TILE),
+      M.water,
+    );
+    water.position.y = H / 2;             // bottom flush with grass top
     g.add(water);
 
-    // Darker centre for a sense of depth.
-    const deep = new THREE.Mesh(roundedSlab(TILE * 0.55, H * 1.05, 0.07), M.waterDk);
-    deep.position.y = BASE + 0.006;
-    deep.receiveShadow = true;
-    g.add(deep);
-
-    // Bright shimmer ripples on the surface.
-    const shimmerMat = new THREE.MeshBasicMaterial({ color: 0xeaf6ff, transparent: true, opacity: 0.75 });
-    const s1 = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.006, 0.04), shimmerMat);
-    s1.position.set(0.06, SURFACE + 0.001, -0.18);
-    g.add(s1);
-    const s2 = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.006, 0.025), shimmerMat);
-    s2.position.set(-0.16, SURFACE + 0.001, 0.12);
-    g.add(s2);
+    // One small surface shimmer in a random spot for life, sized so it
+    // doesn't bleed past the tile (and break the merged look).
+    const shimmerMat = new THREE.MeshBasicMaterial({
+      color: 0xeaf6ff, transparent: true, opacity: 0.7,
+    });
+    const sx = (Math.random() - 0.5) * 0.55;
+    const sz = (Math.random() - 0.5) * 0.55;
+    const sw = 0.08 + Math.random() * 0.10;
+    const sd = 0.022 + Math.random() * 0.018;
+    const shimmer = new THREE.Mesh(
+      new THREE.BoxGeometry(sw, 0.006, sd),
+      shimmerMat,
+    );
+    shimmer.position.set(sx, H + 0.001, sz);
+    g.add(shimmer);
     return g;
   }
 
@@ -688,7 +689,8 @@
         const mesh = cfg.build();
         const p = tilePos(x, z);
         mesh.position.set(p.x, TOP_H, p.z);
-        mesh.rotation.y = (Math.random() - 0.5) * 0.4;
+        // Pond should stay axis-aligned so adjacent water tiles read as one body.
+        if (id !== 'pond') mesh.rotation.y = (Math.random() - 0.5) * 0.4;
         scene.add(mesh);
         world[x][z].placed = { id, mesh };
         if (id === 'windmill') STATE.windmills.push(mesh);
