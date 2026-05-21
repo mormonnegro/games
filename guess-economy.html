@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>¿Qué país es? · Adivina por la economía</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f4ede0;
+    --panel: #ffffff;
+    --panel-soft: #fbf6ec;
+    --ink: #2a2722;
+    --muted: #8a847a;
+    --line: #ebe3d2;
+    --line-soft: #f3ecdc;
+    --gold: #d4a017;
+    --gold-dim: #b88a13;
+    --green: #5fa033;
+    --red: #c84848;
+    --shadow: 0 18px 50px -20px rgba(50, 35, 10, 0.18), 0 2px 6px -2px rgba(50, 35, 10, 0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 18px 64px;
+  }
+
+  header {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 18px;
+    gap: 16px;
+  }
+  .brand .title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 30px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .brand .title em { font-style: italic; font-weight: 400; color: #a08454; }
+  .brand .sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.02em;
+  }
+
+  .scoreboard {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .chip {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip .ico { font-size: 14px; }
+  .chip .muted { color: var(--muted); font-weight: 500; }
+  .chip.potential {
+    background: #fff8e6;
+    border-color: #ead7a4;
+  }
+  .chip.potential.low  { background: #fbe6da; border-color: #e2b298; }
+  .chip.potential.gone { background: #f0dada; border-color: #c89090; color: #7a3a3a; }
+
+  /* ---------- main card ---------- */
+  main {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 22px 24px 24px;
+  }
+  .question {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+    color: var(--ink);
+  }
+  .question em { color: var(--gold); font-style: italic; font-weight: 500; }
+
+  /* ---------- banknote (currency hint) ---------- */
+  .banknote {
+    --note-bg-from: #f5e3a8;
+    --note-bg-to:   #e9d180;
+    --note-border:  #a4842d;
+    --note-ink:     #5c4420;
+    width: 186px;
+    height: 96px;
+    margin-bottom: 14px;
+    align-self: flex-start;
+    position: relative;
+    border-radius: 10px;
+    border: 2px solid var(--note-border);
+    background: linear-gradient(135deg, var(--note-bg-from) 0%, var(--note-bg-to) 100%);
+    color: var(--note-ink);
+    box-shadow: 0 8px 22px -10px rgba(40, 30, 10, 0.35), inset 0 0 0 1px rgba(255,255,255,0.4);
+    overflow: hidden;
+    transform: rotate(-3deg);
+    transform-origin: top left;
+    animation: bnPop 0.35s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  .banknote[hidden] { display: none !important; }
+  /* Engraved diagonal lines pattern (watermark) */
+  .banknote::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent 0px, transparent 5px,
+      currentColor 5px, currentColor 5.5px
+    );
+    opacity: 0.10;
+    pointer-events: none;
+  }
+  /* Subtle inner border (security feel) */
+  .banknote::after {
+    content: '';
+    position: absolute;
+    top: 6px; right: 6px; bottom: 6px; left: 6px;
+    border: 1px dashed currentColor;
+    border-radius: 6px;
+    opacity: 0.22;
+    pointer-events: none;
+  }
+  .banknote-corner {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.10em;
+    padding: 8px 12px;
+    z-index: 1;
+    font-family: 'Inter', sans-serif;
+  }
+  .banknote-corner.tl { top: 0; left: 0; }
+  .banknote-corner.br { bottom: 0; right: 0; }
+  .banknote-symbol {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -64%);
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 38px;
+    font-weight: 600;
+    line-height: 1;
+    z-index: 1;
+  }
+  .banknote-name {
+    position: absolute;
+    bottom: 16px; left: 0; right: 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    z-index: 1;
+    padding: 0 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @keyframes bnPop {
+    from { transform: rotate(-12deg) scale(0.6); opacity: 0; }
+    to   { transform: rotate(-3deg) scale(1); opacity: 1; }
+  }
+
+  /* ---------- free anchor stats (continente, PIB, población) ---------- */
+  .free-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 18px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .free-stat-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .free-stat-cell .label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .free-stat-cell .value {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 19px;
+    font-weight: 500;
+    line-height: 1.15;
+    color: var(--ink);
+  }
+  @media (max-width: 540px) {
+    .free-stats-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- hint grid ---------- */
+  .hints {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .hint {
+    background: var(--panel-soft);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 64px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .hint.tag-hint { grid-column: span 2; }
+  .hint .hint-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .hint .hint-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .hint.locked {
+    background: transparent;
+    border: 1px dashed var(--line);
+    cursor: pointer;
+    align-items: flex-start;
+    justify-content: center;
+    text-align: left;
+    font-family: inherit;
+  }
+  .hint.locked:hover {
+    background: #fbf5e6;
+    border-color: var(--gold);
+    border-style: solid;
+  }
+  .hint.locked:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .hint.locked:disabled:hover {
+    background: transparent;
+    border-color: var(--line);
+    border-style: dashed;
+  }
+  .hint.locked .hint-lock {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .hint.locked .hint-lock .ico { font-size: 14px; }
+  .hint.locked .hint-cost {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .hint.locked .hint-cost b { color: var(--red); font-weight: 700; }
+
+  /* Free sections (imports / exports always visible) */
+  .free-section {
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .hints-heading {
+    margin-top: 18px;
+    margin-bottom: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  .hints-heading .muted {
+    font-weight: 500;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+
+  /* Answer input (free typing) */
+  .answer-row {
+    display: flex;
+    gap: 8px;
+  }
+  #guessInput {
+    flex: 1;
+    padding: 13px 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--panel);
+    outline: none;
+    transition: border-color 0.12s, box-shadow 0.12s;
+  }
+  #guessInput:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.18);
+  }
+  #guessInput:disabled { opacity: 0.55; }
+  #guessInput.error {
+    border-color: var(--red);
+    animation: shake 0.32s;
+  }
+  @keyframes shake {
+    10%, 90% { transform: translateX(-2px); }
+    30%, 70% { transform: translateX(3px); }
+    50%      { transform: translateX(-1px); }
+  }
+  .answer-btn {
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 22px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .answer-btn:hover:not(:disabled) { background: #44403a; }
+  .answer-btn:disabled { background: #b8b3a8; cursor: not-allowed; }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .tag {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .tag.export { background: #f1f6ea; border-color: #d9e8c5; }
+  .tag.import { background: #f3eee1; border-color: #e2d6b6; }
+
+  /* ---------- options ---------- */
+  .options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .option {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, transform 0.06s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+  }
+  .option:hover:not(:disabled) {
+    background: #faf5ea;
+    border-color: var(--gold);
+  }
+  .option:active:not(:disabled) { transform: translateY(1px); }
+  .option:disabled { cursor: default; }
+  .option .key {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--line-soft);
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .option.correct {
+    background: #e9f4dd;
+    border-color: var(--green);
+    color: #2f5a1a;
+  }
+  .option.wrong {
+    background: #f7dada;
+    border-color: var(--red);
+    color: #7a2222;
+  }
+  .option.faded { opacity: 0.55; }
+
+  /* ---------- result ---------- */
+  .result-card {
+    display: none;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 22px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .result-card.show { display: flex; }
+  .result-card.correct { background: #ecf6e0; border-color: #b6d985; }
+  .result-card.wrong   { background: #f7e0e0; border-color: #d99a9a; }
+  .result-flag {
+    font-size: 42px;
+    line-height: 1;
+  }
+  .result-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .result-text .head {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .correct .head { color: #4a7e1f; }
+  .wrong   .head { color: #993939; }
+  .result-text .name {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .next-btn {
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .next-btn:hover { background: #44403a; }
+
+  footer {
+    margin-top: 22px;
+    font-size: 12px;
+    color: var(--muted);
+    max-width: 720px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  footer kbd {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 1px 5px;
+    font-size: 11px;
+    font-family: inherit;
+  }
+
+  @media (max-width: 540px) {
+    .stat-grid { grid-template-columns: 1fr; }
+    .options { grid-template-columns: 1fr; }
+    .question { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="title">¿Qué país <em>es?</em></div>
+      <div class="sub">Adivina por los datos económicos</div>
+    </div>
+    <div class="scoreboard">
+      <div class="chip" title="Puntos totales"><span class="ico">⭐</span><span id="totalScoreVal">0</span></div>
+      <div class="chip potential" id="potentialChip" title="Puntos en juego esta ronda — bajan con cada pista"><span class="ico">💎</span><span id="potentialVal">100</span></div>
+      <div class="chip" title="Racha actual"><span class="ico">🔥</span><span id="streakVal">0</span></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="card" id="dataCard">
+      <div class="banknote" id="banknote" hidden>
+        <div class="banknote-corner tl"><span id="bnCodeTL">—</span></div>
+        <div class="banknote-symbol" id="bnSymbol">$</div>
+        <div class="banknote-name" id="bnName">—</div>
+        <div class="banknote-corner br"><span id="bnCodeBR">—</span></div>
+      </div>
+      <h2 class="question">Adiviná el país · desbloqueá <em>pistas</em></h2>
+      <div class="free-stats-grid">
+        <div class="free-stat-cell">
+          <span class="label">Continente</span>
+          <span class="value" id="freeContinent">—</span>
+        </div>
+        <div class="free-stat-cell">
+          <span class="label">PIB</span>
+          <span class="value" id="freeGdp">—</span>
+        </div>
+        <div class="free-stat-cell">
+          <span class="label">PIB per cápita</span>
+          <span class="value" id="freePerCapita">—</span>
+        </div>
+        <div class="free-stat-cell">
+          <span class="label">Población</span>
+          <span class="value" id="freePopulation">—</span>
+        </div>
+      </div>
+      <div class="free-section">
+        <div class="section-title">📦 Principales exportaciones</div>
+        <div class="tags" id="freeExports"></div>
+      </div>
+      <div class="free-section">
+        <div class="section-title">📥 Principales importaciones</div>
+        <div class="tags" id="freeImports"></div>
+      </div>
+      <div class="hints-heading">
+        <span>🔒 Pista extra</span>
+        <span class="muted">Resta puntos del potencial pero te da más certeza</span>
+      </div>
+      <div class="hints" id="hintsGrid"></div>
+    </div>
+
+    <div class="answer-row">
+      <input id="guessInput" type="text" placeholder="Escribí el nombre del país…"
+             autocomplete="off" autocapitalize="words" spellcheck="false" list="countryList" />
+      <button id="guessBtn" class="answer-btn">Adivinar</button>
+    </div>
+    <datalist id="countryList"></datalist>
+
+    <div class="options" id="optionsRow" style="display:none"></div>
+
+    <div class="result-card" id="resultCard">
+      <div class="result-flag" id="resultFlag">🌍</div>
+      <div class="result-text">
+        <div class="head" id="resultHead">—</div>
+        <div class="name" id="resultName">—</div>
+      </div>
+      <button class="next-btn" id="nextBtn">Siguiente →</button>
+    </div>
+  </main>
+
+  <footer>
+    Cada ronda hay <b>100 pts</b> en juego · si acertás <b>los ganás</b>, si fallás <b>los perdés</b> · escribir el país sigue valiendo lo mismo que elegir una opción.<br/>
+    <kbd>Enter</kbd> enviar respuesta escrita · <kbd>1</kbd>–<kbd>4</kbd> elegir opción · <kbd>Espacio</kbd>/<kbd>Enter</kbd> siguiente ronda
+  </footer>
+
+<script>
+  // -------- countries dataset --------
+  // GDP en miles de millones USD (1000 = 1 billón en es-AR).
+  // perCapita en USD. population en millones.
+  const COUNTRIES = [
+    { name: 'China', flag: '🇨🇳', continent: 'Asia',
+      gdp: 17800, perCapita: 12600, population: 1411, currency: 'Yuan (CNY)',
+      exports: ['Electrónica', 'Maquinaria', 'Textiles', 'Acero'],
+      imports: ['Petróleo crudo', 'Mineral de hierro', 'Chips', 'Soja'] },
+    { name: 'Estados Unidos', flag: '🇺🇸', continent: 'América',
+      gdp: 27000, perCapita: 80400, population: 333, currency: 'Dólar (USD)',
+      exports: ['Petróleo refinado', 'Aviones', 'Autos', 'Soja'],
+      imports: ['Autos', 'Petróleo crudo', 'Productos farmacéuticos', 'Electrónicos'] },
+    { name: 'Alemania', flag: '🇩🇪', continent: 'Europa',
+      gdp: 4500, perCapita: 53600, population: 84, currency: 'Euro (EUR)',
+      exports: ['Autos', 'Maquinaria', 'Productos químicos', 'Productos farmacéuticos'],
+      imports: ['Autos', 'Petróleo crudo', 'Gas natural', 'Computadoras'] },
+    { name: 'Japón', flag: '🇯🇵', continent: 'Asia',
+      gdp: 4200, perCapita: 33800, population: 124, currency: 'Yen (JPY)',
+      exports: ['Autos', 'Maquinaria', 'Chips', 'Acero'],
+      imports: ['Petróleo crudo', 'Gas natural licuado', 'Carbón', 'Ropa'] },
+    { name: 'Arabia Saudita', flag: '🇸🇦', continent: 'Asia',
+      gdp: 1100, perCapita: 32400, population: 36, currency: 'Riyal (SAR)',
+      exports: ['Petróleo crudo', 'Petróleo refinado', 'Productos químicos', 'Plásticos'],
+      imports: ['Autos', 'Maquinaria', 'Productos farmacéuticos', 'Hierro y acero'] },
+    { name: 'Brasil', flag: '🇧🇷', continent: 'América',
+      gdp: 2100, perCapita: 10000, population: 215, currency: 'Real (BRL)',
+      exports: ['Soja', 'Mineral de hierro', 'Petróleo crudo', 'Carne'],
+      imports: ['Petróleo refinado', 'Autos', 'Fertilizantes', 'Maquinaria'] },
+    { name: 'Argentina', flag: '🇦🇷', continent: 'América',
+      gdp: 640, perCapita: 13700, population: 46, currency: 'Peso (ARS)',
+      exports: ['Harina de soja', 'Maíz', 'Carne vacuna', 'Trigo'],
+      imports: ['Autos', 'Gas natural', 'Productos químicos', 'Maquinaria'] },
+    { name: 'Chile', flag: '🇨🇱', continent: 'América',
+      gdp: 310, perCapita: 15800, population: 19, currency: 'Peso chileno (CLP)',
+      exports: ['Cobre refinado', 'Mineral de cobre', 'Salmón', 'Frutas'],
+      imports: ['Petróleo refinado', 'Autos', 'Maquinaria', 'Petróleo crudo'] },
+    { name: 'Australia', flag: '🇦🇺', continent: 'Oceanía',
+      gdp: 1700, perCapita: 64500, population: 26, currency: 'Dólar AUD',
+      exports: ['Mineral de hierro', 'Carbón', 'Gas natural licuado', 'Oro'],
+      imports: ['Petróleo refinado', 'Autos', 'Petróleo crudo', 'Maquinaria'] },
+    { name: 'Canadá', flag: '🇨🇦', continent: 'América',
+      gdp: 2100, perCapita: 53700, population: 39, currency: 'Dólar CAD',
+      exports: ['Petróleo crudo', 'Autos', 'Oro', 'Madera'],
+      imports: ['Autos', 'Maquinaria', 'Electrónicos', 'Productos químicos'] },
+    { name: 'Suiza', flag: '🇨🇭', continent: 'Europa',
+      gdp: 870, perCapita: 99000, population: 8.8, currency: 'Franco suizo (CHF)',
+      exports: ['Oro', 'Productos farmacéuticos', 'Relojes', 'Maquinaria'],
+      imports: ['Oro', 'Productos farmacéuticos', 'Autos', 'Productos químicos'] },
+    { name: 'Países Bajos', flag: '🇳🇱', continent: 'Europa',
+      gdp: 1100, perCapita: 61100, population: 17.8, currency: 'Euro (EUR)',
+      exports: ['Petróleo refinado', 'Maquinaria', 'Flores', 'Equipos médicos'],
+      imports: ['Petróleo crudo', 'Maquinaria', 'Autos', 'Electrónicos'] },
+    { name: 'Corea del Sur', flag: '🇰🇷', continent: 'Asia',
+      gdp: 1700, perCapita: 33100, population: 52, currency: 'Won (KRW)',
+      exports: ['Chips', 'Autos', 'Barcos', 'Petróleo refinado'],
+      imports: ['Petróleo crudo', 'Gas natural', 'Chips', 'Carbón'] },
+    { name: 'Singapur', flag: '🇸🇬', continent: 'Asia',
+      gdp: 500, perCapita: 84700, population: 5.9, currency: 'Dólar SGD',
+      exports: ['Chips', 'Petróleo refinado', 'Oro', 'Maquinaria'],
+      imports: ['Chips', 'Petróleo refinado', 'Petróleo crudo', 'Oro'] },
+    { name: 'India', flag: '🇮🇳', continent: 'Asia',
+      gdp: 3700, perCapita: 2600, population: 1428, currency: 'Rupia (INR)',
+      exports: ['Petróleo refinado', 'Joyas', 'Productos farmacéuticos', 'Arroz'],
+      imports: ['Petróleo crudo', 'Oro', 'Carbón', 'Gas natural'] },
+    { name: 'Francia', flag: '🇫🇷', continent: 'Europa',
+      gdp: 3000, perCapita: 44500, population: 68, currency: 'Euro (EUR)',
+      exports: ['Aviones', 'Productos farmacéuticos', 'Vino', 'Autos'],
+      imports: ['Autos', 'Petróleo crudo', 'Gas natural', 'Productos farmacéuticos'] },
+    { name: 'Italia', flag: '🇮🇹', continent: 'Europa',
+      gdp: 2200, perCapita: 37700, population: 59, currency: 'Euro (EUR)',
+      exports: ['Maquinaria', 'Autos', 'Productos farmacéuticos', 'Vino'],
+      imports: ['Petróleo crudo', 'Autos', 'Gas natural', 'Maquinaria'] },
+    { name: 'México', flag: '🇲🇽', continent: 'América',
+      gdp: 1800, perCapita: 13900, population: 129, currency: 'Peso (MXN)',
+      exports: ['Autos', 'Electrónica', 'Petróleo crudo', 'Cerveza'],
+      imports: ['Chips', 'Autopartes', 'Petróleo refinado', 'Plásticos'] },
+    { name: 'Tailandia', flag: '🇹🇭', continent: 'Asia',
+      gdp: 510, perCapita: 7100, population: 72, currency: 'Baht (THB)',
+      exports: ['Autos', 'Computadoras', 'Caucho', 'Arroz'],
+      imports: ['Petróleo crudo', 'Chips', 'Oro', 'Maquinaria'] },
+    { name: 'Sudáfrica', flag: '🇿🇦', continent: 'África',
+      gdp: 400, perCapita: 6500, population: 62, currency: 'Rand (ZAR)',
+      exports: ['Oro', 'Platino', 'Carbón', 'Mineral de hierro'],
+      imports: ['Petróleo refinado', 'Petróleo crudo', 'Autos', 'Maquinaria'] },
+    { name: 'Nigeria', flag: '🇳🇬', continent: 'África',
+      gdp: 470, perCapita: 2100, population: 224, currency: 'Naira (NGN)',
+      exports: ['Petróleo crudo', 'Gas natural licuado', 'Cacao', 'Petróleo refinado'],
+      imports: ['Petróleo refinado', 'Trigo', 'Maquinaria', 'Autos'] },
+    { name: 'Rusia', flag: '🇷🇺', continent: 'Europa',
+      gdp: 2000, perCapita: 13800, population: 144, currency: 'Rublo (RUB)',
+      exports: ['Petróleo crudo', 'Gas natural', 'Carbón', 'Trigo'],
+      imports: ['Maquinaria', 'Autos', 'Productos farmacéuticos', 'Electrónicos'] },
+    { name: 'Israel', flag: '🇮🇱', continent: 'Asia',
+      gdp: 520, perCapita: 54300, population: 9.7, currency: 'Shekel (ILS)',
+      exports: ['Diamantes', 'Chips', 'Productos farmacéuticos', 'Equipos médicos'],
+      imports: ['Diamantes', 'Petróleo crudo', 'Autos', 'Chips'] },
+    { name: 'España', flag: '🇪🇸', continent: 'Europa',
+      gdp: 1600, perCapita: 33100, population: 48, currency: 'Euro (EUR)',
+      exports: ['Autos', 'Petróleo refinado', 'Productos farmacéuticos', 'Aceite de oliva'],
+      imports: ['Petróleo crudo', 'Autos', 'Gas natural', 'Maquinaria'] },
+    { name: 'Reino Unido', flag: '🇬🇧', continent: 'Europa',
+      gdp: 3300, perCapita: 48900, population: 67, currency: 'Libra (GBP)',
+      exports: ['Oro', 'Autos', 'Maquinaria', 'Productos farmacéuticos'],
+      imports: ['Oro', 'Autos', 'Petróleo crudo', 'Productos farmacéuticos'] },
+    { name: 'Noruega', flag: '🇳🇴', continent: 'Europa',
+      gdp: 480, perCapita: 87900, population: 5.5, currency: 'Corona NOK',
+      exports: ['Petróleo crudo', 'Gas natural', 'Pescado', 'Aluminio'],
+      imports: ['Autos', 'Maquinaria', 'Electrónicos', 'Productos farmacéuticos'] },
+    { name: 'Nueva Zelanda', flag: '🇳🇿', continent: 'Oceanía',
+      gdp: 250, perCapita: 48800, population: 5.2, currency: 'Dólar NZD',
+      exports: ['Lácteos', 'Carne', 'Madera', 'Vino'],
+      imports: ['Autos', 'Petróleo refinado', 'Maquinaria', 'Electrónicos'] },
+    { name: 'Vietnam', flag: '🇻🇳', continent: 'Asia',
+      gdp: 430, perCapita: 4300, population: 100, currency: 'Dong (VND)',
+      exports: ['Electrónica', 'Ropa', 'Calzado', 'Café'],
+      imports: ['Chips', 'Petróleo refinado', 'Tela', 'Acero'] },
+    { name: 'Indonesia', flag: '🇮🇩', continent: 'Asia',
+      gdp: 1400, perCapita: 5000, population: 278, currency: 'Rupia (IDR)',
+      exports: ['Carbón', 'Aceite de palma', 'Níquel', 'Petróleo refinado'],
+      imports: ['Petróleo refinado', 'Petróleo crudo', 'Chips', 'Maquinaria'] },
+    { name: 'Turquía', flag: '🇹🇷', continent: 'Asia',
+      gdp: 1100, perCapita: 13000, population: 86, currency: 'Lira (TRY)',
+      exports: ['Autos', 'Maquinaria', 'Ropa', 'Joyas'],
+      imports: ['Petróleo crudo', 'Oro', 'Petróleo refinado', 'Chips'] },
+    { name: 'Irlanda', flag: '🇮🇪', continent: 'Europa',
+      gdp: 590, perCapita: 113900, population: 5.2, currency: 'Euro (EUR)',
+      exports: ['Productos farmacéuticos', 'Equipos médicos', 'Software', 'Lácteos'],
+      imports: ['Aviones', 'Productos farmacéuticos', 'Computadoras', 'Petróleo refinado'] },
+    { name: 'Emiratos Árabes Unidos', flag: '🇦🇪', continent: 'Asia',
+      gdp: 510, perCapita: 53800, population: 9.5, currency: 'Dirham (AED)',
+      exports: ['Petróleo crudo', 'Oro', 'Petróleo refinado', 'Joyas'],
+      imports: ['Oro', 'Joyas', 'Autos', 'Joyería'] },
+  ];
+
+  // -------- formatting --------
+  const NF = new Intl.NumberFormat('es-AR');
+  const NF1 = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+  function formatGdp(gdpBillion) {
+    // gdpBillion = miles de millones USD. >=1000 → mostrar en billones (1 billón = 1.000.000 millones es-AR).
+    if (gdpBillion >= 1000) {
+      return `USD ${NF1.format(gdpBillion / 1000)} bill.`;
+    }
+    return `USD ${NF.format(gdpBillion)} mil mill.`;
+  }
+  function formatPerCapita(usd) {
+    return `USD ${NF.format(usd)}`;
+  }
+  function formatPopulation(millions) {
+    if (millions < 10) return `${NF1.format(millions)} mill.`;
+    return `${NF.format(Math.round(millions))} mill.`;
+  }
+
+  // -------- hint configuration --------
+  // Each hint, when unlocked, drops the round's potential by `cost` points.
+  // Continente, exportaciones e importaciones se muestran gratis siempre, son
+  // el anclaje del juego. Las pistas pagas son los datos cuantitativos y la
+  // ayuda más fuerte: revelar las 4 opciones múltiples.
+  const ROUND_MAX = 100;
+  const HINTS = [
+    { id: 'currency', label: 'Moneda', cost: 20, format: c => c.currency, kind: 'banknote' },
+  ];
+
+  // -------- currency → symbol + visual palette --------
+  const CURRENCY_SYMBOLS = {
+    CNY: '¥', USD: '$', EUR: '€', JPY: '¥', SAR: '﷼',
+    BRL: 'R$', ARS: '$', CLP: '$', AUD: 'A$', CAD: 'C$',
+    CHF: '₣', KRW: '₩', SGD: 'S$', INR: '₹', MXN: '$',
+    THB: '฿', ZAR: 'R', NGN: '₦', RUB: '₽', ILS: '₪',
+    GBP: '£', NOK: 'kr', NZD: 'NZ$', VND: '₫', IDR: 'Rp',
+    TRY: '₺', AED: 'د.إ',
+  };
+  // Bill colour palettes — pick deterministically from the currency code so
+  // every currency keeps a consistent look across rounds.
+  const NOTE_PALETTES = [
+    { from: '#f5e3a8', to: '#e9d180', border: '#a4842d', ink: '#5c4420' }, // sand
+    { from: '#cfe7c6', to: '#9ad28b', border: '#4f7e3d', ink: '#2e5a1a' }, // mint
+    { from: '#d4e2f0', to: '#9ec1e2', border: '#4a78b2', ink: '#1f4775' }, // sky
+    { from: '#f0d6dd', to: '#e29eb4', border: '#a85272', ink: '#7a2e44' }, // rose
+    { from: '#dccbef', to: '#b298d6', border: '#785092', ink: '#48266b' }, // lilac
+    { from: '#f3d7bb', to: '#e7b27d', border: '#a96a30', ink: '#6b3e15' }, // amber
+  ];
+  function extractCurrencyCode(str) {
+    if (!str) return null;
+    const m = str.match(/\(([A-Z]{3})\)/) || str.match(/\b([A-Z]{3})\b/);
+    return m ? m[1] : null;
+  }
+  function paletteFor(code) {
+    let h = 0;
+    for (let i = 0; i < (code || '').length; i++) {
+      h = ((h << 5) - h + code.charCodeAt(i)) | 0;
+    }
+    return NOTE_PALETTES[Math.abs(h) % NOTE_PALETTES.length];
+  }
+  function showBanknote(country) {
+    const code = extractCurrencyCode(country.currency) || '???';
+    const name = country.currency.replace(/\s*\([A-Z]{3}\)\s*/, '').replace(/\s*[A-Z]{3}\s*$/, '').trim() || country.currency;
+    const symbol = CURRENCY_SYMBOLS[code] || code;
+    const pal = paletteFor(code);
+    const bn = $('banknote');
+    bn.style.setProperty('--note-bg-from', pal.from);
+    bn.style.setProperty('--note-bg-to',   pal.to);
+    bn.style.setProperty('--note-border',  pal.border);
+    bn.style.setProperty('--note-ink',     pal.ink);
+    bn.style.color = pal.ink;
+    bn.style.borderColor = pal.border;
+    $('bnCodeTL').textContent = code;
+    $('bnCodeBR').textContent = code;
+    $('bnSymbol').textContent = symbol;
+    $('bnName').textContent = name;
+    bn.hidden = false;
+    // Re-trigger pop animation.
+    bn.style.animation = 'none';
+    void bn.offsetWidth;
+    bn.style.animation = '';
+  }
+  function hideBanknote() {
+    $('banknote').hidden = true;
+  }
+
+  // -------- game state --------
+  const STATE = {
+    totalScore: 0,       // cumulative across rounds
+    streak: 0,
+    answered: false,
+    currentIdx: -1,
+    options: [],
+    correctOption: -1,
+    recent: [],          // indices of recently shown to avoid quick repeats
+    potential: ROUND_MAX,
+    revealed: new Set(),
+  };
+
+  const $ = id => document.getElementById(id);
+  const tag = (text, cls) => {
+    const el = document.createElement('span');
+    el.className = `tag ${cls}`;
+    el.textContent = text;
+    return el;
+  };
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function pickCountry() {
+    // Avoid the last ~6 picks so repetitions don't feel cheap.
+    const recent = new Set(STATE.recent);
+    const pool = [];
+    for (let i = 0; i < COUNTRIES.length; i++) if (!recent.has(i)) pool.push(i);
+    if (pool.length === 0) return Math.floor(Math.random() * COUNTRIES.length);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  function pickDistractors(correctIdx, count = 3) {
+    const correct = COUNTRIES[correctIdx];
+    // Prefer distractors from same continent (more challenging), fill the rest at random.
+    const sameContinent = [];
+    const otherContinent = [];
+    for (let i = 0; i < COUNTRIES.length; i++) {
+      if (i === correctIdx) continue;
+      if (COUNTRIES[i].continent === correct.continent) sameContinent.push(i);
+      else otherContinent.push(i);
+    }
+    shuffle(sameContinent);
+    shuffle(otherContinent);
+    const picks = [];
+    while (picks.length < count && sameContinent.length) picks.push(sameContinent.shift());
+    while (picks.length < count && otherContinent.length) picks.push(otherContinent.shift());
+    return picks;
+  }
+
+  function startRound() {
+    STATE.answered = false;
+    STATE.potential = ROUND_MAX;
+    STATE.revealed = new Set();
+    STATE.currentIdx = pickCountry();
+    STATE.recent.push(STATE.currentIdx);
+    if (STATE.recent.length > 6) STATE.recent.shift();
+
+    const distractors = pickDistractors(STATE.currentIdx, 3);
+    const options = shuffle([STATE.currentIdx, ...distractors]);
+    STATE.options = options;
+    STATE.correctOption = options.indexOf(STATE.currentIdx);
+
+    renderCountry(COUNTRIES[STATE.currentIdx]);
+    renderOptions(options);
+    // Las 4 opciones se muestran de arranque para que el juego sea accesible.
+    $('optionsRow').style.display = 'grid';
+    hideBanknote();
+    $('resultCard').classList.remove('show', 'correct', 'wrong');
+    const input = $('guessInput');
+    input.value = '';
+    input.disabled = false;
+    input.classList.remove('error');
+    $('guessBtn').disabled = false;
+    input.focus();
+    updateScore();
+  }
+
+  function renderCountry(c) {
+    $('freeContinent').textContent  = c.continent;
+    $('freeGdp').textContent        = formatGdp(c.gdp);
+    $('freePerCapita').textContent  = formatPerCapita(c.perCapita);
+    $('freePopulation').textContent = formatPopulation(c.population);
+    // Always-visible imports and exports.
+    const exp = $('freeExports');
+    exp.innerHTML = '';
+    c.exports.forEach(e => exp.appendChild(tag(e, 'export')));
+    const imp = $('freeImports');
+    imp.innerHTML = '';
+    c.imports.forEach(e => imp.appendChild(tag(e, 'import')));
+    renderHints(c);
+  }
+
+  function renderHints(c) {
+    const grid = $('hintsGrid');
+    grid.innerHTML = '';
+    for (const h of HINTS) {
+      const isRevealed = STATE.revealed.has(h.id);
+      const card = document.createElement(isRevealed ? 'div' : 'button');
+      card.className = 'hint';
+
+      if (isRevealed) {
+        card.innerHTML = `<span class="hint-label">${h.label}</span>`;
+        const val = document.createElement('span');
+        val.className = 'hint-value';
+        if (h.kind === 'reveal-options') {
+          val.textContent = '✓ Opciones reveladas';
+          val.style.color = 'var(--green)';
+        } else if (h.kind === 'banknote') {
+          val.textContent = '✓ Revelada arriba ↑';
+          val.style.color = 'var(--green)';
+        } else {
+          val.textContent = h.format(c);
+        }
+        card.appendChild(val);
+      } else {
+        card.classList.add('locked');
+        card.type = 'button';
+        card.disabled = STATE.answered;
+        card.innerHTML = `
+          <span class="hint-lock"><span class="ico">🔒</span>${h.label}</span>
+          <span class="hint-cost">Desbloquear · <b>−${h.cost}</b> pts</span>
+        `;
+        card.addEventListener('click', () => revealHint(h.id));
+      }
+      grid.appendChild(card);
+    }
+  }
+
+  function revealHint(id) {
+    if (STATE.answered) return;
+    if (STATE.revealed.has(id)) return;
+    const h = HINTS.find(x => x.id === id);
+    if (!h) return;
+    STATE.revealed.add(id);
+    STATE.potential = Math.max(0, STATE.potential - h.cost);
+    if (h.kind === 'reveal-options') {
+      $('optionsRow').style.display = 'grid';
+    }
+    if (h.kind === 'banknote') {
+      showBanknote(COUNTRIES[STATE.currentIdx]);
+    }
+    renderHints(COUNTRIES[STATE.currentIdx]);
+    updateScore();
+  }
+
+  function renderOptions(options) {
+    const row = $('optionsRow');
+    row.innerHTML = '';
+    options.forEach((idx, i) => {
+      const c = COUNTRIES[idx];
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.dataset.index = i;
+      btn.dataset.country = idx;
+      btn.innerHTML = `<span class="key">${i + 1}</span><span>${c.name}</span>`;
+      btn.addEventListener('click', () => submitGuess(idx));
+      row.appendChild(btn);
+    });
+  }
+
+  // Normalize text for forgiving country-name matching: lowercase + strip
+  // diacritics + collapse whitespace.
+  function normalize(s) {
+    return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  // Optional aliases so common shortenings still match.
+  const NAME_ALIASES = {
+    'Estados Unidos': ['eeuu', 'ee uu', 'ee.uu.', 'usa', 'estados unidos de america'],
+    'Reino Unido':    ['uk', 'inglaterra', 'gran bretana'],
+    'Países Bajos':   ['holanda'],
+    'Emiratos Árabes Unidos': ['eau', 'emiratos'],
+    'Corea del Sur':  ['corea'],
+    'Arabia Saudita': ['arabia saudi'],
+  };
+  function findCountryByText(text) {
+    const norm = normalize(text);
+    if (!norm) return -1;
+    for (let i = 0; i < COUNTRIES.length; i++) {
+      if (normalize(COUNTRIES[i].name) === norm) return i;
+      const aliases = NAME_ALIASES[COUNTRIES[i].name];
+      if (aliases && aliases.some(a => normalize(a) === norm)) return i;
+    }
+    return -1;
+  }
+
+  function submitTypedGuess() {
+    if (STATE.answered) return;
+    const input = $('guessInput');
+    const idx = findCountryByText(input.value);
+    if (idx === -1) {
+      // Country not recognized — shake the input, don't penalize.
+      input.classList.remove('error');
+      void input.offsetWidth;
+      input.classList.add('error');
+      return;
+    }
+    submitGuess(idx);
+  }
+
+  function submitGuess(countryIdx) {
+    if (STATE.answered) return;
+    STATE.answered = true;
+    const correct = countryIdx === STATE.currentIdx;
+    // Highlight any visible options.
+    document.querySelectorAll('.option').forEach(b => {
+      const cidx = parseInt(b.dataset.country, 10);
+      b.disabled = true;
+      if (cidx === STATE.currentIdx)      b.classList.add('correct');
+      else if (cidx === countryIdx)       b.classList.add('wrong');
+      else                                b.classList.add('faded');
+    });
+    // Lock remaining hint buttons and the input.
+    document.querySelectorAll('.hint.locked').forEach(b => b.disabled = true);
+    $('guessInput').disabled = true;
+    $('guessBtn').disabled   = true;
+    // Symmetric scoring: you gain what's left on a correct call, and lose
+    // the same amount on a wrong one — so being cautious (paying for hints)
+    // also caps your downside.
+    let delta = 0;
+    if (correct) {
+      STATE.streak++;
+      delta = STATE.potential;
+    } else {
+      STATE.streak = 0;
+      delta = -STATE.potential;
+    }
+    STATE.totalScore += delta;
+    updateScore();
+    showResult(correct, delta, countryIdx);
+  }
+
+  function showResult(correct, delta, guessedIdx) {
+    const country = COUNTRIES[STATE.currentIdx];
+    const card = $('resultCard');
+    card.classList.add('show', correct ? 'correct' : 'wrong');
+    $('resultFlag').textContent = country.flag;
+    if (correct) {
+      $('resultHead').textContent = `¡Correcto! +${delta} pts`;
+      $('resultName').textContent = country.name;
+    } else {
+      const guessed = guessedIdx != null ? COUNTRIES[guessedIdx] : null;
+      $('resultHead').textContent = `No, era ${country.name} · ${delta} pts`;
+      $('resultName').textContent = guessed
+        ? `Tu respuesta: ${guessed.flag} ${guessed.name}`
+        : '—';
+    }
+  }
+
+  function updateScore() {
+    $('totalScoreVal').textContent = STATE.totalScore;
+    $('streakVal').textContent = STATE.streak;
+    $('potentialVal').textContent = STATE.potential;
+    const chip = $('potentialChip');
+    chip.classList.remove('low', 'gone');
+    if (STATE.potential <= 0) chip.classList.add('gone');
+    else if (STATE.potential <= 40) chip.classList.add('low');
+  }
+
+  $('nextBtn').addEventListener('click', startRound);
+  $('guessBtn').addEventListener('click', submitTypedGuess);
+  $('guessInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitTypedGuess(); }
+  });
+  window.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    // Number keys only work for the options shortcut when those options are
+    // actually visible AND the input doesn't have focus.
+    const inputFocused = document.activeElement === $('guessInput');
+    if (!inputFocused && e.key >= '1' && e.key <= '4' && !STATE.answered) {
+      if (STATE.revealed.has('options')) {
+        const opt = document.querySelectorAll('.option')[parseInt(e.key, 10) - 1];
+        if (opt && !opt.disabled) opt.click();
+      }
+    } else if ((e.key === 'Enter' || e.key === ' ') && STATE.answered) {
+      e.preventDefault();
+      startRound();
+    }
+  });
+
+  // Populate the datalist with all country names so the browser can autocomplete.
+  (function buildDatalist() {
+    const dl = $('countryList');
+    for (const c of COUNTRIES) {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      dl.appendChild(opt);
+    }
+  })();
+
+  // boot
+  updateScore();
+  startRound();
+</script>
+</body>
+</html>
