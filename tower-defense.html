@@ -61,27 +61,55 @@
   /* ---------- HUD (top right) ---------- */
   .hud {
     position: fixed;
-    top: 26px; right: 28px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 10px 14px 12px;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 10;
-    box-shadow: var(--shadow);
-    min-width: 280px;
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    pointer-events: none; /* let chips opt in below, so empty space passes through */
   }
-  .hud-row { display: flex; gap: 14px; justify-content: space-between; align-items: baseline; }
+  .hud-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    justify-content: center;
+    pointer-events: auto;
+  }
+  .hud-row.stats {
+    background: rgba(255, 253, 248, 0.86);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid rgba(60, 45, 30, 0.10);
+    border-radius: 999px;
+    padding: 5px;
+    box-shadow: 0 10px 28px -16px rgba(40, 30, 18, 0.35), 0 2px 6px -3px rgba(40, 30, 18, 0.15);
+  }
+  .hud-row.wave-row { background: transparent; border: none; box-shadow: none; }
   .res {
-    display: flex; align-items: baseline; gap: 4px;
-    font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 14px;
+    font-size: 14px; font-weight: 700;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
     transition: color 0.2s;
+    position: relative;
+    white-space: nowrap;
   }
-  .res .ico { font-size: 13px; margin-right: 2px; }
+  .res + .res::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 22%;
+    width: 1px; height: 56%;
+    background: rgba(60, 45, 30, 0.14);
+  }
+  .res .ico { font-size: 14px; margin-right: 0; }
   .res.bump { animation: bump 0.3s ease-out; }
   @keyframes bump {
     0%   { transform: scale(1); }
@@ -108,11 +136,12 @@
   .wave-btn.fast:hover { background: #b88a13; }
   .wave-btn:disabled { background: #c8c2b4; cursor: not-allowed; box-shadow: none; }
   .hud-icon-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    border: 1px solid var(--line);
-    background: var(--panel);
+    width: 30px;
+    height: 30px;
+    margin-left: 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(60, 45, 30, 0.14);
+    background: rgba(255, 255, 255, 0.6);
     color: var(--muted);
     font-size: 14px;
     line-height: 1;
@@ -122,6 +151,8 @@
     font-family: inherit;
   }
   .hud-icon-btn:hover { background: #faf5ea; color: var(--ink); }
+  /* No vertical separator before the reset button */
+  .res + .hud-icon-btn::before { content: none; }
 
   /* ---------- Sims-style bottom dock ---------- */
   .dock {
@@ -536,7 +567,7 @@
   </div>
 
   <div class="hud" id="hud">
-    <div class="hud-row">
+    <div class="hud-row stats">
       <div class="res" id="resLives" title="Lives — lost when an enemy escapes">
         <span class="ico">❤️</span><span class="val">20</span>
       </div>
@@ -544,11 +575,11 @@
         <span class="ico">🪙</span><span class="val">120</span>
       </div>
       <div class="res" id="resWave" title="Current wave">
-        <span class="ico">🌊</span><span class="val">0</span><span style="color:var(--muted); font-weight:500; margin-left:2px;">/ 15</span>
+        <span class="ico">⚔️</span><span class="val">0</span><span style="color:var(--muted); font-weight:500; margin-left:2px;">/ 15</span>
       </div>
       <button class="hud-icon-btn" id="reset" title="Reset game (R)">↺</button>
     </div>
-    <div class="hud-row" style="justify-content:flex-end; gap:6px;">
+    <div class="hud-row wave-row">
       <button class="wave-btn" id="waveBtn">▶ Start Wave 1</button>
     </div>
   </div>
@@ -603,6 +634,17 @@
       <div class="go-stat"><span>Gold left</span><b id="winGold">0</b></div>
       <div class="go-actions">
         <button class="go-btn primary" id="winRestart">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="confirmReset">
+    <div class="modal-card">
+      <h2>Reset run — <em>are you sure?</em></h2>
+      <div class="go-stat"><span>All towers and progress will be lost.</span></div>
+      <div class="go-actions">
+        <button class="go-btn" id="resetCancel">Cancel</button>
+        <button class="go-btn primary lose" id="resetConfirm">Reset</button>
       </div>
     </div>
   </div>
@@ -1483,7 +1525,21 @@
     gameOver: false,
     fastForward: false,
     selectedTower: null,
+    // Seconds left until the next wave auto-starts. 0 = inactive (e.g. before
+    // wave 1, while a wave is running, or after the final wave).
+    autoNextTimer: 0,
   };
+
+  // Between waves the player gets a countdown to decide when to send the next
+  // wave. Clicking the button before the countdown ends pays an early bonus
+  // that decays linearly from the full amount to 0 as time runs out.
+  const AUTO_NEXT_DELAY = 6; // seconds between waves
+  function earlyBonusFor(nextWave, remaining) {
+    if (remaining <= 0) return 0;
+    const ratio = Math.max(0, Math.min(1, remaining / AUTO_NEXT_DELAY));
+    const maxBonus = 8 + nextWave * 3;
+    return Math.floor(maxBonus * ratio);
+  }
 
   // -------- HUD updates --------
   function bumpRes(id) {
@@ -1505,22 +1561,7 @@
     setVal('resGold',  STATE.gold);
     setVal('resWave',  STATE.wave);
 
-    // Wave button label
-    const btn = document.getElementById('waveBtn');
-    if (STATE.gameOver) {
-      btn.disabled = true;
-      btn.textContent = 'Game over';
-    } else if (STATE.inWave) {
-      btn.disabled = false;
-      btn.classList.add('fast');
-      btn.textContent = STATE.fastForward ? '⏩ Fast ×3' : '⏩ Fast forward';
-    } else {
-      btn.disabled = false;
-      btn.classList.remove('fast');
-      const next = STATE.wave + 1;
-      btn.textContent = next > STATE.maxWave ? '✓ All waves cleared' : `▶ Start Wave ${next}`;
-      if (next > STATE.maxWave) btn.disabled = true;
-    }
+    updateWaveButton();
 
     // Refresh dock affordability tints
     document.querySelectorAll('.dock-item').forEach(it => {
@@ -2221,6 +2262,45 @@
   }
 
   // -------- wave control --------
+  function updateWaveButton() {
+    const btn = document.getElementById('waveBtn');
+    if (!btn) return;
+    if (STATE.gameOver) {
+      btn.disabled = true;
+      btn.classList.remove('fast');
+      btn.textContent = 'Game over';
+      return;
+    }
+    if (STATE.inWave) {
+      btn.disabled = false;
+      btn.classList.add('fast');
+      btn.textContent = STATE.fastForward ? '⏩ Fast ×3' : '⏩ Fast forward';
+      return;
+    }
+    const next = STATE.wave + 1;
+    if (next > STATE.maxWave) {
+      btn.disabled = true;
+      btn.classList.remove('fast');
+      btn.textContent = '✓ All waves cleared';
+      return;
+    }
+    btn.disabled = false;
+    if (STATE.autoNextTimer > 0) {
+      const bonus = earlyBonusFor(next, STATE.autoNextTimer);
+      const secs = Math.ceil(STATE.autoNextTimer);
+      if (bonus > 0) {
+        btn.classList.add('fast');
+        btn.textContent = `⚡ Send Wave ${next} · +${bonus} 🪙  (auto ${secs}s)`;
+      } else {
+        btn.classList.remove('fast');
+        btn.textContent = `▶ Wave ${next}  (auto ${secs}s)`;
+      }
+    } else {
+      btn.classList.remove('fast');
+      btn.textContent = `▶ Start Wave ${next}`;
+    }
+  }
+
   function startNextWave() {
     if (STATE.gameOver) return;
     if (STATE.inWave) {
@@ -2229,7 +2309,18 @@
       return;
     }
     if (STATE.wave >= STATE.maxWave) return;
-    STATE.wave++;
+    const nextWave = STATE.wave + 1;
+    // Early-start bonus: only paid when the player beats the countdown.
+    if (STATE.autoNextTimer > 0) {
+      const bonus = earlyBonusFor(nextWave, STATE.autoNextTimer);
+      if (bonus > 0) {
+        STATE.gold += bonus;
+        bumpRes('resGold');
+        showToast(`Early start! +${bonus} 🪙`, '⚡');
+      }
+    }
+    STATE.autoNextTimer = 0;
+    STATE.wave = nextWave;
     STATE.inWave = true;
     STATE.spawnQueue = buildWave(STATE.wave);
     STATE.spawnTimer = 0;
@@ -2257,8 +2348,28 @@
       STATE.gold += bonus;
       bumpRes('resGold');
       showToast(`Wave ${STATE.wave} cleared! +${bonus} 🪙`, '✨');
-      updateHud();
-      if (STATE.wave >= STATE.maxWave) onWin();
+      if (STATE.wave >= STATE.maxWave) {
+        updateHud();
+        onWin();
+      } else {
+        // Kick off the auto-start countdown for the next wave.
+        STATE.autoNextTimer = AUTO_NEXT_DELAY;
+        updateHud();
+      }
+    }
+  }
+
+  function tickAutoNext(dt) {
+    if (STATE.gameOver) return;
+    if (STATE.inWave) return;
+    if (STATE.autoNextTimer <= 0) return;
+    if (STATE.wave >= STATE.maxWave) return;
+    STATE.autoNextTimer -= dt;
+    if (STATE.autoNextTimer <= 0) {
+      STATE.autoNextTimer = 0;
+      startNextWave();
+    } else {
+      updateWaveButton();
     }
   }
 
@@ -2300,6 +2411,7 @@
     STATE.inWave = false;
     STATE.fastForward = false;
     STATE.gameOver = false;
+    STATE.autoNextTimer = 0;
     STATE.selectedTool = null;
     closeInfoPanel();
     document.getElementById('gameOver').classList.remove('show');
@@ -2309,7 +2421,27 @@
     showToast('Game reset — defend your town!', '🛡️');
   }
 
-  document.getElementById('reset').addEventListener('click', resetGame);
+  // Reset confirmation: in-game reset (button + R key) goes through a modal.
+  // The post-game modals (loseRestart / winRestart) reset immediately because
+  // the run is already over.
+  const resetModal = document.getElementById('confirmReset');
+  function openResetConfirm() {
+    if (STATE.gameOver) { resetGame(); return; }
+    resetModal.classList.add('show');
+  }
+  function closeResetConfirm() {
+    resetModal.classList.remove('show');
+  }
+  document.getElementById('reset').addEventListener('click', openResetConfirm);
+  document.getElementById('resetCancel').addEventListener('click', closeResetConfirm);
+  document.getElementById('resetConfirm').addEventListener('click', () => {
+    closeResetConfirm();
+    resetGame();
+  });
+  // Click on the backdrop closes the confirm modal.
+  resetModal.addEventListener('click', e => {
+    if (e.target === resetModal) closeResetConfirm();
+  });
   document.getElementById('loseRestart').addEventListener('click', resetGame);
   document.getElementById('winRestart').addEventListener('click', resetGame);
 
@@ -2778,6 +2910,7 @@
     if (!STATE.gameOver) {
       const realDt = STATE.fastForward ? dt * 3 : dt;
       tickWave(dt);
+      tickAutoNext(dt);
       tickEnemies(realDt);
       tickTowers(realDt);
       tickProjectiles(realDt);
@@ -2803,8 +2936,12 @@
     if (e.key === '2') { STATE.selectedTool = STATE.selectedTool === 'cannon' ? null : 'cannon'; updateActiveDockItem(); }
     if (e.key === '3') { STATE.selectedTool = STATE.selectedTool === 'magic'  ? null : 'magic';  updateActiveDockItem(); }
     if (e.key === '4' || e.key.toLowerCase() === 's') { STATE.selectedTool = STATE.selectedTool === 'sell' ? null : 'sell'; updateActiveDockItem(); }
-    if (e.key.toLowerCase() === 'r') resetGame();
+    if (e.key.toLowerCase() === 'r') openResetConfirm();
     if (e.key === 'Escape') {
+      if (resetModal.classList.contains('show')) {
+        closeResetConfirm();
+        return;
+      }
       STATE.selectedTool = null;
       updateActiveDockItem();
       closeInfoPanel();
