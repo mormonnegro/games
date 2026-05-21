@@ -303,20 +303,30 @@
     pineLite:  new THREE.MeshLambertMaterial({ color: 0x4ea64a }),
     wallCream: new THREE.MeshLambertMaterial({ color: 0xf2dfb0 }),
     wallTrim:  new THREE.MeshLambertMaterial({ color: 0xe5cf99 }),
-    roofBlue:  new THREE.MeshLambertMaterial({ color: 0x2a6dd1 }),
-    roofBlueD: new THREE.MeshLambertMaterial({ color: 0x1d4d9c }),
-    door:      new THREE.MeshLambertMaterial({ color: 0x7a4a2e }),
-    windowB:   new THREE.MeshLambertMaterial({ color: 0x88c8ff }),
-    chimney:   new THREE.MeshLambertMaterial({ color: 0xc9c4ba }),
-    knob:      new THREE.MeshLambertMaterial({ color: 0xe8c050 }),
+    foundation:new THREE.MeshLambertMaterial({ color: 0xa39c8c }),
+    foundationD: new THREE.MeshLambertMaterial({ color: 0x756f63 }),
+    roofTile:  new THREE.MeshLambertMaterial({ color: 0xc2643a }),  // terracotta
+    roofTileD: new THREE.MeshLambertMaterial({ color: 0x8d4326 }),
+    door:      new THREE.MeshLambertMaterial({ color: 0x6b4423 }),
+    doorFrame: new THREE.MeshLambertMaterial({ color: 0x3e2510 }),
+    winFrame:  new THREE.MeshLambertMaterial({ color: 0xf6f1e2 }),
+    winGlass:  new THREE.MeshLambertMaterial({ color: 0x88c8ff }),
+    chimney:   new THREE.MeshLambertMaterial({ color: 0xa55a3f }),  // brick
+    chimneyCap:new THREE.MeshLambertMaterial({ color: 0x4e4540 }),
+    knob:      new THREE.MeshLambertMaterial({ color: 0xc88a18 }),
     barnRed:   new THREE.MeshLambertMaterial({ color: 0xa83828 }),
     barnRedD:  new THREE.MeshLambertMaterial({ color: 0x7d2a1c }),
     barnRoof:  new THREE.MeshLambertMaterial({ color: 0x3a2418 }),
+    barnRoofD: new THREE.MeshLambertMaterial({ color: 0x231510 }),
     barnTrim:  new THREE.MeshLambertMaterial({ color: 0xf2ece0 }),
     barnHay:   new THREE.MeshLambertMaterial({ color: 0xd4a04c }),
+    barnPlank: new THREE.MeshLambertMaterial({ color: 0x8a2418 }),  // plank shadows
+    weatherVane: new THREE.MeshLambertMaterial({ color: 0x2a2722 }),
     cabinWood: new THREE.MeshLambertMaterial({ color: 0x8a5a3b }),
     cabinDark: new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
-    cabinRoof: new THREE.MeshLambertMaterial({ color: 0x3a2418 }),
+    cabinRoof: new THREE.MeshLambertMaterial({ color: 0x6e4528 }),
+    cabinRoofD:new THREE.MeshLambertMaterial({ color: 0x4a2d18 }),
+    cabinStone:new THREE.MeshLambertMaterial({ color: 0x9a9388 }),
     millStone: new THREE.MeshLambertMaterial({ color: 0xe8dfc8 }),
     millStoneD:new THREE.MeshLambertMaterial({ color: 0xc4b893 }),
     millRoof:  new THREE.MeshLambertMaterial({ color: 0x8a3d2a }),
@@ -349,103 +359,310 @@
     return g;
   }
 
+  // ---------- building helpers ----------
+  // Two slanted slabs that meet at the ridge to form a classic pitched roof.
+  // `roofMat` is for the main pitched faces; `ridgeMat` (optional) caps the top.
+  function pitchedRoof(width, depth, ridgeHeight, roofMat, ridgeMat, overhang = 0.06) {
+    const g = new THREE.Group();
+    const halfW = width / 2;
+    const slope = Math.sqrt(halfW * halfW + ridgeHeight * ridgeHeight);
+    const angle = Math.atan2(ridgeHeight, halfW);
+    const t = 0.04;
+    const slabL = slope + overhang;             // extends beyond the eave
+    const slabD = depth + overhang * 1.6;
+    // Left slope: tilted up-to-the-right. Its top-right edge lands exactly
+    // at (0, ridgeHeight, 0); the bottom-left hangs past the wall as the eave.
+    const left = new THREE.Mesh(new THREE.BoxGeometry(slabL, t, slabD), roofMat);
+    left.rotation.z = angle;
+    left.position.set(
+      -(slabL / 2) * Math.cos(angle),
+      ridgeHeight - (slabL / 2) * Math.sin(angle),
+      0,
+    );
+    g.add(left);
+    const right = new THREE.Mesh(new THREE.BoxGeometry(slabL, t, slabD), roofMat);
+    right.rotation.z = -angle;
+    right.position.set(
+      (slabL / 2) * Math.cos(angle),
+      ridgeHeight - (slabL / 2) * Math.sin(angle),
+      0,
+    );
+    g.add(right);
+    if (ridgeMat) {
+      const ridge = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.035, slabD * 0.96),
+        ridgeMat,
+      );
+      ridge.position.y = ridgeHeight + 0.012;
+      g.add(ridge);
+    }
+    return g;
+  }
+  // Triangular wall piece that fills the gable (the wall area under the roof).
+  function gableWall(width, ridgeHeight, mat, thickness = 0.025) {
+    const halfW = width / 2;
+    const shape = new THREE.Shape();
+    shape.moveTo(-halfW, 0);
+    shape.lineTo(halfW, 0);
+    shape.lineTo(0, ridgeHeight);
+    shape.closePath();
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false });
+    geo.translate(0, 0, -thickness / 2);
+    return new THREE.Mesh(geo, mat);
+  }
+  // A door with a darker frame around it.
+  function makeFramedDoor(w, h, doorMat, frameMat) {
+    const g = new THREE.Group();
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.04, h + 0.04, 0.025), frameMat);
+    frame.position.z = 0;
+    g.add(frame);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.03), doorMat);
+    door.position.z = 0.006;
+    g.add(door);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 8), M.knob);
+    knob.position.set(w * 0.32, -h * 0.04, 0.024);
+    g.add(knob);
+    return g;
+  }
+  // A window with a white frame and a cross mullion.
+  function makeFramedWindow(w, h) {
+    const g = new THREE.Group();
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 0.03, h + 0.03, 0.02), M.winFrame);
+    g.add(frame);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.018), M.winGlass);
+    glass.position.z = 0.005;
+    g.add(glass);
+    // Cross mullion
+    const vMul = new THREE.Mesh(new THREE.BoxGeometry(0.012, h, 0.022), M.winFrame);
+    vMul.position.z = 0.008;
+    g.add(vMul);
+    const hMul = new THREE.Mesh(new THREE.BoxGeometry(w, 0.012, 0.022), M.winFrame);
+    hMul.position.z = 0.008;
+    g.add(hMul);
+    return g;
+  }
+
   // ---------- building builders ----------
   function makeHouse() {
     const g = new THREE.Group();
-    // walls
-    const body = new THREE.Mesh(roundedBox(0.68, 0.50, 0.56, 0.04), M.wallCream);
-    body.position.y = 0.25; g.add(body);
-    // trim around base
-    const trim = new THREE.Mesh(roundedBox(0.72, 0.06, 0.60, 0.04), M.wallTrim);
-    trim.position.y = 0.03; g.add(trim);
-    // roof (triangular prism approximated with rotated box)
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.22, 0.66), M.roofBlue);
-    roof.position.y = 0.62; g.add(roof);
-    // ridge accent
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.04, 0.10), M.roofBlueD);
-    ridge.position.y = 0.74; g.add(ridge);
-    // door
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.26, 0.04), M.door);
-    door.position.set(0, 0.13, 0.30); g.add(door);
-    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), M.knob);
-    knob.position.set(0.05, 0.13, 0.32); g.add(knob);
-    // windows
-    const winL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.02), M.windowB);
-    winL.position.set(-0.22, 0.30, 0.29); g.add(winL);
-    const winR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.02), M.windowB);
-    winR.position.set( 0.22, 0.30, 0.29); g.add(winR);
-    // chimney
-    const chim = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.20, 0.10), M.chimney);
-    chim.position.set(0.22, 0.72, -0.10); g.add(chim);
+    const W = 0.72, D = 0.58, H = 0.42, RIDGE = 0.26;
+    // Stone foundation
+    const found = new THREE.Mesh(new THREE.BoxGeometry(W + 0.06, 0.08, D + 0.06), M.foundation);
+    found.position.y = 0.04; g.add(found);
+    const foundD = new THREE.Mesh(new THREE.BoxGeometry(W + 0.07, 0.02, D + 0.07), M.foundationD);
+    foundD.position.y = 0.07; g.add(foundD);
+    // Walls
+    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), M.wallCream);
+    body.position.y = 0.08 + H / 2; g.add(body);
+    // Top wall trim
+    const topTrim = new THREE.Mesh(new THREE.BoxGeometry(W + 0.02, 0.025, D + 0.02), M.wallTrim);
+    topTrim.position.y = 0.08 + H; g.add(topTrim);
+    // Triangular gables on front and back
+    const gableFront = gableWall(W, RIDGE, M.wallCream);
+    gableFront.position.set(0, 0.08 + H, D / 2 - 0.012);
+    g.add(gableFront);
+    const gableBack = gableWall(W, RIDGE, M.wallCream);
+    gableBack.position.set(0, 0.08 + H, -D / 2 + 0.012);
+    g.add(gableBack);
+    // Pitched roof on top of the gables
+    const roof = pitchedRoof(W + 0.10, D, RIDGE, M.roofTile, M.roofTileD, 0.08);
+    roof.position.y = 0.08 + H;
+    g.add(roof);
+    // Door (front centre)
+    const door = makeFramedDoor(0.16, 0.26, M.door, M.doorFrame);
+    door.position.set(0, 0.08 + 0.13 + 0.01, D / 2);
+    g.add(door);
+    // Stone step at the doorway
+    const step = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.07), M.foundationD);
+    step.position.set(0, 0.10, D / 2 + 0.04);
+    g.add(step);
+    // Two windows on the front, flanking the door
+    const winL = makeFramedWindow(0.13, 0.14);
+    winL.position.set(-0.22, 0.08 + 0.25, D / 2 + 0.005);
+    g.add(winL);
+    const winR = makeFramedWindow(0.13, 0.14);
+    winR.position.set(0.22, 0.08 + 0.25, D / 2 + 0.005);
+    g.add(winR);
+    // Side windows
+    const winSide = makeFramedWindow(0.11, 0.13);
+    winSide.rotation.y = Math.PI / 2;
+    winSide.position.set(W / 2 + 0.005, 0.08 + 0.24, 0);
+    g.add(winSide);
+    // Brick chimney with cap, set off-centre on the back-right
+    const chimX = 0.18, chimZ = -0.12;
+    const chimBody = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.32, 0.11), M.chimney);
+    chimBody.position.set(chimX, 0.08 + H + 0.16, chimZ);
+    g.add(chimBody);
+    const chimCap = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.03, 0.14), M.chimneyCap);
+    chimCap.position.set(chimX, 0.08 + H + 0.33, chimZ);
+    g.add(chimCap);
     castReceive(g);
     return g;
   }
 
   function makeCabin() {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(roundedBox(0.52, 0.40, 0.48, 0.03), M.cabinWood);
-    body.position.y = 0.20; g.add(body);
-    // dark log lines
-    for (let i = 0; i < 3; i++) {
-      const line = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.02, 0.50), M.cabinDark);
-      line.position.y = 0.10 + i * 0.10; g.add(line);
+    const W = 0.56, D = 0.50, H = 0.34, RIDGE = 0.22;
+    // Stone foundation
+    const found = new THREE.Mesh(new THREE.BoxGeometry(W + 0.06, 0.06, D + 0.06), M.cabinStone);
+    found.position.y = 0.03; g.add(found);
+    // Log wall body
+    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), M.cabinWood);
+    body.position.y = 0.06 + H / 2; g.add(body);
+    // Horizontal log seam lines (dark)
+    for (let i = 1; i <= 4; i++) {
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(W + 0.005, 0.012, D + 0.005), M.cabinDark);
+      seam.position.y = 0.06 + (i / 5) * H;
+      g.add(seam);
     }
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.18, 0.56), M.cabinRoof);
-    roof.position.y = 0.50; g.add(roof);
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 0.04), M.cabinDark);
-    door.position.set(0, 0.11, 0.26); g.add(door);
-    const win = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.10, 0.02), M.windowB);
-    win.position.set(0.18, 0.26, 0.25); g.add(win);
+    // Log ends pop slightly past the corners (4 vertical ridges)
+    for (const [sx, sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) {
+      const corner = new THREE.Mesh(new THREE.BoxGeometry(0.035, H, 0.035), M.cabinDark);
+      corner.position.set(sx * (W / 2 + 0.012), 0.06 + H / 2, sz * (D / 2 + 0.012));
+      g.add(corner);
+    }
+    // Gables (logs)
+    const gableF = gableWall(W, RIDGE, M.cabinWood);
+    gableF.position.set(0, 0.06 + H, D / 2 - 0.012);
+    g.add(gableF);
+    const gableB = gableWall(W, RIDGE, M.cabinWood);
+    gableB.position.set(0, 0.06 + H, -D / 2 + 0.012);
+    g.add(gableB);
+    // Cedar-shingle pitched roof
+    const roof = pitchedRoof(W + 0.10, D, RIDGE, M.cabinRoof, M.cabinRoofD, 0.08);
+    roof.position.y = 0.06 + H;
+    g.add(roof);
+    // Rustic plank door
+    const door = makeFramedDoor(0.14, 0.22, M.cabinDark, M.cabinRoofD);
+    door.position.set(-0.09, 0.06 + 0.11 + 0.01, D / 2);
+    g.add(door);
+    // One window with shutter accents
+    const win = makeFramedWindow(0.13, 0.13);
+    win.position.set(0.13, 0.06 + 0.22, D / 2 + 0.005);
+    g.add(win);
+    const shutterL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.018), M.cabinDark);
+    shutterL.position.set(0.04, 0.06 + 0.22, D / 2 + 0.005);
+    g.add(shutterL);
+    const shutterR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.018), M.cabinDark);
+    shutterR.position.set(0.22, 0.06 + 0.22, D / 2 + 0.005);
+    g.add(shutterR);
+    // Stone chimney off the back
+    const chim = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.40, 0.10), M.cabinStone);
+    chim.position.set(-0.20, 0.06 + 0.20, -D / 2 - 0.04);
+    g.add(chim);
+    const chimCap = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.13), M.chimneyCap);
+    chimCap.position.set(-0.20, 0.06 + 0.42, -D / 2 - 0.04);
+    g.add(chimCap);
     castReceive(g);
     return g;
   }
 
   function makeBarn() {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(roundedBox(0.72, 0.46, 0.62, 0.03), M.barnRed);
-    body.position.y = 0.23; g.add(body);
-    // white X trim on front door area
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.34, 0.04), M.barnRedD);
-    door.position.set(0, 0.17, 0.33); g.add(door);
-    const xL = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.03, 0.02), M.barnTrim);
-    xL.position.set(0, 0.17, 0.355); xL.rotation.z = Math.PI / 5; g.add(xL);
-    const xR = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.03, 0.02), M.barnTrim);
-    xR.position.set(0, 0.17, 0.355); xR.rotation.z = -Math.PI / 5; g.add(xR);
-    // hipped roof
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.24, 0.70), M.barnRoof);
-    roof.position.y = 0.60; g.add(roof);
-    // hay loft window
-    const loft = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.10, 0.04), M.barnHay);
-    loft.position.set(0, 0.56, 0.32); g.add(loft);
+    const W = 0.80, D = 0.66, H = 0.40, RIDGE = 0.32;
+    // Stone foundation
+    const found = new THREE.Mesh(new THREE.BoxGeometry(W + 0.06, 0.07, D + 0.06), M.foundation);
+    found.position.y = 0.035; g.add(found);
+    // Body
+    const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), M.barnRed);
+    body.position.y = 0.07 + H / 2; g.add(body);
+    // Vertical plank shadows (a few dark stripes along each long side)
+    for (let i = 1; i <= 5; i++) {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(0.012, H, D + 0.003), M.barnPlank);
+      plank.position.set(-W / 2 + i * W / 6, 0.07 + H / 2, 0);
+      g.add(plank);
+    }
+    // Gables
+    const gF = gableWall(W, RIDGE, M.barnRed);
+    gF.position.set(0, 0.07 + H, D / 2 - 0.012);
+    g.add(gF);
+    const gB = gableWall(W, RIDGE, M.barnRed);
+    gB.position.set(0, 0.07 + H, -D / 2 + 0.012);
+    g.add(gB);
+    // Dark pitched roof
+    const roof = pitchedRoof(W + 0.12, D, RIDGE, M.barnRoof, M.barnRoofD, 0.09);
+    roof.position.y = 0.07 + H;
+    g.add(roof);
+    // Big sliding door (with X cross)
+    const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.022), M.barnRedD);
+    doorFrame.position.set(0, 0.07 + 0.18, D / 2 + 0.011);
+    g.add(doorFrame);
+    const xL = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.032, 0.022), M.barnTrim);
+    xL.position.set(0, 0.07 + 0.18, D / 2 + 0.024); xL.rotation.z = Math.PI / 4.3; g.add(xL);
+    const xR = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.032, 0.022), M.barnTrim);
+    xR.position.set(0, 0.07 + 0.18, D / 2 + 0.024); xR.rotation.z = -Math.PI / 4.3; g.add(xR);
+    const doorFrameTrim = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.034, 0.024), M.barnTrim);
+    doorFrameTrim.position.set(0, 0.07 + 0.36, D / 2 + 0.014); g.add(doorFrameTrim);
+    // Hay loft door in the front gable
+    const loftDoor = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.16, 0.022), M.barnHay);
+    loftDoor.position.set(0, 0.07 + H + RIDGE * 0.5, D / 2 + 0.005); g.add(loftDoor);
+    const loftFrame = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.024), M.barnTrim);
+    loftFrame.position.set(0, 0.07 + H + RIDGE * 0.5, D / 2 - 0.001); g.add(loftFrame);
+    // Cupola + weather vane on top
+    const cupola = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.08, 0.10), M.barnTrim);
+    cupola.position.set(0, 0.07 + H + RIDGE + 0.05, 0); g.add(cupola);
+    const cupolaRoof = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.08, 4), M.barnRoof);
+    cupolaRoof.position.set(0, 0.07 + H + RIDGE + 0.13, 0);
+    cupolaRoof.rotation.y = Math.PI / 4; g.add(cupolaRoof);
+    const vanePost = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.10, 0.012), M.weatherVane);
+    vanePost.position.set(0, 0.07 + H + RIDGE + 0.22, 0); g.add(vanePost);
+    const vaneArrow = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.018, 0.012), M.weatherVane);
+    vaneArrow.position.set(0, 0.07 + H + RIDGE + 0.26, 0); g.add(vaneArrow);
     castReceive(g);
     return g;
   }
 
   function makeWindmill() {
     const g = new THREE.Group();
-    // round stone base (tapered)
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.70, 14), M.millStone);
-    base.position.y = 0.35; g.add(base);
-    // dark band
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, 0.06, 14), M.millStoneD);
-    band.position.y = 0.10; g.add(band);
-    // conical roof
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.30, 0.22, 14), M.millRoof);
-    roof.position.y = 0.82; g.add(roof);
-    // door
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 0.04), M.cabinDark);
-    door.position.set(0, 0.11, 0.30); g.add(door);
-    // blades on a rotating pivot at the front of the cone
-    const bladePivot = new THREE.Group();
-    bladePivot.position.set(0, 0.72, 0.30);
-    g.add(bladePivot);
+    // Foundation
+    const found = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.42, 0.06, 16), M.foundationD);
+    found.position.y = 0.03; g.add(found);
+    // Tapered stone tower
+    const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.36, 0.78, 16), M.millStone);
+    tower.position.y = 0.45; g.add(tower);
+    // Mid-tower trim band (darker stone)
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.05, 16), M.millStoneD);
+    band.position.y = 0.16; g.add(band);
+    // Window slits (4 around the tower)
     for (let i = 0; i < 4; i++) {
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.62, 0.02), M.millBlade);
-      blade.position.y = 0.31;
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.62, 0.04), M.millFrame);
-      frame.position.y = 0.31;
+      const slit = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.10, 0.04), M.winFrame);
+      const a = (i / 4) * Math.PI * 2;
+      slit.position.set(Math.cos(a) * 0.30, 0.52, Math.sin(a) * 0.30);
+      slit.rotation.y = a;
+      g.add(slit);
+    }
+    // Door
+    const door = makeFramedDoor(0.14, 0.22, M.cabinDark, M.cabinRoofD);
+    door.position.set(0, 0.18, 0.30);
+    g.add(door);
+    // Conical roof + cap
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.30, 0.26, 16), M.millRoof);
+    roof.position.y = 0.97; g.add(roof);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), M.weatherVane);
+    cap.position.y = 1.12; g.add(cap);
+    // Blade hub at the front of the cone
+    const bladePivot = new THREE.Group();
+    bladePivot.position.set(0, 0.84, 0.30);
+    g.add(bladePivot);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.06, 12), M.millFrame);
+    hub.rotation.x = Math.PI / 2;
+    bladePivot.add(hub);
+    // Four blades: each is a wooden frame with an off-white sail
+    for (let i = 0; i < 4; i++) {
       const arm = new THREE.Group();
-      arm.add(blade); arm.add(frame);
+      // Frame spar
+      const spar = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.62, 0.03), M.millFrame);
+      spar.position.y = 0.34;
+      arm.add(spar);
+      // Cross braces
+      const c1 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.018, 0.02), M.millFrame);
+      c1.position.y = 0.18; arm.add(c1);
+      const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.018, 0.02), M.millFrame);
+      c2.position.y = 0.46; arm.add(c2);
+      // Sail panel (canvas)
+      const sail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.50, 0.018), M.millBlade);
+      sail.position.set(0.07, 0.34, 0.005);
+      arm.add(sail);
       arm.rotation.z = (i / 4) * Math.PI * 2;
       bladePivot.add(arm);
     }
