@@ -116,6 +116,25 @@
   .upgrade:hover  { background: var(--panel-soft); border-color: var(--accent); }
   .upgrade:active { transform: translateY(1px); }
   .upgrade:disabled { opacity: 0.55; cursor: not-allowed; }
+  .upgrade { position: relative; }
+  .upgrade-key {
+    position: absolute;
+    top: -7px; right: -7px;
+    background: var(--panel);
+    border: 1.5px solid var(--accent);
+    color: var(--accent-hi);
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    pointer-events: none;
+    transition: transform 0.1s;
+  }
+  .upgrade:hover .upgrade-key { transform: scale(1.1); }
+
   .upgrade .icon { font-size: 22px; line-height: 1; }
   .upgrade .body { flex: 1; text-align: left; }
   .upgrade .name { font-size: 13px; font-weight: 600; line-height: 1.1; }
@@ -494,10 +513,11 @@
   .sp-row span { color: var(--muted); }
   .sp-row b { color: var(--accent-hi); font-weight: 700; font-variant-numeric: tabular-nums; }
 
-  /* Achievement toasts — slide in from the LEFT so they don't cover the shop. */
+  /* Achievement toasts — bottom-left, stacks upward. Avoids covering the
+     mode selector and lava gauge that live in the top-left column. */
   .ach-toasts {
     position: fixed;
-    top: 90px; left: 24px;
+    bottom: 70px; left: 24px;
     z-index: 30;
     display: flex; flex-direction: column;
     gap: 10px;
@@ -546,6 +566,243 @@
     0%   { transform: scale(1); color: var(--accent-hi); }
     40%  { transform: scale(1.18); color: #fff; }
     100% { transform: scale(1); color: var(--accent-hi); }
+  }
+
+  /* Quick-switch button (free → escape). Small, bottom-right next to reset. */
+  .quick-escape-btn {
+    position: fixed;
+    bottom: 18px; right: 90px;
+    z-index: 11;
+    background: linear-gradient(135deg, #e4456a, #b8334e);
+    color: #fff;
+    border: 1px solid #ff7088;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 8px 22px -6px rgba(228, 69, 106, 0.4);
+    transition: transform 0.08s, box-shadow 0.15s;
+  }
+  .quick-escape-btn:hover  { transform: translateY(-1px); box-shadow: 0 10px 26px -4px rgba(255, 100, 130, 0.6); }
+  .quick-escape-btn:active { transform: translateY(1px); }
+  .quick-escape-btn.hidden { display: none; }
+
+  /* Lava gauge — escape-mode only. Shows how close the lava is. */
+  .lava-gauge {
+    position: fixed;
+    top: 86px; left: 26px;
+    z-index: 11;
+    background: var(--panel);
+    border: 1px solid #e4456a;
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 10px 28px -6px rgba(228, 69, 106, 0.4), var(--shadow);
+    width: 180px;
+    font-size: 11px;
+    color: var(--ink);
+    animation: lava-pulse 1.4s ease-in-out infinite;
+  }
+  .lava-gauge.hidden { display: none; }
+  .lava-gauge.danger {
+    border-color: #ff3050;
+    animation-duration: 0.5s;
+  }
+  .lg-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    color: #e4456a;
+  }
+  .lg-bar {
+    height: 8px;
+    background: var(--bg-soft);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 6px 0;
+  }
+  .lg-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f4cc3a, #e4456a, #ff3050);
+    width: 100%;
+    transition: width 0.15s;
+  }
+  .lg-meta {
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    font-size: 10.5px;
+  }
+  @keyframes lava-pulse {
+    0%, 100% { box-shadow: 0 10px 28px -6px rgba(228, 69, 106, 0.4), var(--shadow); }
+    50%      { box-shadow: 0 10px 36px -4px rgba(255, 80, 110, 0.7), var(--shadow); }
+  }
+
+  /* Game over modal — similar shape to tutorial */
+  .gameover-backdrop {
+    position: fixed; inset: 0;
+    z-index: 110;
+    background: rgba(40, 4, 0, 0.85);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    animation: tut-fade-in 0.4s ease-out;
+  }
+  .gameover-backdrop.hidden { display: none; }
+  .gameover-card {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--bg-soft) 100%);
+    border: 1.5px solid rgba(228, 69, 106, 0.6);
+    border-radius: 20px;
+    padding: 28px 28px 24px;
+    box-shadow:
+      0 24px 60px -10px rgba(228, 69, 106, 0.5),
+      0 0 0 1px rgba(255, 100, 130, 0.15) inset;
+    max-width: 380px;
+    width: calc(100% - 40px);
+    color: var(--ink);
+    text-align: center;
+    animation: tut-pop-in 0.5s cubic-bezier(0.22, 1.4, 0.32, 1);
+  }
+  .go-icon {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 4px 12px rgba(228, 69, 106, 0.5));
+    animation: go-icon-float 2.5s ease-in-out infinite;
+  }
+  @keyframes go-icon-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
+  }
+  .gameover-card h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .go-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .go-stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .go-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .go-stat b {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 34px;
+    font-weight: 600;
+    color: var(--accent-hi);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    margin-top: 4px;
+  }
+  .go-unit {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .go-divider {
+    width: 1px;
+    height: 44px;
+    background: var(--line);
+    margin: 0 8px;
+  }
+  .go-actions { display: flex; gap: 8px; }
+  .go-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 44px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: transform 0.08s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .go-btn:active { transform: translateY(1px); }
+  .go-btn-primary {
+    background: linear-gradient(135deg, #ff7a3d 0%, #e44545 100%);
+    color: #fff;
+    box-shadow: 0 8px 22px -4px rgba(228, 69, 69, 0.55);
+  }
+  .go-btn-primary:hover {
+    background: linear-gradient(135deg, #ff8a4d 0%, #ee5050 100%);
+    box-shadow: 0 10px 28px -2px rgba(255, 100, 100, 0.7);
+  }
+  .go-btn-ghost {
+    background: transparent;
+    border-color: var(--line);
+    color: var(--muted);
+  }
+  .go-btn-ghost:hover {
+    background: var(--bg-soft);
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+
+  /* Pause overlay — covers the whole screen, blocks input. */
+  .pause-backdrop {
+    position: fixed; inset: 0;
+    z-index: 90;
+    background: rgba(8, 4, 0, 0.65);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+    animation: tut-fade-in 0.2s ease-out;
+  }
+  .pause-backdrop.hidden { display: none; }
+  .pause-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 28px 36px;
+    text-align: center;
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.6);
+    animation: tut-pop-in 0.3s cubic-bezier(0.22, 1.4, 0.32, 1);
+  }
+  .pause-icon { font-size: 44px; line-height: 1; margin-bottom: 10px; color: var(--accent); }
+  .pause-card h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  .pause-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0 0 18px;
+  }
+  .pause-hint kbd {
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--accent-hi);
   }
 
   /* Tutorial overlay — fullscreen backdrop + centered card with steps */
@@ -614,6 +871,111 @@
   }
   .tut-btn:hover  { transform: translateY(-1px); }
   .tut-btn:active { transform: translateY(1px); }
+
+  /* Mode selection inside the tutorial card. */
+  .tut-mode-row { margin-top: 18px; }
+  .tut-mode-title {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .tut-mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .tut-mode-btn {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-soft);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+    color: var(--ink);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.08s, border-color 0.15s, background 0.15s, box-shadow 0.2s;
+  }
+  .tut-mode-btn:hover  { background: var(--panel-soft); transform: translateY(-1px); }
+  .tut-mode-btn:active { transform: translateY(1px); }
+  .tut-mode-btn.featured {
+    border-color: #e4456a;
+    box-shadow: 0 0 18px -4px rgba(228, 69, 106, 0.35);
+  }
+  .tut-mode-btn.featured:hover { box-shadow: 0 0 26px -2px rgba(255, 100, 130, 0.55); }
+  .tmb-ic { font-size: 24px; line-height: 1; flex-shrink: 0; }
+  .tmb-body { display: flex; flex-direction: column; min-width: 0; }
+  .tmb-body b {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .tmb-body small {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.35;
+  }
+  .tut-mode-btn.featured .tmb-body b { color: #ff7088; }
+
+  /* Difficulty pills inside the start card. */
+  .diff-row { margin: 18px 0 14px; }
+  .diff-title {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .diff-btn {
+    background: var(--bg-soft);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 4px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.08s;
+  }
+  .diff-btn:hover  { color: var(--ink); }
+  .diff-btn:active { transform: translateY(1px); }
+  .diff-btn.active {
+    background: var(--panel-soft);
+    border-color: var(--accent);
+    color: var(--accent-hi);
+  }
+  .diff-meta {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Tiny text link under the JUGAR button to enter the relaxed free mode. */
+  .tut-link {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .tut-link:hover { color: var(--accent-hi); }
   @keyframes tut-fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -642,6 +1004,7 @@
   </div>
 
   <div class="hud-top">
+    <button class="stat icon-btn" id="pauseBtn" title="Pausar (espacio)">⏸</button>
     <button class="stat icon-btn" id="muteBtn" title="Mute / unmute sound">🔈</button>
     <div class="stat" id="prestigeChip" style="display:none">💠 <b id="prestigeVal">0</b></div>
     <div class="stat">⛏️ <b id="depthVal">0</b>m</div>
@@ -660,6 +1023,7 @@
   <div class="shop">
     <div class="shop-title">Shovel</div>
     <button class="upgrade" id="upgPower">
+      <span class="upgrade-key">1</span>
       <span class="icon">⛏️</span>
       <span class="body">
         <div class="name">Power Lv <span id="powerLv">1</span></div>
@@ -668,6 +1032,7 @@
       <span class="cost">🪙 <span id="powerCost">25</span></span>
     </button>
     <button class="upgrade" id="upgSpeed">
+      <span class="upgrade-key">2</span>
       <span class="icon">🏃</span>
       <span class="body">
         <div class="name">Speed Lv <span id="speedLv">0</span></div>
@@ -676,6 +1041,7 @@
       <span class="cost">🪙 <span id="speedCost">80</span></span>
     </button>
     <button class="upgrade" id="upgAuto">
+      <span class="upgrade-key">3</span>
       <span class="icon">🤖</span>
       <span class="body">
         <div class="name">Boost Lv <span id="autoLv">0</span></div>
@@ -684,6 +1050,7 @@
       <span class="cost">🪙 <span id="autoCost">120</span></span>
     </button>
     <button class="upgrade" id="upgLuck">
+      <span class="upgrade-key">4</span>
       <span class="icon">🍀</span>
       <span class="body">
         <div class="name">Luck Lv <span id="luckLv">0</span></div>
@@ -692,6 +1059,7 @@
       <span class="cost">🪙 <span id="luckCost">200</span></span>
     </button>
     <button class="upgrade" id="upgValue">
+      <span class="upgrade-key">5</span>
       <span class="icon">💰</span>
       <span class="body">
         <div class="name">Value Lv <span id="valueLv">0</span></div>
@@ -752,7 +1120,52 @@
 
   <div class="ach-toasts" id="achToasts"></div>
 
-  <button class="reset-btn" id="resetBtn" title="Wipe save and start over">↺ reset</button>
+  <button class="reset-btn" id="resetBtn" title="Volver al menú principal">🏠 Menú</button>
+
+  <!-- Quick "switch to escape" button, only visible in free mode. -->
+  <button class="quick-escape-btn hidden" id="quickEscape" title="Switch to Escape mode">🔥 Escape</button>
+
+  <!-- Escape-mode lava warning bar — shows the gap to the lava. -->
+  <div class="lava-gauge hidden" id="lavaGauge">
+    <div class="lg-label">LAVA · <span id="lgDiff">NORMAL</span></div>
+    <div class="lg-bar"><div class="lg-fill" id="lgFill"></div></div>
+    <div class="lg-meta" id="lgMeta">5.0m gap · 0.3/s</div>
+  </div>
+
+  <!-- Pause overlay. -->
+  <div class="pause-backdrop hidden" id="pauseOverlay">
+    <div class="pause-card">
+      <div class="pause-icon">⏸</div>
+      <h2>Pausa</h2>
+      <p class="pause-hint">Presioná <kbd>Espacio</kbd> o el botón para continuar</p>
+      <button class="go-btn go-btn-primary" id="resumeBtn">▶ Reanudar</button>
+    </div>
+  </div>
+
+  <!-- Game-over modal. Shown when lava catches the player in escape mode. -->
+  <div class="gameover-backdrop hidden" id="gameover">
+    <div class="gameover-card">
+      <div class="go-icon">☠️</div>
+      <h2>Te alcanzó la lava</h2>
+      <div class="go-stats">
+        <div class="go-stat">
+          <span class="go-label">Profundidad</span>
+          <b id="goDepth">0</b>
+          <span class="go-unit">m</span>
+        </div>
+        <div class="go-divider"></div>
+        <div class="go-stat">
+          <span class="go-label">Récord</span>
+          <b id="goBest">0</b>
+          <span class="go-unit">m</span>
+        </div>
+      </div>
+      <div class="go-actions">
+        <button class="go-btn go-btn-primary" id="goRetry">🔥 Reintentar</button>
+        <button class="go-btn go-btn-ghost" id="goExit">🏖️ Modo libre</button>
+      </div>
+    </div>
+  </div>
 
   <!-- First-time tutorial overlay. Auto-shown on a fresh save. -->
   <div class="tutorial-backdrop hidden" id="tutorial">
@@ -774,7 +1187,18 @@
         <span class="tut-ic">💠</span>
         <div>A partir de los 100m podés <b>prestigiar</b>: reiniciás pero ganás gemas que dan +5% monedas permanente.</div>
       </div>
-      <button class="tut-btn" id="tutClose">¡A cavar!</button>
+      <div class="diff-row">
+        <div class="diff-title">Dificultad (modo Escape)</div>
+        <div class="diff-grid">
+          <button class="diff-btn" data-diff="easy">🌱 Fácil</button>
+          <button class="diff-btn active" data-diff="normal">⛏️ Normal</button>
+          <button class="diff-btn" data-diff="hard">🔥 Difícil</button>
+          <button class="diff-btn" data-diff="nightmare">💀 Pesadilla</button>
+        </div>
+        <div class="diff-meta" id="diffMeta">Lava 0.55/s · monedas ×1.0</div>
+      </div>
+      <button class="tut-btn" id="tutModeEscape">🔥 Jugar</button>
+      <a class="tut-link" id="tutModeFree" href="#" tabindex="0">o probar modo libre</a>
     </div>
   </div>
 
@@ -825,7 +1249,10 @@
   const RARE_GEMS = ['ruby', 'emerald', 'sapphire'];
 
   function pickMaterial(depth) {
-    if (Math.random() < RARE_GEM_CHANCE && depth > 4) {
+    // In escape mode, hold back rare gems until the player has had time to
+    // settle in — an 80hp sapphire at depth 5 in Pesadilla is unwinnable.
+    const minGemDepth = state.mode === 'escape' ? 18 : 4;
+    if (Math.random() < RARE_GEM_CHANCE && depth > minGemDepth) {
       return RARE_GEMS[Math.floor(Math.random() * RARE_GEMS.length)];
     }
     for (const tier of TIERS) {
@@ -878,7 +1305,10 @@
   };
 
   function rollSpecial(depth) {
-    if (depth < 3) return null;             // give a friendly intro before specials
+    // Escape mode needs a clean opening — specials can have 5-8× HP which
+    // is murderous when the lava is bearing down. Push them deeper there.
+    const minDepth = state.mode === 'escape' ? 15 : 3;
+    if (depth < minDepth) return null;
     const r = Math.random();
     let acc = 0;
     for (const [name, cfg] of Object.entries(SPECIAL_BLOCKS)) {
@@ -1008,7 +1438,10 @@
     const gemMult = 1 + (state.prestige.gems || 0) * 0.05;
     const achCount = Object.keys(state.achievements || {}).length;
     const achMult = 1 + achCount * 0.005;
-    return { coin: gemMult, dmg: achMult };
+    // Difficulty's coin multiplier folds into the same coin pipeline so we
+    // don't have to thread it through every reward calculation separately.
+    const diffMult = (state.mode === 'escape') ? currentDifficulty().coinMult : 1;
+    return { coin: gemMult * diffMult, dmg: achMult };
   }
   function doPrestige() {
     const newGems = gemsForDepth(state.depth);
@@ -1047,6 +1480,155 @@
   // damage applied to any column hits the boss.
   // =====================================================================
   const BOSS_DEPTHS = new Set([100, 250, 500, 800]);
+  // =====================================================================
+  // Difficulty levels for Escape mode. Each tweaks lava speed, acceleration
+  // and how many coins blocks award. Free mode is unaffected.
+  // =====================================================================
+  const DIFFICULTIES = {
+    easy:      { name: 'Fácil',     lavaInit: 0.25, accelStep: 0.04, accelEvery: 35, coinMult: 1.4 },
+    normal:    { name: 'Normal',    lavaInit: 0.40, accelStep: 0.06, accelEvery: 30, coinMult: 1.0 },
+    hard:      { name: 'Difícil',   lavaInit: 0.60, accelStep: 0.09, accelEvery: 25, coinMult: 0.65 },
+    nightmare: { name: 'Pesadilla', lavaInit: 0.85, accelStep: 0.13, accelEvery: 20, coinMult: 0.40 },
+  };
+  function currentDifficulty() {
+    return DIFFICULTIES[state.difficulty] || DIFFICULTIES.normal;
+  }
+
+  // =====================================================================
+  // Escape mode — lava descends from the surface, player must out-dig it.
+  // =====================================================================
+  function enterEscapeMode() {
+    if (state.mode === 'escape') return;
+    // Snapshot everything that matters in free mode so we can restore it.
+    state.freeBackup = {
+      depth: state.depth, coins: state.coins, inv: { ...state.inv },
+      totalMined: state.totalMined,
+      rows: state.rows.map(r => r ? r.map(b => b ? { ...b } : null) : null),
+      effects: {},
+      boostActive: state.boostActive,
+      boostEndsAt: state.boostEndsAt,
+      boostCooldownEndsAt: state.boostCooldownEndsAt,
+      nextEventAt: state.nextEventAt,
+    };
+    state.mode = 'escape';
+    startEscapeRun();
+  }
+
+  function startEscapeRun() {
+    state.escape.active = true;
+    state.escape.alive = true;
+    state.escape.lavaDepth = -5;            // start higher up — more breathing room
+    state.escape.lavaSpeed = currentDifficulty().lavaInit;
+    state.escape.startT = performance.now();
+    // Fresh well — your shovel upgrades AND material inventory both carry
+    // over across retries. Only coins, depth and active buffs reset so the
+    // next run starts at depth 0 with a clean economy.
+    state.depth = 0;
+    state.coins = 0;
+    state.effects = {};
+    state.nextEventAt = 0;
+    state.boostActive = false;
+    state.boostEndsAt = 0;
+    state.boostCooldownEndsAt = 0;
+    state.lastBoostHitAt = 0;
+    state.rows = [];
+    for (const m of blockMeshes.values()) worldGroup.remove(m);
+    blockMeshes.clear();
+    ensureRow(20);
+    cameraTargetY = -2;
+    lavaSlab.visible = true;
+    lavaHalo.visible = true;
+    document.getElementById('lavaGauge').classList.remove('hidden');
+    document.getElementById('gameover').classList.add('hidden');
+    refreshBlocks();
+    updateHud();
+    updateBoostUI();             // force a fresh paint of the boost button
+  }
+
+  function exitEscapeMode() {
+    if (state.mode !== 'escape') return;
+    state.mode = 'free';
+    state.escape.active = false;
+    lavaSlab.visible = false;
+    lavaHalo.visible = false;
+    lavaLight.intensity = 0;
+    document.getElementById('lavaGauge').classList.add('hidden');
+    document.getElementById('gameover').classList.add('hidden');
+    // Restore free-mode snapshot.
+    const b = state.freeBackup;
+    if (b) {
+      state.depth = b.depth;
+      state.coins = b.coins;
+      state.inv = b.inv;
+      state.totalMined = b.totalMined;
+      state.rows = b.rows;
+      state.effects = b.effects;
+      state.boostActive = b.boostActive;
+      state.boostEndsAt = b.boostEndsAt;
+      state.boostCooldownEndsAt = b.boostCooldownEndsAt;
+      state.nextEventAt = b.nextEventAt;
+      state.freeBackup = null;
+    }
+    for (const m of blockMeshes.values()) worldGroup.remove(m);
+    blockMeshes.clear();
+    ensureRow(state.depth + 20);
+    cameraTargetY = -(state.depth + 2);
+    refreshBlocks();
+    updateHud();
+    saveState();
+  }
+
+  function gameOverEscape() {
+    if (!state.escape.alive) return;
+    state.escape.alive = false;
+    if (state.depth > state.escape.bestDepth) {
+      state.escape.bestDepth = state.depth;
+    }
+    document.getElementById('goDepth').textContent = state.depth;
+    document.getElementById('goBest').textContent  = state.escape.bestDepth;
+    document.getElementById('gameover').classList.remove('hidden');
+    sfx.bossDown();
+    saveState();
+  }
+
+  function tickLava(dt) {
+    if (state.mode !== 'escape' || !state.escape.active) return;
+    const now = performance.now();
+    if (state.escape.alive) {
+      const elapsed = (now - state.escape.startT) / 1000;
+      const diff = currentDifficulty();
+      state.escape.lavaSpeed = diff.lavaInit + Math.floor(elapsed / diff.accelEvery) * diff.accelStep;
+      state.escape.lavaDepth += state.escape.lavaSpeed * dt;
+      if (state.escape.lavaDepth >= state.depth) {
+        gameOverEscape();
+      }
+    }
+    // Position the lava slab & halo at the current lava depth in world space.
+    const lavaY = -state.escape.lavaDepth - 0.5;
+    lavaSlab.position.y = lavaY;
+    lavaHalo.position.y = lavaY;
+    lavaLight.position.set(0, lavaY - 1.0, 1.5);
+    // Pulse the halo + glow intensity.
+    const t = now / 1000;
+    lavaHalo.material.opacity = 0.35 + Math.abs(Math.sin(t * 3)) * 0.25;
+    lavaLight.intensity = 1.2 + Math.sin(t * 4) * 0.3;
+    updateLavaGauge();
+  }
+
+  function updateLavaGauge() {
+    const gap = Math.max(0, state.depth - state.escape.lavaDepth);
+    const gauge = document.getElementById('lavaGauge');
+    const fill  = document.getElementById('lgFill');
+    const meta  = document.getElementById('lgMeta');
+    const diffEl = document.getElementById('lgDiff');
+    if (!fill) return;
+    const safety = Math.min(1, gap / 10);
+    fill.style.width = (safety * 100) + '%';
+    meta.textContent = gap.toFixed(1) + 'm gap · ' + state.escape.lavaSpeed.toFixed(2) + '/s';
+    if (diffEl) diffEl.textContent = currentDifficulty().name.toUpperCase();
+    gauge.classList.toggle('danger', gap < 3);
+  }
+
   function makeBossRow(depth) {
     const tier = TIERS.find(t => depth < t.until) || TIERS[TIERS.length - 1];
     let bestMat = 'stone', bestW = 0;
@@ -1098,6 +1680,22 @@
     // Prestige — persisted across resets via doPrestige(). Gems give a
     // permanent coin multiplier; runs counts how many resets the player has done.
     prestige: { gems: 0, runs: 0 },
+    // Game mode: 'free' is the classic clicker. 'escape' adds a descending
+    // lava that catches up if the player digs too slow. Escape uses your
+    // current free-mode shovel upgrades but tracks a separate best-depth
+    // record and its own ephemeral coins/inventory.
+    mode: 'free',
+    difficulty: 'normal',
+    escape: {
+      active: false,
+      alive: true,
+      lavaDepth: -3,          // row position of the lava ceiling
+      lavaSpeed: 0.3,         // rows per second descent
+      startT: 0,
+      bestDepth: 0,           // persisted across runs
+    },
+    // Snapshot of free-mode state so we can restore it after an escape run.
+    freeBackup: null,
   };
 
   // Milestone toasts — keeps the player rewarded as they push deeper or
@@ -1177,6 +1775,8 @@
       state.shovel = Object.assign(state.shovel, s.shovel || {});
       state.totalMined  = s.totalMined  || 0;
       state.prestige    = s.prestige    || { gems: 0, runs: 0 };
+      if (s.escapeBest) state.escape.bestDepth = s.escapeBest;
+      if (s.difficulty && DIFFICULTIES[s.difficulty]) state.difficulty = s.difficulty;
       state.bestDepth   = s.bestDepth   || state.depth;
       state.achievements = s.achievements || {};
       // Rows are saved with full indexing — older fully-mined rows are stored
@@ -1199,6 +1799,8 @@
         shovel: state.shovel,
         totalMined:  state.totalMined,
         prestige:    state.prestige,
+        escapeBest:  state.escape.bestDepth,
+        difficulty:  state.difficulty,
         bestDepth:   state.bestDepth,
         achievements: state.achievements,
         rows: out,
@@ -1364,6 +1966,21 @@
   wallRight.position.x =  (COLS / 2) + 0.05;
   scene.add(wallLeft);
   scene.add(wallRight);
+
+  // -------- lava ceiling (escape mode) --------
+  // A wide glowing slab that descends from above. Hidden in free mode.
+  const lavaMat  = new THREE.MeshBasicMaterial({ color: 0xff5028 });
+  const lavaGlow = new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.45, depthWrite: false });
+  const lavaSlab = new THREE.Mesh(new THREE.BoxGeometry(COLS * 1.8, 0.5, 1.6), lavaMat);
+  const lavaHalo = new THREE.Mesh(new THREE.BoxGeometry(COLS * 2.4, 1.6, 2.4), lavaGlow);
+  lavaSlab.visible = false;
+  lavaHalo.visible = false;
+  scene.add(lavaSlab);
+  scene.add(lavaHalo);
+
+  // Dedicated orange light that follows the lava — makes the cave feel hot.
+  const lavaLight = new THREE.PointLight(0xff7028, 0, 14);
+  scene.add(lavaLight);
 
   // -------- ambient particles --------
   // A pool of small drifting particles whose visuals and motion depend on
@@ -1751,6 +2368,8 @@
   }
 
   function hitBlock(d, c, sx, sy) {
+    if (isPaused) return;
+    if (state.mode === 'escape' && !state.escape.alive) return;
     const row = state.rows[d];
     if (!row) return;
     const block = row[c];
@@ -2101,7 +2720,7 @@
   function autoCost()  { return Math.floor(120 * Math.pow(1.85, state.shovel.auto)); }
   function luckCost()  { return Math.floor(200 * Math.pow(2.10, state.shovel.luck)); }
   function valueCost() { return Math.floor(300 * Math.pow(2.30, state.shovel.value)); }
-  function speedCost() { return Math.floor(80  * Math.pow(1.70, state.shovel.speed)); }
+  function speedCost() { return Math.floor(180 * Math.pow(1.95, state.shovel.speed)); }
   // Hits per second when click is held. Base 10/s, +1.5/s per Speed level.
   function holdHitsPerSec() { return 10 + state.shovel.speed * 1.5; }
 
@@ -2131,6 +2750,105 @@
     tryBuy(speedCost(), () => state.shovel.speed = (state.shovel.speed || 0) + 1);
   });
   document.getElementById('boostBtn').addEventListener('click', activateBoost);
+
+  // Mode switching — used by the tutorial choice, the game-over modal, and
+  // the quick-escape button. The persistent top-left switcher was removed:
+  // mode is chosen at startup and only changed via these dedicated entry
+  // points so the screen stays clean.
+  function switchMode(mode) {
+    if (mode === 'escape') enterEscapeMode();
+    else                   exitEscapeMode();
+    document.getElementById('quickEscape').classList.toggle('hidden', mode === 'escape');
+  }
+  document.getElementById('goRetry').addEventListener('click', startEscapeRun);
+  document.getElementById('goExit').addEventListener('click',  () => switchMode('free'));
+  document.getElementById('quickEscape').addEventListener('click', () => switchMode('escape'));
+
+  // =====================================================================
+  // Pause — freezes lava, boost timer, effect timers, holds, autos and
+  // event scheduler. On resume we shift all wall-clock timers forward by
+  // the paused duration so they pick up exactly where they left off.
+  // =====================================================================
+  let isPaused = false;
+  let pauseStartT = 0;
+  function setPaused(p) {
+    if (p === isPaused) return;
+    if (p) {
+      isPaused = true;
+      pauseStartT = performance.now();
+      document.getElementById('pauseOverlay').classList.remove('hidden');
+      document.getElementById('pauseBtn').textContent = '▶';
+    } else {
+      const delta = performance.now() - pauseStartT;
+      // Shift all wall-clock anchors forward by the paused time.
+      if (state.escape.startT)         state.escape.startT          += delta;
+      if (state.boostEndsAt)           state.boostEndsAt            += delta;
+      if (state.boostCooldownEndsAt)   state.boostCooldownEndsAt    += delta;
+      for (const id in state.effects) {
+        const e = state.effects[id];
+        if (e.endsAt) e.endsAt += delta;
+      }
+      isPaused = false;
+      document.getElementById('pauseOverlay').classList.add('hidden');
+      document.getElementById('pauseBtn').textContent = '⏸';
+    }
+  }
+  function togglePause() {
+    // Don't allow pausing the game over screen or while a modal is up.
+    if (!document.getElementById('gameover').classList.contains('hidden')) return;
+    if (!document.getElementById('tutorial').classList.contains('hidden')) return;
+    setPaused(!isPaused);
+  }
+  document.getElementById('pauseBtn').addEventListener('click', togglePause);
+  document.getElementById('resumeBtn').addEventListener('click', () => setPaused(false));
+  // Keyboard shortcuts: 1-5 buy the corresponding upgrade, B activates boost,
+  // Space/P toggle pause, Escape closes pause. Blocked while a modal is up.
+  function modalOpen() {
+    return !document.getElementById('gameover').classList.contains('hidden') ||
+           !document.getElementById('tutorial').classList.contains('hidden');
+  }
+  const KEY_TO_UPGRADE = {
+    '1': 'upgPower',
+    '2': 'upgSpeed',
+    '3': 'upgAuto',
+    '4': 'upgLuck',
+    '5': 'upgValue',
+  };
+  function flashButton(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.transition = 'transform 0.08s';
+    el.style.transform = 'scale(0.96)';
+    setTimeout(() => { el.style.transform = ''; }, 90);
+  }
+  window.addEventListener('keydown', (e) => {
+    if (modalOpen() && e.code !== 'Space' && e.key.toLowerCase() !== 'p' && e.key !== 'Escape') return;
+    if (e.code === 'Space' || e.key.toLowerCase() === 'p') {
+      e.preventDefault();
+      togglePause();
+      return;
+    }
+    if (e.key === 'Escape' && isPaused) {
+      setPaused(false);
+      return;
+    }
+    if (isPaused) return;
+    const upgId = KEY_TO_UPGRADE[e.key];
+    if (upgId) {
+      e.preventDefault();
+      document.getElementById(upgId).click();
+      flashButton(upgId);
+      return;
+    }
+    if (e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      const boostBtn = document.getElementById('boostBtn');
+      if (!boostBtn.classList.contains('hidden')) {
+        boostBtn.click();
+        flashButton('boostBtn');
+      }
+    }
+  });
 
   // Mute toggle
   document.getElementById('muteBtn').addEventListener('click', () => {
@@ -2326,20 +3044,28 @@
   }
 
   // ---------- random event scheduler ----------
-  // Pop a random event every 60-90s. Events all map to effect activations.
-  // If an effect is already active, we still apply (refreshes its timer).
-  const EVENT_INTERVAL_MIN = 60_000;
-  const EVENT_INTERVAL_MAX = 90_000;
-  function tickEvents(now) {
+  // Events fire after the player has broken roughly N blocks (with random
+  // jitter), not on a wall-clock timer. This keeps reward pacing tied to
+  // actual activity — afk players don't get effects, busy players get them
+  // often. Also: no events while dead in escape mode.
+  const EVENT_BLOCKS_MIN = 30;
+  const EVENT_BLOCKS_MAX = 70;
+  function rollNextEventThreshold() {
+    return state.totalMined + EVENT_BLOCKS_MIN +
+           Math.floor(Math.random() * (EVENT_BLOCKS_MAX - EVENT_BLOCKS_MIN));
+  }
+  function tickEvents(/* now */) {
+    if (state.mode === 'escape' && !state.escape.alive) return;
     if (state.nextEventAt === 0) {
-      state.nextEventAt = now + 25_000 + Math.random() * 20_000; // first event 25-45s in
+      // First event after 15-30 blocks so the player sees one quickly.
+      state.nextEventAt = state.totalMined + 15 + Math.floor(Math.random() * 15);
       return;
     }
-    if (now < state.nextEventAt) return;
+    if (state.totalMined < state.nextEventAt) return;
     const eid = EFFECT_IDS[Math.floor(Math.random() * EFFECT_IDS.length)];
     addEffect(eid);
     showEventBanner(eid);
-    state.nextEventAt = now + EVENT_INTERVAL_MIN + Math.random() * (EVENT_INTERVAL_MAX - EVENT_INTERVAL_MIN);
+    state.nextEventAt = rollNextEventThreshold();
   }
 
   function showEventBanner(eid) {
@@ -2402,29 +3128,40 @@
   }
 
   // =====================================================================
-  // Reset
+  // Back to menu — drops out of the current escape run (or free session)
+  // and re-shows the start screen so the player can pick difficulty + mode
+  // again. Progress (upgrades, prestige, best depth) is kept.
   // =====================================================================
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    if (!confirm('Wipe your save and start over from depth 0?')) return;
-    localStorage.removeItem(SAVE_KEY);
-    state.depth = 0;
-    state.coins = 0;
-    state.inv = {};
+  function backToMenu() {
+    // If we're in an escape run, cleanly exit it back to free mode first
+    // so the state is in a sane place. exitEscapeMode restores freeBackup.
+    if (state.mode === 'escape') {
+      exitEscapeMode();
+    }
+    // Full run reset: shovel upgrades and coins go back to defaults so the
+    // next pick from the menu starts genuinely fresh. We KEEP the material
+    // inventory, achievements, best depth and prestige — those are lifetime
+    // progress, not run progress.
     state.shovel = { power: 1, auto: 0, luck: 0, value: 0, speed: 0 };
-    state.totalMined = 0;
-    state.bestDepth = 0;
-    state.achievements = {};
+    state.coins = 0;
     state.boostActive = false;
     state.boostEndsAt = 0;
     state.boostCooldownEndsAt = 0;
+    state.lastBoostHitAt = 0;
     state.effects = {};
     state.nextEventAt = 0;
-    state.rows = [];
-    for (const m of blockMeshes.values()) worldGroup.remove(m);
-    blockMeshes.clear();
-    refreshBlocks();
+    // Hide any modals that might be in the way.
+    document.getElementById('gameover').classList.add('hidden');
+    document.getElementById('pauseOverlay').classList.add('hidden');
+    if (isPaused) setPaused(false);
     updateHud();
-  });
+    updateBoostUI();
+    saveState();
+    // Show the start screen — same one as on first load.
+    document.getElementById('tutorial').classList.remove('hidden');
+    sfx.click();
+  }
+  document.getElementById('resetBtn').addEventListener('click', backToMenu);
 
   // =====================================================================
   // Animation loop
@@ -2436,11 +3173,16 @@
     const dt = prevT ? Math.min(t - prevT, 0.05) : 0;
     prevT = t;
 
-    tickHold(nowMs);
-    autoMineTick(nowMs);
-    tickParticles(dt);
-    tickEffects(nowMs);
-    tickEvents(nowMs);
+    // Pause halts all game-state advancement: holds, autos, effects, events,
+    // particles, lava, ambient — but we still render and process camera so
+    // the player can orbit / zoom while paused.
+    if (!isPaused) {
+      tickHold(nowMs);
+      autoMineTick(nowMs);
+      tickParticles(dt);
+      tickEffects(nowMs);
+      tickEvents(nowMs);
+    }
     updateEffectsUI();
     updateBoostUI();
     // Torch flicker — warmth ebbs subtly so the cave feels alive.
@@ -2453,7 +3195,8 @@
     applyBiomeVisuals();
     updateWalls(cameraTargetY);
     const biome = BIOMES[biomeIndexAt(state.depth)];
-    tickAmbient(dt, cameraTargetY, biome.particle);
+    tickAmbient(isPaused ? 0 : dt, cameraTargetY, biome.particle);
+    if (!isPaused) tickLava(dt);
     checkBiomeCross();
     renderer.render(scene, camera);
   }
@@ -2471,19 +3214,55 @@
   // Tutorial: show on first ever visit, or whenever the player has reset and
   // is at depth 0 with no progress. Persisted via localStorage so it stops
   // appearing once dismissed.
-  const TUT_KEY = 'deepDig_tut_seen';
-  function maybeShowTutorial() {
-    let seen = false;
-    try { seen = localStorage.getItem(TUT_KEY) === '1'; } catch {}
-    if (seen) return;
-    document.getElementById('tutorial').classList.remove('hidden');
-  }
-  document.getElementById('tutClose').addEventListener('click', () => {
+  // Start screen — shown on every load. Player picks difficulty, then clicks
+  // "Jugar" (Escape, the default) or the small link below to enter free mode.
+  // Picking a mode from the menu = a fresh session: shovel upgrades, coins,
+  // boost cooldown and effects all reset. Lifetime progress (inventory,
+  // achievements, best depth, prestige gems) is preserved.
+  function pickModeAndStart(mode) {
     document.getElementById('tutorial').classList.add('hidden');
-    try { localStorage.setItem(TUT_KEY, '1'); } catch {}
+    state.shovel = { power: 1, auto: 0, luck: 0, value: 0, speed: 0 };
+    state.coins = 0;
+    state.boostActive = false;
+    state.boostEndsAt = 0;
+    state.boostCooldownEndsAt = 0;
+    state.lastBoostHitAt = 0;
+    state.effects = {};
+    state.nextEventAt = 0;
+    updateHud();
+    updateBoostUI();
+    saveState();
     sfx.click();
+    switchMode(mode);
+  }
+  document.getElementById('tutModeEscape').addEventListener('click', () => pickModeAndStart('escape'));
+  document.getElementById('tutModeFree').addEventListener('click',   (e) => {
+    e.preventDefault();
+    pickModeAndStart('free');
   });
-  maybeShowTutorial();
+
+  // Difficulty pill selection on the start screen.
+  function selectDifficulty(d) {
+    if (!DIFFICULTIES[d]) return;
+    state.difficulty = d;
+    document.querySelectorAll('.diff-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.diff === d);
+    });
+    const cfg = currentDifficulty();
+    const meta = document.getElementById('diffMeta');
+    if (meta) {
+      meta.textContent =
+        'Lava ' + cfg.lavaInit.toFixed(2) + '/s · +' + cfg.accelStep.toFixed(2) +
+        '/' + cfg.accelEvery + 's · monedas ×' + cfg.coinMult.toFixed(2);
+    }
+    saveState();
+  }
+  document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectDifficulty(btn.dataset.diff));
+  });
+  // Initialize selection visually to the saved (or default) difficulty.
+  selectDifficulty(state.difficulty);
+  document.getElementById('tutorial').classList.remove('hidden');
 
   requestAnimationFrame(animate);
   </script>
