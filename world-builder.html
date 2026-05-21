@@ -193,7 +193,7 @@
   </div>
 
   <div class="help">
-    Click izquierdo: construir · Click derecho: demoler · Drag: mover · Scroll: zoom · <kbd>1</kbd>–<kbd>8</kbd> elegir
+    Click izquierdo: construir · Click derecho: demoler · Drag: mover · Scroll: zoom · <kbd>1</kbd>–<kbd>9</kbd> atajo · <kbd>D</kbd> demoler
   </div>
 
   <div class="dock">
@@ -332,6 +332,45 @@
     leafGreen: new THREE.MeshLambertMaterial({ color: 0x5fab26 }),
     flowerBox: new THREE.MeshLambertMaterial({ color: 0x8a5a3b }),
     mat:       new THREE.MeshLambertMaterial({ color: 0xa55a3f }),
+    // New buildings
+    churchWall:  new THREE.MeshLambertMaterial({ color: 0xfaf3e2 }),
+    churchTrim:  new THREE.MeshLambertMaterial({ color: 0xe5cf99 }),
+    churchRoof:  new THREE.MeshLambertMaterial({ color: 0x484060 }),
+    churchRoofD: new THREE.MeshLambertMaterial({ color: 0x322c46 }),
+    crossGold:   new THREE.MeshLambertMaterial({ color: 0xe8c050 }),
+    bellMetal:   new THREE.MeshLambertMaterial({ color: 0xb88a30 }),
+    stained:     new THREE.MeshBasicMaterial({ color: 0xff7a4f }),
+    lightRed:    new THREE.MeshLambertMaterial({ color: 0xd95c4a }),
+    lightWhite:  new THREE.MeshLambertMaterial({ color: 0xf6f1e2 }),
+    lightYellow: new THREE.MeshBasicMaterial({ color: 0xffe28a }),
+    glassBlue:   new THREE.MeshLambertMaterial({ color: 0xc8e8f5, transparent: true, opacity: 0.55 }),
+    glassFrame:  new THREE.MeshLambertMaterial({ color: 0xeae5d2 }),
+    plantInner:  new THREE.MeshLambertMaterial({ color: 0x4ea64a }),
+    tentCloth:   new THREE.MeshLambertMaterial({ color: 0xc25e4a }),
+    tentDark:    new THREE.MeshLambertMaterial({ color: 0x8a3a2a }),
+    // Nature
+    cherryTrunk: new THREE.MeshLambertMaterial({ color: 0x6e4528 }),
+    cherryBlossom: new THREE.MeshLambertMaterial({ color: 0xffc6dc }),
+    cherryBlossomD: new THREE.MeshLambertMaterial({ color: 0xf08fb4 }),
+    palmTrunk:   new THREE.MeshLambertMaterial({ color: 0x8a5a3b }),
+    palmFrond:   new THREE.MeshLambertMaterial({ color: 0x5fab26 }),
+    palmFrondD:  new THREE.MeshLambertMaterial({ color: 0x3f8016 }),
+    campLog:     new THREE.MeshLambertMaterial({ color: 0x5c3818 }),
+    mushroomCap: new THREE.MeshLambertMaterial({ color: 0xc83838 }),
+    mushroomStem:new THREE.MeshLambertMaterial({ color: 0xf3eccd }),
+    mushroomDot: new THREE.MeshLambertMaterial({ color: 0xfffaee }),
+    // Farm
+    pumpkin:     new THREE.MeshLambertMaterial({ color: 0xd97633 }),
+    pumpkinDk:   new THREE.MeshLambertMaterial({ color: 0xa45520 }),
+    wheatTip:    new THREE.MeshLambertMaterial({ color: 0xffd56a }),
+    wheatStem:   new THREE.MeshLambertMaterial({ color: 0xd4a04c }),
+    // Decor
+    lampPole:    new THREE.MeshLambertMaterial({ color: 0x2a2722 }),
+    lampGlow:    new THREE.MeshBasicMaterial({ color: 0xffe28a }),
+    fenceWood:   new THREE.MeshLambertMaterial({ color: 0xeae5d2 }),
+    fenceDk:     new THREE.MeshLambertMaterial({ color: 0xc4b893 }),
+    flameOuter:  new THREE.MeshBasicMaterial({ color: 0xffae3a }),
+    flameInner:  new THREE.MeshBasicMaterial({ color: 0xffe28a }),
     millStone: new THREE.MeshLambertMaterial({ color: 0xe8dfc8 }),
     millStoneD:new THREE.MeshLambertMaterial({ color: 0xc4b893 }),
     millRoof:  new THREE.MeshLambertMaterial({ color: 0x8a3d2a }),
@@ -833,18 +872,638 @@
     return g;
   }
 
+  // -------- Church (chapel with bell tower + cross) --------
+  function makeChurch() {
+    const g = new THREE.Group();
+    const W = 0.50, D = 0.78, H = 0.42, RIDGE = 0.30;
+    const found = new THREE.Mesh(roundedBox(W + 0.08, 0.07, D + 0.08, 0.04), M.foundation);
+    found.position.y = 0; g.add(found);
+    // Nave body
+    const body = new THREE.Mesh(roundedBox(W, H, D, 0.04), M.churchWall);
+    body.position.y = 0.07; g.add(body);
+    // Gables and pitched roof
+    const gF = gableWall(W, RIDGE, M.churchWall);
+    gF.position.set(0, 0.07 + H, D / 2 - 0.012); g.add(gF);
+    const gB = gableWall(W, RIDGE, M.churchWall);
+    gB.position.set(0, 0.07 + H, -D / 2 + 0.012); g.add(gB);
+    const roof = pitchedRoof(W + 0.12, D, RIDGE, M.churchRoof, M.churchRoofD, 0.09);
+    roof.position.y = 0.07 + H; g.add(roof);
+    // Bell tower (taller block at front)
+    const towerH = 0.78;
+    const tower = new THREE.Mesh(roundedBox(0.30, towerH, 0.30, 0.03), M.churchWall);
+    tower.position.set(0, 0.07, D / 2 + 0.06); g.add(tower);
+    // Bell tower spire (4-sided pyramid)
+    const spire = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.30, 4), M.churchRoof);
+    spire.position.set(0, 0.07 + towerH + 0.15, D / 2 + 0.06);
+    spire.rotation.y = Math.PI / 4; g.add(spire);
+    // Cross on top
+    const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.16, 0.025), M.crossGold);
+    crossV.position.set(0, 0.07 + towerH + 0.40, D / 2 + 0.06); g.add(crossV);
+    const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.025, 0.025), M.crossGold);
+    crossH.position.set(0, 0.07 + towerH + 0.42, D / 2 + 0.06); g.add(crossH);
+    // Bell opening (dark recess)
+    const bellHole = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.18, 0.022), M.churchRoofD);
+    bellHole.position.set(0, 0.07 + towerH - 0.12, D / 2 + 0.21); g.add(bellHole);
+    const bell = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.10, 8), M.bellMetal);
+    bell.position.set(0, 0.07 + towerH - 0.10, D / 2 + 0.20); g.add(bell);
+    // Front door arched
+    const door = new THREE.Mesh(roundedBox(0.14, 0.24, 0.025, 0.06), M.door);
+    door.position.set(0, 0.07 + 0.12, D / 2 + 0.21); g.add(door);
+    // Stained-glass round window above the nave back
+    const stainedWin = new THREE.Mesh(new THREE.CircleGeometry(0.10, 16), M.stained);
+    stainedWin.position.set(0, 0.07 + H + RIDGE * 0.55, -D / 2 - 0.001);
+    stainedWin.rotation.y = Math.PI; g.add(stainedWin);
+    // Side arched windows
+    for (let s of [-1, 1]) {
+      for (let i = 0; i < 3; i++) {
+        const sw = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.026), M.stained);
+        sw.position.set(s * (W / 2 + 0.005), 0.07 + 0.24, -0.18 + i * 0.18);
+        sw.rotation.y = (s < 0 ? -1 : 1) * Math.PI / 2;
+        g.add(sw);
+      }
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Lighthouse (red & white striped tower) --------
+  function makeLighthouse() {
+    const g = new THREE.Group();
+    // Wide stone base
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 0.18, 16), M.foundation);
+    base.position.y = 0.09; g.add(base);
+    // Tower: 6 alternating red/white bands
+    const bandH = 0.16;
+    for (let i = 0; i < 6; i++) {
+      const r = 0.22 - i * 0.012;
+      const r2 = r - 0.012;
+      const seg = new THREE.Mesh(
+        new THREE.CylinderGeometry(r2, r, bandH, 16),
+        i % 2 === 0 ? M.lightRed : M.lightWhite,
+      );
+      seg.position.y = 0.18 + i * bandH + bandH / 2; g.add(seg);
+    }
+    // Walkway/platform under the lantern
+    const walk = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 0.05, 16), M.foundationD);
+    walk.position.y = 0.18 + 6 * bandH + 0.025; g.add(walk);
+    // Glass lantern room
+    const lantern = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.20, 12), M.lightYellow);
+    lantern.position.y = 0.18 + 6 * bandH + 0.15; g.add(lantern);
+    // Lantern frame ribs
+    for (let i = 0; i < 6; i++) {
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.22, 0.018), M.lampPole);
+      const a = (i / 6) * Math.PI * 2;
+      rib.position.set(Math.cos(a) * 0.135, 0.18 + 6 * bandH + 0.15, Math.sin(a) * 0.135);
+      g.add(rib);
+    }
+    // Conical roof
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.20, 16), M.lightRed);
+    roof.position.y = 0.18 + 6 * bandH + 0.36; g.add(roof);
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 10), M.lampPole);
+    knob.position.y = 0.18 + 6 * bandH + 0.50; g.add(knob);
+    // Door
+    const door = new THREE.Mesh(roundedBox(0.13, 0.22, 0.025, 0.05), M.door);
+    door.position.set(0, 0.18 + 0.11, 0.22); g.add(door);
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Watchtower (stone with crenellations and flag) --------
+  function makeTower() {
+    const g = new THREE.Group();
+    const W = 0.34, H = 0.82;
+    // Tapered stone base
+    const base = new THREE.Mesh(new THREE.BoxGeometry(W + 0.08, 0.10, W + 0.08), M.foundationD);
+    base.position.y = 0.05; g.add(base);
+    // Main shaft
+    const shaft = new THREE.Mesh(roundedBox(W, H, W, 0.025), M.cabinStone);
+    shaft.position.y = 0.10; g.add(shaft);
+    // Stone band trim near top
+    const band = new THREE.Mesh(new THREE.BoxGeometry(W + 0.04, 0.04, W + 0.04), M.foundationD);
+    band.position.y = 0.10 + H - 0.04; g.add(band);
+    // Crenellations: 4 short blocks on each side
+    const cren = 0.06;
+    for (let i = 0; i < 4; i++) {
+      const x = -W / 2 + cren / 2 + i * ((W - cren) / 3);
+      const blockA = new THREE.Mesh(new THREE.BoxGeometry(cren, 0.08, cren), M.cabinStone);
+      blockA.position.set(x, 0.10 + H + 0.04, -W / 2 + cren / 2); g.add(blockA);
+      const blockB = new THREE.Mesh(new THREE.BoxGeometry(cren, 0.08, cren), M.cabinStone);
+      blockB.position.set(x, 0.10 + H + 0.04, W / 2 - cren / 2); g.add(blockB);
+    }
+    for (let i = 1; i < 3; i++) {
+      const z = -W / 2 + cren / 2 + i * ((W - cren) / 3);
+      const blockL = new THREE.Mesh(new THREE.BoxGeometry(cren, 0.08, cren), M.cabinStone);
+      blockL.position.set(-W / 2 + cren / 2, 0.10 + H + 0.04, z); g.add(blockL);
+      const blockR = new THREE.Mesh(new THREE.BoxGeometry(cren, 0.08, cren), M.cabinStone);
+      blockR.position.set(W / 2 - cren / 2, 0.10 + H + 0.04, z); g.add(blockR);
+    }
+    // Arrow slits
+    for (const ang of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      const slit = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.18, 0.04), M.doorFrame);
+      slit.position.set(Math.cos(ang) * (W / 2), 0.10 + H * 0.55, Math.sin(ang) * (W / 2));
+      g.add(slit);
+    }
+    // Door
+    const door = new THREE.Mesh(roundedBox(0.14, 0.22, 0.025, 0.05), M.door);
+    door.position.set(0, 0.10 + 0.11, W / 2 + 0.013); g.add(door);
+    // Flag on top
+    const flagPole = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.30, 0.015), M.lampPole);
+    flagPole.position.set(0, 0.10 + H + 0.20, 0); g.add(flagPole);
+    const flag = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.10, 0.16), M.barnRed);
+    flag.position.set(0.08, 0.10 + H + 0.28, 0); g.add(flag);
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Greenhouse (glass house) --------
+  function makeGreenhouse() {
+    const g = new THREE.Group();
+    const W = 0.62, D = 0.50, H = 0.34, RIDGE = 0.20;
+    // Base
+    const base = new THREE.Mesh(roundedBox(W + 0.06, 0.06, D + 0.06, 0.03), M.foundation);
+    base.position.y = 0.03; g.add(base);
+    // Glass walls (low-poly cube faces)
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), M.glassBlue);
+    glass.position.y = 0.06 + H / 2; g.add(glass);
+    // White metal frame (vertical posts at corners + middle)
+    const postT = 0.025;
+    for (const [sx, sz] of [[-1,-1],[1,-1],[-1,1],[1,1],[0,-1],[0,1],[-1,0],[1,0]]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(postT, H + 0.04, postT), M.glassFrame);
+      post.position.set(sx * (W / 2), 0.06 + H / 2, sz * (D / 2));
+      g.add(post);
+    }
+    // Horizontal frame rails
+    for (let y of [0.06, 0.06 + H]) {
+      const railX = new THREE.Mesh(new THREE.BoxGeometry(W + 0.02, 0.025, postT), M.glassFrame);
+      railX.position.set(0, y, D / 2); g.add(railX);
+      const railX2 = railX.clone(); railX2.position.set(0, y, -D / 2); g.add(railX2);
+      const railZ = new THREE.Mesh(new THREE.BoxGeometry(postT, 0.025, D + 0.02), M.glassFrame);
+      railZ.position.set(W / 2, y, 0); g.add(railZ);
+      const railZ2 = railZ.clone(); railZ2.position.set(-W / 2, y, 0); g.add(railZ2);
+    }
+    // Pitched glass roof
+    const gF = gableWall(W, RIDGE, M.glassBlue);
+    gF.position.set(0, 0.06 + H, D / 2 - 0.012); g.add(gF);
+    const gB = gableWall(W, RIDGE, M.glassBlue);
+    gB.position.set(0, 0.06 + H, -D / 2 + 0.012); g.add(gB);
+    const roof = pitchedRoof(W + 0.04, D, RIDGE, M.glassBlue, M.glassFrame, 0.04);
+    roof.position.y = 0.06 + H; g.add(roof);
+    // Plants visible inside
+    for (const [x, z] of [[-0.18, -0.10], [0.10, -0.05], [0.00, 0.12], [0.18, 0.14]]) {
+      const plant = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), M.plantInner);
+      plant.position.set(x, 0.10, z); g.add(plant);
+    }
+    // Door
+    const door = new THREE.Mesh(roundedBox(0.14, 0.22, 0.022, 0.04), M.glassFrame);
+    door.position.set(0, 0.06 + 0.11, D / 2); g.add(door);
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Tent (camping pyramid) --------
+  function makeTent() {
+    const g = new THREE.Group();
+    // Triangular prism tent body
+    const shape = new THREE.Shape();
+    shape.moveTo(-0.30, 0);
+    shape.lineTo(0.30, 0);
+    shape.lineTo(0, 0.36);
+    shape.closePath();
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.62, bevelEnabled: false });
+    geo.translate(0, 0, -0.31);
+    const tent = new THREE.Mesh(geo, M.tentCloth);
+    g.add(tent);
+    // Front opening (dark triangle to suggest interior)
+    const openShape = new THREE.Shape();
+    openShape.moveTo(-0.12, 0);
+    openShape.lineTo(0.12, 0);
+    openShape.lineTo(0, 0.24);
+    openShape.closePath();
+    const openGeo = new THREE.ExtrudeGeometry(openShape, { depth: 0.01, bevelEnabled: false });
+    const open = new THREE.Mesh(openGeo, M.tentDark);
+    open.position.set(0, 0, 0.32); g.add(open);
+    // Tent pole
+    const pole = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.48, 0.018), M.cabinDark);
+    pole.position.set(0, 0.24, 0); g.add(pole);
+    // Guy ropes (4 small pegs)
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      const peg = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.04, 0.018), M.cabinDark);
+      peg.position.set(Math.cos(angle) * 0.36, 0.02, Math.sin(angle) * 0.30);
+      g.add(peg);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Bush (clustered orbs) --------
+  function makeBush() {
+    const g = new THREE.Group();
+    const b1 = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), M.leaves);
+    b1.position.set(0, 0.16, 0); g.add(b1);
+    const b2 = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), M.leavesDk);
+    b2.position.set(0.14, 0.12, 0.05); g.add(b2);
+    const b3 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), M.leaves);
+    b3.position.set(-0.12, 0.10, -0.06); g.add(b3);
+    // Berries
+    for (let i = 0; i < 4; i++) {
+      const berry = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8),
+        new THREE.MeshLambertMaterial({ color: 0xc83838 }));
+      berry.position.set(
+        (Math.random() - 0.5) * 0.30,
+        0.14 + Math.random() * 0.10,
+        (Math.random() - 0.5) * 0.30,
+      );
+      g.add(berry);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Mushroom (toadstool) --------
+  function makeMushroom() {
+    const g = new THREE.Group();
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.18, 10), M.mushroomStem);
+    stem.position.y = 0.09; g.add(stem);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), M.mushroomCap);
+    cap.position.y = 0.20; g.add(cap);
+    // White dots on cap
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const r = 0.07 + Math.random() * 0.03;
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), M.mushroomDot);
+      dot.position.set(Math.cos(a) * r, 0.22 + Math.random() * 0.02, Math.sin(a) * r);
+      g.add(dot);
+    }
+    // A second smaller mushroom next to it
+    const stem2 = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.04, 0.10, 10), M.mushroomStem);
+    stem2.position.set(0.18, 0.05, 0.08); g.add(stem2);
+    const cap2 = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), M.mushroomCap);
+    cap2.position.set(0.18, 0.11, 0.08); g.add(cap2);
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Flower patch (mix of stems with colored tops) --------
+  function makeFlowers() {
+    const g = new THREE.Group();
+    const colors = [0xe87499, 0xffd56a, 0xfaf3e2, 0xc88adc, 0xff7a4f];
+    for (let i = 0; i < 7; i++) {
+      const x = (Math.random() - 0.5) * 0.7;
+      const z = (Math.random() - 0.5) * 0.7;
+      const stem = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.16, 0.012), M.leafGreen);
+      stem.position.set(x, 0.08, z); g.add(stem);
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), M.leafGreen);
+      leaf.position.set(x + 0.025, 0.10, z); g.add(leaf);
+      const flowerMat = new THREE.MeshLambertMaterial({ color: colors[i % colors.length] });
+      const flower = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 8), flowerMat);
+      flower.position.set(x, 0.18, z); g.add(flower);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Cherry tree (blossoms) --------
+  function makeCherry() {
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.42, 10), M.cherryTrunk);
+    trunk.position.y = 0.21; g.add(trunk);
+    // Soft pink puffy canopy
+    const c1 = new THREE.Mesh(new THREE.SphereGeometry(0.30, 12, 10), M.cherryBlossom);
+    c1.position.y = 0.58; g.add(c1);
+    const c2 = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 10), M.cherryBlossomD);
+    c2.position.set(0.18, 0.52, 0.05); g.add(c2);
+    const c3 = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 10), M.cherryBlossom);
+    c3.position.set(-0.15, 0.55, -0.08); g.add(c3);
+    const c4 = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), M.cherryBlossomD);
+    c4.position.set(0.05, 0.75, 0); g.add(c4);
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Palm tree --------
+  function makePalm() {
+    const g = new THREE.Group();
+    // Slightly bent trunk made of stacked tapered sections
+    for (let i = 0; i < 5; i++) {
+      const seg = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.055 - i * 0.004, 0.06 - i * 0.004, 0.18, 10),
+        M.palmTrunk,
+      );
+      seg.position.set(i * 0.02, 0.09 + i * 0.18, 0);
+      seg.rotation.z = -i * 0.03;
+      g.add(seg);
+    }
+    // Coconuts (small brown dots near the top)
+    for (let i = 0; i < 3; i++) {
+      const c = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), M.cabinDark);
+      const a = (i / 3) * Math.PI * 2;
+      c.position.set(0.10 + Math.cos(a) * 0.06, 0.96, Math.sin(a) * 0.06);
+      g.add(c);
+    }
+    // Fronds: 6 elongated boxes radiating out from the top
+    for (let i = 0; i < 6; i++) {
+      const frond = new THREE.Mesh(
+        new THREE.BoxGeometry(0.42, 0.06, 0.12),
+        i % 2 === 0 ? M.palmFrond : M.palmFrondD,
+      );
+      const a = (i / 6) * Math.PI * 2;
+      frond.position.set(0.10 + Math.cos(a) * 0.18, 1.06, Math.sin(a) * 0.18);
+      frond.rotation.y = a;
+      frond.rotation.z = -0.30;
+      g.add(frond);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Tree stump (cut log) --------
+  function makeStump() {
+    const g = new THREE.Group();
+    const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.20, 12), M.cabinWood);
+    stump.position.y = 0.10; g.add(stump);
+    // Lighter top with concentric rings
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.155, 0.015, 12), M.wallTrim);
+    top.position.y = 0.208; g.add(top);
+    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.10, 0.007, 6, 14), M.cabinDark);
+    ring1.rotation.x = Math.PI / 2; ring1.position.y = 0.215; g.add(ring1);
+    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.006, 6, 12), M.cabinDark);
+    ring2.rotation.x = Math.PI / 2; ring2.position.y = 0.215; g.add(ring2);
+    // A small mushroom growing on the side
+    const mStem = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.028, 0.06, 8), M.mushroomStem);
+    mStem.position.set(0.16, 0.06, 0.05); g.add(mStem);
+    const mCap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), M.mushroomCap);
+    mCap.position.set(0.16, 0.10, 0.05); g.add(mCap);
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Pumpkin patch --------
+  function makePumpkin() {
+    const g = new THREE.Group();
+    function pumpkinAt(x, z, scale) {
+      const p = new THREE.Mesh(new THREE.SphereGeometry(0.10 * scale, 12, 8), M.pumpkin);
+      p.scale.y = 0.85;
+      p.position.set(x, 0.08 * scale, z);
+      g.add(p);
+      // Ridges (darker bands)
+      for (let i = 0; i < 5; i++) {
+        const band = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.16 * scale, 0.022), M.pumpkinDk);
+        band.position.set(x, 0.08 * scale, z);
+        band.rotation.y = (i / 5) * Math.PI * 2;
+        g.add(band);
+      }
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.06 * scale, 8), M.leafGreen);
+      stem.position.set(x, 0.18 * scale, z); g.add(stem);
+    }
+    pumpkinAt(-0.15, -0.05, 1.0);
+    pumpkinAt( 0.15,  0.10, 0.85);
+    pumpkinAt( 0.00, -0.18, 0.7);
+    // Vine: a thin curved line of green
+    for (let i = 0; i < 6; i++) {
+      const v = new THREE.Mesh(new THREE.SphereGeometry(0.014, 6, 6), M.leafGreen);
+      v.position.set(-0.15 + i * 0.06, 0.015, -0.05 + Math.sin(i) * 0.06);
+      g.add(v);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Wheat field (golden stalks) --------
+  function makeWheat() {
+    const g = new THREE.Group();
+    // Furrow / patch of dirt
+    const patch = new THREE.Mesh(roundedSlab(TILE * 0.85, 0.04, 0.05), M.dirt);
+    patch.position.y = 0; g.add(patch);
+    // Many stalks
+    for (let i = 0; i < 24; i++) {
+      const x = (Math.random() - 0.5) * 0.7;
+      const z = (Math.random() - 0.5) * 0.7;
+      const h = 0.22 + Math.random() * 0.06;
+      const stalk = new THREE.Mesh(new THREE.BoxGeometry(0.012, h, 0.012), M.wheatStem);
+      stalk.position.set(x, 0.04 + h / 2, z); g.add(stalk);
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.06, 0.028), M.wheatTip);
+      tip.position.set(x, 0.04 + h + 0.02, z); g.add(tip);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Haystack (round bale) --------
+  function makeHaystack() {
+    const g = new THREE.Group();
+    const bale = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 0.34, 16), M.barnHay);
+    bale.rotation.x = Math.PI / 2;
+    bale.position.y = 0.20; g.add(bale);
+    // Hay strands (faint stripes)
+    for (let i = 0; i < 6; i++) {
+      const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.20, 0.008, 6, 18), M.wheatStem);
+      stripe.rotation.x = Math.PI / 2;
+      stripe.position.set((i - 2.5) * 0.06, 0.20, 0);
+      g.add(stripe);
+    }
+    // A few loose straws
+    for (let i = 0; i < 5; i++) {
+      const straw = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.012, 0.012), M.wheatTip);
+      straw.position.set((Math.random() - 0.5) * 0.40, 0.02, (Math.random() - 0.5) * 0.40);
+      straw.rotation.y = Math.random() * Math.PI;
+      g.add(straw);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Stone well (with bucket + roof) --------
+  function makeWell() {
+    const g = new THREE.Group();
+    // Ring of stones
+    const wall = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.20, 16), M.cabinStone);
+    wall.position.y = 0.10; g.add(wall);
+    // Rim
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.025, 6, 18), M.foundationD);
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = 0.20; g.add(rim);
+    // Water inside (darker disc)
+    const water = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 0.01, 16), M.waterDk);
+    water.position.y = 0.16; g.add(water);
+    // Posts
+    const pL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.40, 0.04), M.cabinWood);
+    pL.position.set(-0.18, 0.40, 0); g.add(pL);
+    const pR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.40, 0.04), M.cabinWood);
+    pR.position.set( 0.18, 0.40, 0); g.add(pR);
+    // Roof (small pitched)
+    const roof = pitchedRoof(0.50, 0.30, 0.16, M.cabinRoof, M.cabinRoofD, 0.05);
+    roof.position.set(0, 0.60, 0); g.add(roof);
+    // Crank handle
+    const crank = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.36, 8), M.cabinDark);
+    crank.rotation.z = Math.PI / 2;
+    crank.position.y = 0.50; g.add(crank);
+    // Rope + bucket
+    const rope = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.18, 0.012), M.wheatStem);
+    rope.position.set(0, 0.40, 0.05); g.add(rope);
+    const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.08, 10), M.cabinWood);
+    bucket.position.set(0, 0.28, 0.05); g.add(bucket);
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Lamppost --------
+  function makeLamp() {
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.10, 0.06, 10), M.lampPole);
+    base.position.y = 0.03; g.add(base);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.60, 8), M.lampPole);
+    pole.position.y = 0.36; g.add(pole);
+    // Decorative ring mid-height
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.012, 6, 12), M.lampPole);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.42; g.add(ring);
+    // Lamp head (cube with glow inside)
+    const head = new THREE.Mesh(roundedBox(0.12, 0.16, 0.12, 0.018), M.lampPole);
+    head.position.y = 0.72; g.add(head);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 12), M.lampGlow);
+    glow.position.y = 0.72; g.add(glow);
+    // Cap on top
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.06, 4), M.lampPole);
+    cap.position.y = 0.83; cap.rotation.y = Math.PI / 4; g.add(cap);
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Wooden bench --------
+  function makeBench() {
+    const g = new THREE.Group();
+    const seat = new THREE.Mesh(roundedBox(0.62, 0.04, 0.18, 0.018), M.cabinWood);
+    seat.position.y = 0.22; g.add(seat);
+    const back = new THREE.Mesh(roundedBox(0.62, 0.18, 0.04, 0.018), M.cabinWood);
+    back.position.set(0, 0.32, -0.08); g.add(back);
+    // Legs
+    for (const x of [-0.26, 0.26]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.16), M.cabinDark);
+      leg.position.set(x, 0.11, 0); g.add(leg);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Picket fence (3 pickets) --------
+  function makeFence() {
+    const g = new THREE.Group();
+    // Horizontal rails
+    const railTop = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.025, 0.04), M.fenceWood);
+    railTop.position.y = 0.20; g.add(railTop);
+    const railBot = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.025, 0.04), M.fenceWood);
+    railBot.position.y = 0.08; g.add(railBot);
+    // 5 pickets
+    for (let i = 0; i < 5; i++) {
+      const x = -0.32 + i * 0.16;
+      const picket = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.28, 0.02), M.fenceWood);
+      picket.position.set(x, 0.15, 0); g.add(picket);
+      // Pointed tip
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.038, 0.05, 4), M.fenceWood);
+      tip.position.set(x, 0.31, 0);
+      tip.rotation.y = Math.PI / 4; g.add(tip);
+    }
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Campfire (logs + flame) --------
+  function makeCampfire() {
+    const g = new THREE.Group();
+    // Ring of small rocks
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const r = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), M.rock);
+      r.position.set(Math.cos(a) * 0.22, 0.04, Math.sin(a) * 0.22);
+      r.scale.y = 0.7; g.add(r);
+    }
+    // Cross-stacked logs
+    const log1 = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.34, 10), M.campLog);
+    log1.rotation.z = Math.PI / 2;
+    log1.position.set(0, 0.08, 0); g.add(log1);
+    const log2 = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.34, 10), M.campLog);
+    log2.rotation.x = Math.PI / 2;
+    log2.position.set(0, 0.12, 0); g.add(log2);
+    // Flames
+    const f1 = new THREE.Mesh(new THREE.ConeGeometry(0.10, 0.20, 8), M.flameOuter);
+    f1.position.set(0, 0.22, 0); g.add(f1);
+    const f2 = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.14, 8), M.flameInner);
+    f2.position.set(0, 0.24, 0); g.add(f2);
+    castReceive(g);
+    return g;
+  }
+
+  // -------- Wooden sign post --------
+  function makeSign() {
+    const g = new THREE.Group();
+    // Stone base
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.10, 0.05, 8), M.cabinStone);
+    base.position.y = 0.025; g.add(base);
+    // Post
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.46, 0.05), M.cabinWood);
+    post.position.y = 0.28; g.add(post);
+    // Plank board
+    const board = new THREE.Mesh(roundedBox(0.34, 0.18, 0.025, 0.018), M.fenceWood);
+    board.position.set(0, 0.42, 0.03);
+    board.rotation.y = -0.1; g.add(board);
+    // Two dark lines suggesting text
+    const line1 = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.012, 0.022), M.cabinDark);
+    line1.position.set(0, 0.45, 0.044);
+    line1.rotation.y = -0.1; g.add(line1);
+    const line2 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.012, 0.022), M.cabinDark);
+    line2.position.set(0, 0.41, 0.044);
+    line2.rotation.y = -0.1; g.add(line2);
+    // Arrow tip at one end of the board
+    const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.10, 3), M.fenceWood);
+    arrow.rotation.z = -Math.PI / 2;
+    arrow.position.set(0.20, 0.42, 0.03);
+    arrow.rotation.y = -0.1; g.add(arrow);
+    castReceive(g);
+    return g;
+  }
+
   // ---------- building catalog ----------
   const BUILDINGS = {
-    house:    { id: 'house',    label: 'Casa',      icon: '🏠', build: makeHouse },
-    cabin:    { id: 'cabin',    label: 'Cabaña',    icon: '🛖', build: makeCabin },
-    barn:     { id: 'barn',     label: 'Granero',   icon: '🚜', build: makeBarn },
-    windmill: { id: 'windmill', label: 'Molino',    icon: '🌬️', build: makeWindmill },
-    tree:     { id: 'tree',     label: 'Árbol',     icon: '🌳', build: makeTree },
-    pine:     { id: 'pine',     label: 'Pino',      icon: '🌲', build: makePine },
-    pond:     { id: 'pond',     label: 'Laguna',    icon: '💧', build: makePond },
-    rocks:    { id: 'rocks',    label: 'Piedras',   icon: '🪨', build: makeRocks },
+    // Buildings
+    house:      { id: 'house',      label: 'Casa',        icon: '🏠', build: makeHouse },
+    cabin:      { id: 'cabin',      label: 'Cabaña',      icon: '🛖', build: makeCabin },
+    barn:       { id: 'barn',       label: 'Granero',     icon: '🚜', build: makeBarn },
+    windmill:   { id: 'windmill',   label: 'Molino',      icon: '🌬️', build: makeWindmill },
+    church:     { id: 'church',     label: 'Iglesia',     icon: '⛪', build: makeChurch },
+    lighthouse: { id: 'lighthouse', label: 'Faro',        icon: '🗼', build: makeLighthouse },
+    tower:      { id: 'tower',      label: 'Torre',       icon: '🏰', build: makeTower },
+    greenhouse: { id: 'greenhouse', label: 'Invernadero', icon: '🪴', build: makeGreenhouse },
+    tent:       { id: 'tent',       label: 'Carpa',       icon: '⛺', build: makeTent },
+    // Nature
+    tree:       { id: 'tree',       label: 'Árbol',       icon: '🌳', build: makeTree },
+    pine:       { id: 'pine',       label: 'Pino',        icon: '🌲', build: makePine },
+    cherry:     { id: 'cherry',     label: 'Cerezo',      icon: '🌸', build: makeCherry },
+    palm:       { id: 'palm',       label: 'Palmera',     icon: '🌴', build: makePalm },
+    bush:       { id: 'bush',       label: 'Arbusto',     icon: '🌿', build: makeBush },
+    mushroom:   { id: 'mushroom',   label: 'Hongo',       icon: '🍄', build: makeMushroom },
+    flowers:    { id: 'flowers',    label: 'Flores',      icon: '🌷', build: makeFlowers },
+    stump:      { id: 'stump',      label: 'Tronco',      icon: '🪵', build: makeStump },
+    pond:       { id: 'pond',       label: 'Laguna',      icon: '💧', build: makePond },
+    rocks:      { id: 'rocks',      label: 'Piedras',     icon: '🪨', build: makeRocks },
+    // Farm
+    wheat:      { id: 'wheat',      label: 'Trigal',      icon: '🌾', build: makeWheat },
+    pumpkin:    { id: 'pumpkin',    label: 'Zapallos',    icon: '🎃', build: makePumpkin },
+    haystack:   { id: 'haystack',   label: 'Fardo',       icon: '🌾', build: makeHaystack },
+    well:       { id: 'well',       label: 'Pozo',        icon: '🪣', build: makeWell },
+    // Decor
+    lamp:       { id: 'lamp',       label: 'Farol',       icon: '💡', build: makeLamp },
+    bench:      { id: 'bench',      label: 'Banco',       icon: '🪑', build: makeBench },
+    fence:      { id: 'fence',      label: 'Valla',       icon: '🚧', build: makeFence },
+    campfire:   { id: 'campfire',   label: 'Fogata',      icon: '🔥', build: makeCampfire },
+    sign:       { id: 'sign',       label: 'Cartel',      icon: '🪧', build: makeSign },
   };
-  const TOOL_LIST = ['house', 'cabin', 'barn', 'windmill', 'tree', 'pine', 'pond', 'rocks'];
+  const TOOL_LIST = [
+    'house', 'cabin', 'barn', 'windmill', 'church', 'lighthouse', 'tower', 'greenhouse', 'tent',
+    'tree', 'pine', 'cherry', 'palm', 'bush', 'mushroom', 'flowers', 'stump', 'pond', 'rocks',
+    'wheat', 'pumpkin', 'haystack', 'well',
+    'lamp', 'bench', 'fence', 'campfire', 'sign',
+  ];
 
   // ---------- world state ----------
   // Build the world grid (tiles).
@@ -1224,7 +1883,7 @@
   // ---------- keyboard shortcuts ----------
   window.addEventListener('keydown', e => {
     if (e.repeat) return;
-    if (e.key >= '1' && e.key <= '8') {
+    if (e.key >= '1' && e.key <= '9') {
       const idx = parseInt(e.key, 10) - 1;
       const id = TOOL_LIST[idx];
       if (id) selectTool(id);
