@@ -2370,6 +2370,12 @@
 
   function selectTower(tower) {
     STATE.selectedTower = tower;
+    // Inspecting an existing tower drops any in-progress build/sell selection
+    // so the next empty-tile click doesn't unexpectedly place a tower.
+    if (STATE.selectedTool) {
+      STATE.selectedTool = null;
+      updateActiveDockItem();
+    }
     document.getElementById('infoPanel').classList.add('show');
     refreshInfoPanel();
     const stats = getStats(tower);
