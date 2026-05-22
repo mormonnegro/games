@@ -564,14 +564,7 @@
   }
   .gameover-card p b { color: var(--ink); }
 
-  /* ---------- history hint & charts ---------- */
-  .hint.history-hint {
-    grid-column: span 2;
-    padding: 14px 16px;
-    cursor: default;
-    background: var(--panel-soft);
-  }
-  .hint.history-hint .hint-label { margin-bottom: 8px; }
+  /* ---------- historical charts (always visible section) ---------- */
   .history-charts {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -597,6 +590,7 @@
     height: 56px;
     display: block;
     overflow: visible;
+    cursor: crosshair;
   }
   .chart-svg .line {
     fill: none;
@@ -605,9 +599,50 @@
     stroke-linecap: round;
   }
   .chart-svg .area { opacity: 0.18; }
-  .chart-svg .dot {
-    fill: var(--panel);
-    stroke-width: 1.5;
+  .chart-svg .hover-line {
+    stroke: var(--ink);
+    stroke-width: 1;
+    stroke-dasharray: 2 2;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .chart-wrap { position: relative; }
+  .hover-dot {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 2px solid currentColor;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.08s;
+    z-index: 1;
+  }
+  .hover-dot.show { opacity: 1; }
+  .chart-tooltip {
+    position: absolute;
+    background: var(--ink);
+    color: #fff;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translate(-50%, -100%) translateY(-10px);
+    transition: opacity 0.08s;
+    z-index: 2;
+    box-shadow: 0 4px 12px rgba(40, 30, 18, 0.25);
+  }
+  .chart-tooltip.show { opacity: 1; }
+  .chart-tooltip .year {
+    color: rgba(255, 255, 255, 0.6);
+    margin-right: 6px;
+    font-weight: 500;
   }
   .chart-range {
     font-size: 11px;
@@ -622,44 +657,10 @@
   .chart-error {
     font-size: 12px;
     color: var(--muted);
-    padding: 14px 0;
+    padding: 8px 0;
     text-align: center;
   }
   .chart-error { color: var(--red); }
-
-  /* Result card now stacks: main row + optional detail chart */
-  .result-card { flex-direction: column; }
-  .result-main {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    width: 100%;
-  }
-  .history-detail {
-    width: 100%;
-    padding-top: 16px;
-    border-top: 1px solid var(--line);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .history-detail[hidden] { display: none; }
-  .history-detail .detail-title {
-    font-size: 12px;
-    color: var(--muted);
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  .history-detail .chart-svg { height: 80px; }
-  .history-detail .axis-x {
-    font-size: 10px;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-    display: flex;
-    justify-content: space-between;
-    margin-top: -2px;
-  }
 </style>
 </head>
 <body>
@@ -707,6 +708,10 @@
         <div class="section-title">📥 Principales importaciones</div>
         <div class="tags" id="freeImports"></div>
       </div>
+      <div class="free-section">
+        <div class="section-title">📈 Trayectoria · 1994–2023</div>
+        <div id="freeHistory"><div class="chart-loading">—</div></div>
+      </div>
       <div class="hints-heading">
         <span>🔒 Pista extra</span>
         <span class="muted">Resta puntos del potencial pero te da más certeza</span>
@@ -724,20 +729,17 @@
     <div class="options" id="optionsRow" style="display:none"></div>
 
     <div class="result-card" id="resultCard">
-      <div class="result-main">
-        <div class="result-flag" id="resultFlag">🌍</div>
-        <div class="result-text">
-          <div class="head" id="resultHead">—</div>
-          <div class="name" id="resultName">—</div>
-        </div>
-        <button class="next-btn" id="nextBtn">Siguiente →</button>
+      <div class="result-flag" id="resultFlag">🌍</div>
+      <div class="result-text">
+        <div class="head" id="resultHead">—</div>
+        <div class="name" id="resultName">—</div>
       </div>
-      <div class="history-detail" id="historyDetail" hidden></div>
+      <button class="next-btn" id="nextBtn">Siguiente →</button>
     </div>
   </main>
 
   <footer>
-    Empezás con <b>$100</b> · acertar paga <b>+$50</b> · errar cuesta <b>−$10</b> · billete <b>−$10</b> · trayectoria histórica <b>−$20</b> · ambas pistas suben <b>+$5</b> por cada uso · si te quedás sin plata, <b>perdés</b>.<br/>
+    Empezás con <b>$100</b> · acertar paga <b>+$50</b> · errar cuesta <b>−$10</b> · ver el billete arranca en <b>−$10</b> y sube <b>+$5</b> por cada uso · si te quedás sin plata, <b>perdés</b>.<br/>
     <kbd>Enter</kbd> enviar respuesta escrita · <kbd>1</kbd>–<kbd>4</kbd> elegir opción · <kbd>Espacio</kbd>/<kbd>Enter</kbd> siguiente ronda
   </footer>
 
@@ -920,8 +922,7 @@
   const WRONG_COST      = 10;   // pagás cuando errás la respuesta
   const CORRECT_REWARD  = 50;   // ganás cuando acertás
   const HINTS = [
-    { id: 'currency', label: 'Moneda',     cost: HINT_COST, format: c => c.currency, kind: 'banknote' },
-    { id: 'history',  label: 'Trayectoria', cost: 20,        kind: 'history' },
+    { id: 'currency', label: 'Moneda', cost: HINT_COST, format: c => c.currency, kind: 'banknote' },
   ];
 
   // Costo dinámico: cada pista sube de a poco según las veces que ya la usaste
@@ -1038,34 +1039,83 @@
     return data;
   }
 
-  // Renders a pure-SVG sparkline. `showDots` adds endpoint markers (for the
-  // larger chart in the reveal); the compact hint version skips them.
-  function renderSparkline(data, color, opts = {}) {
-    const width   = opts.width   ?? 220;
-    const height  = opts.height  ?? 56;
-    const showDots = opts.showDots ?? false;
-    if (!data || data.length < 2) return '<div class="chart-error">Sin datos</div>';
-    const xs = data.map(d => d.year);
+  // Builds a chart cell as a DOM element with interactive hover. Moving the
+  // mouse over the chart shows a vertical guide line, a dot on the curve, and
+  // a tooltip with the nearest data point's year + value.
+  function buildChartCell(data, indicator) {
+    const cell = document.createElement('div');
+    cell.className = 'chart-cell';
+    if (!data || data.length < 2) {
+      cell.innerHTML = `<span class="chart-title">${indicator.label}</span><div class="chart-error">Sin datos</div>`;
+      return cell;
+    }
+    const W = 220, H = 56, PAD = 5;
+    const minX = data[0].year, maxX = data[data.length - 1].year;
     const ys = data.map(d => d.value);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
     const xRange = (maxX - minX) || 1;
     const yRange = (maxY - minY) || 1;
-    const pad = 5;
-    const sx = x => pad + ((x - minX) / xRange) * (width - 2 * pad);
-    const sy = y => height - pad - ((y - minY) / yRange) * (height - 2 * pad);
+    const sx = x => PAD + ((x - minX) / xRange) * (W - 2 * PAD);
+    const sy = y => H - PAD - ((y - minY) / yRange) * (H - 2 * PAD);
     const pts = data.map(d => `${sx(d.year).toFixed(1)},${sy(d.value).toFixed(1)}`).join(' ');
     const first = data[0], last = data[data.length - 1];
-    const areaPts = `${sx(first.year)},${height - pad} ${pts} ${sx(last.year)},${height - pad}`;
-    const dots = showDots
-      ? `<circle class="dot" cx="${sx(first.year)}" cy="${sy(first.value)}" r="3" stroke="${color}"/>
-         <circle class="dot" cx="${sx(last.year)}"  cy="${sy(last.value)}"  r="3" stroke="${color}"/>`
-      : '';
-    return `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
-      <polygon class="area" points="${areaPts}" fill="${color}"/>
-      <polyline class="line" points="${pts}" stroke="${color}"/>
-      ${dots}
-    </svg>`;
+    const areaPts = `${sx(first.year)},${H - PAD} ${pts} ${sx(last.year)},${H - PAD}`;
+
+    cell.innerHTML = `
+      <span class="chart-title">${indicator.label}</span>
+      <div class="chart-wrap">
+        <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+          <polygon class="area" points="${areaPts}" fill="${indicator.color}"/>
+          <polyline class="line" points="${pts}" stroke="${indicator.color}"/>
+          <line class="hover-line" y1="${PAD}" y2="${H - PAD}"/>
+        </svg>
+        <div class="hover-dot" style="color:${indicator.color}"></div>
+        <div class="chart-tooltip"></div>
+      </div>
+      <div class="chart-range">
+        <span><span class="muted">${first.year}</span> ${indicator.format(first.value)}</span>
+        <span><span class="muted">${last.year}</span> ${indicator.format(last.value)}</span>
+      </div>
+    `;
+
+    const wrap      = cell.querySelector('.chart-wrap');
+    const svg       = cell.querySelector('.chart-svg');
+    const hoverLine = cell.querySelector('.hover-line');
+    const dot       = cell.querySelector('.hover-dot');
+    const tooltip   = cell.querySelector('.chart-tooltip');
+
+    wrap.addEventListener('mousemove', e => {
+      const rect = svg.getBoundingClientRect();
+      if (rect.width === 0) return;
+      const relX = (e.clientX - rect.left) / rect.width * W;
+      // Snap to the nearest data point by X distance in viewBox units.
+      let bestI = 0, bestD = Infinity;
+      for (let i = 0; i < data.length; i++) {
+        const dd = Math.abs(sx(data[i].year) - relX);
+        if (dd < bestD) { bestD = dd; bestI = i; }
+      }
+      const p  = data[bestI];
+      const px = sx(p.year);
+      const py = sy(p.value);
+      hoverLine.setAttribute('x1', px);
+      hoverLine.setAttribute('x2', px);
+      hoverLine.setAttribute('opacity', '0.45');
+      const pxPx = (px / W) * rect.width;
+      const pyPx = (py / H) * rect.height;
+      dot.style.left = `${pxPx}px`;
+      dot.style.top  = `${pyPx}px`;
+      dot.classList.add('show');
+      tooltip.style.left = `${pxPx}px`;
+      tooltip.style.top  = `${pyPx}px`;
+      tooltip.innerHTML  = `<span class="year">${p.year}</span>${indicator.format(p.value)}`;
+      tooltip.classList.add('show');
+    });
+    wrap.addEventListener('mouseleave', () => {
+      hoverLine.setAttribute('opacity', '0');
+      dot.classList.remove('show');
+      tooltip.classList.remove('show');
+    });
+    return cell;
   }
 
   // Token to invalidate in-flight chart loads when the round changes.
@@ -1147,8 +1197,6 @@
     // Las 4 opciones se muestran de arranque para que el juego sea accesible.
     $('optionsRow').style.display = 'grid';
     hideBanknote();
-    $('historyDetail').hidden = true;
-    $('historyDetail').innerHTML = '';
     $('resultCard').classList.remove('show', 'correct', 'wrong');
     const input = $('guessInput');
     input.value = '';
@@ -1171,6 +1219,7 @@
     const imp = $('freeImports');
     imp.innerHTML = '';
     c.imports.forEach(e => imp.appendChild(tag(e, 'import')));
+    renderFreeHistory(c);
     renderHints(c);
   }
 
@@ -1181,30 +1230,21 @@
       const isRevealed = STATE.revealed.has(h.id);
       const card = document.createElement(isRevealed ? 'div' : 'button');
       card.className = 'hint';
-      if (h.kind === 'history') card.classList.add('history-hint');
 
       if (isRevealed) {
-        if (h.kind === 'history') {
-          card.innerHTML = `
-            <span class="hint-label">📈 Trayectoria · ${HISTORY_START}–${HISTORY_END}</span>
-            <div class="chart-loading">Cargando datos del Banco Mundial…</div>
-          `;
-          populateHistorySparkline(card, c);
+        card.innerHTML = `<span class="hint-label">${h.label}</span>`;
+        const val = document.createElement('span');
+        val.className = 'hint-value';
+        if (h.kind === 'reveal-options') {
+          val.textContent = '✓ Opciones reveladas';
+          val.style.color = 'var(--green)';
+        } else if (h.kind === 'banknote') {
+          val.textContent = '✓ Revelada arriba ↑';
+          val.style.color = 'var(--green)';
         } else {
-          card.innerHTML = `<span class="hint-label">${h.label}</span>`;
-          const val = document.createElement('span');
-          val.className = 'hint-value';
-          if (h.kind === 'reveal-options') {
-            val.textContent = '✓ Opciones reveladas';
-            val.style.color = 'var(--green)';
-          } else if (h.kind === 'banknote') {
-            val.textContent = '✓ Revelada arriba ↑';
-            val.style.color = 'var(--green)';
-          } else {
-            val.textContent = h.format(c);
-          }
-          card.appendChild(val);
+          val.textContent = h.format(c);
         }
+        card.appendChild(val);
       } else {
         card.classList.add('locked');
         card.type = 'button';
@@ -1215,9 +1255,8 @@
         const subtitle = broke
           ? 'Sin plata'
           : `Desbloquear · <b>−$${cost}</b>${used > 0 ? ` <span style="color:var(--muted)">(sube $${HINT_COST_STEP} cada uso)</span>` : ''}`;
-        const icon = h.kind === 'history' ? '📈 ' : '';
         card.innerHTML = `
-          <span class="hint-lock"><span class="ico">🔒</span>${icon}${h.label}</span>
+          <span class="hint-lock"><span class="ico">🔒</span>${h.label}</span>
           <span class="hint-cost">${subtitle}</span>
         `;
         card.addEventListener('click', () => revealHint(h.id));
@@ -1226,64 +1265,16 @@
     }
   }
 
-  function chartCellHTML(data, indicator) {
-    if (!data || !data.length) {
-      return `<div class="chart-cell"><span class="chart-title">${indicator.label}</span><div class="chart-error">Sin datos</div></div>`;
-    }
-    const first = data[0], last = data[data.length - 1];
-    return `
-      <div class="chart-cell">
-        <span class="chart-title">${indicator.label}</span>
-        ${renderSparkline(data, indicator.color)}
-        <div class="chart-range">
-          <span><span class="muted">${first.year}</span> ${indicator.format(first.value)}</span>
-          <span><span class="muted">${last.year}</span> ${indicator.format(last.value)}</span>
-        </div>
-      </div>
-    `;
-  }
-
-  async function populateHistorySparkline(card, country) {
+  // Pulls GDP + population from the World Bank and renders both sparklines into
+  // the always-visible free section. Cancels stale loads via chartLoadToken so
+  // skipping to the next round doesn't paint the previous country's data.
+  async function renderFreeHistory(country) {
     const token = chartLoadToken;
+    const el = $('freeHistory');
+    el.innerHTML = '<div class="chart-loading">Cargando datos del Banco Mundial…</div>';
     const iso = ISO_CODES[country.name];
     if (!iso) {
-      const loading = card.querySelector('.chart-loading');
-      if (loading) loading.outerHTML = '<div class="chart-error">Sin código ISO para este país</div>';
-      return;
-    }
-    try {
-      const [gdp, pop] = await Promise.all([
-        fetchWBHistory(iso, WB_INDICATORS.gdp.code),
-        fetchWBHistory(iso, WB_INDICATORS.pop.code),
-      ]);
-      if (token !== chartLoadToken) return; // round changed mid-fetch
-      card.innerHTML = `
-        <span class="hint-label">📈 Trayectoria · ${HISTORY_START}–${HISTORY_END}</span>
-        <div class="history-charts">
-          ${chartCellHTML(gdp, WB_INDICATORS.gdp)}
-          ${chartCellHTML(pop, WB_INDICATORS.pop)}
-        </div>
-      `;
-    } catch (e) {
-      if (token !== chartLoadToken) return;
-      const loading = card.querySelector('.chart-loading');
-      if (loading) loading.outerHTML = '<div class="chart-error">No se pudieron cargar los datos</div>';
-    }
-  }
-
-  // After answering, show the full historical chart for free as an educational
-  // reveal — same data as the paid hint but a touch larger and with year axis.
-  async function revealHistoryDetail(country) {
-    const token = chartLoadToken;
-    const detail = $('historyDetail');
-    detail.hidden = false;
-    detail.innerHTML = `
-      <span class="detail-title">📈 Trayectoria histórica · ${country.name}</span>
-      <div class="chart-loading">Cargando datos del Banco Mundial…</div>
-    `;
-    const iso = ISO_CODES[country.name];
-    if (!iso) {
-      detail.innerHTML = `<span class="detail-title">📈 Trayectoria histórica · ${country.name}</span><div class="chart-error">Sin código ISO</div>`;
+      el.innerHTML = '<div class="chart-error">Sin código ISO para este país</div>';
       return;
     }
     try {
@@ -1292,21 +1283,15 @@
         fetchWBHistory(iso, WB_INDICATORS.pop.code),
       ]);
       if (token !== chartLoadToken) return;
-      const years = gdp.length ? gdp : pop;
-      const firstYear = years[0]?.year ?? HISTORY_START;
-      const lastYear  = years[years.length - 1]?.year ?? HISTORY_END;
-      const midYear   = Math.round((firstYear + lastYear) / 2);
-      detail.innerHTML = `
-        <span class="detail-title">📈 Trayectoria histórica · ${country.name}</span>
-        <div class="history-charts">
-          ${chartCellHTML(gdp, WB_INDICATORS.gdp)}
-          ${chartCellHTML(pop, WB_INDICATORS.pop)}
-        </div>
-        <div class="axis-x"><span>${firstYear}</span><span>${midYear}</span><span>${lastYear}</span></div>
-      `;
+      el.innerHTML = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'history-charts';
+      wrap.appendChild(buildChartCell(gdp, WB_INDICATORS.gdp));
+      wrap.appendChild(buildChartCell(pop, WB_INDICATORS.pop));
+      el.appendChild(wrap);
     } catch (e) {
       if (token !== chartLoadToken) return;
-      detail.innerHTML = `<span class="detail-title">📈 Trayectoria histórica · ${country.name}</span><div class="chart-error">No se pudieron cargar los datos del Banco Mundial</div>`;
+      el.innerHTML = '<div class="chart-error">No se pudieron cargar los datos</div>';
     }
   }
 
@@ -1415,7 +1400,6 @@
     bumpMoneyChip();
     updateScore();
     showResult(correct, delta, countryIdx);
-    revealHistoryDetail(COUNTRIES[STATE.currentIdx]);
     if (STATE.money <= 0) triggerGameOver();
   }
 
