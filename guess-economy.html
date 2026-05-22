@@ -1002,8 +1002,12 @@
     'Indonesia': 'ID', 'Turquía': 'TR', 'Irlanda': 'IE', 'Emiratos Árabes Unidos': 'AE',
   };
   const WB_INDICATORS = {
-    gdp: { code: 'NY.GDP.MKTP.CD', label: 'PIB (USD)',   color: '#d4a017', format: formatHistoryGdp },
-    pop: { code: 'SP.POP.TOTL',    label: 'Población',   color: '#5fa033', format: formatHistoryPop },
+    gdp:   { code: 'NY.GDP.MKTP.CD',    label: 'PIB (USD)',         color: '#d4a017', format: formatHistoryGdp },
+    pop:   { code: 'SP.POP.TOTL',       label: 'Población',         color: '#5fa033', format: formatHistoryPop },
+    infl:  { code: 'FP.CPI.TOTL.ZG',    label: 'Inflación anual',   color: '#c84848', format: formatHistoryPercent },
+    life:  { code: 'SP.DYN.LE00.IN',    label: 'Esperanza de vida', color: '#2c8a9e', format: formatHistoryYears },
+    urb:   { code: 'SP.URB.TOTL.IN.ZS', label: '% urbano',          color: '#7a5cb8', format: formatHistoryPercent },
+    unemp: { code: 'SL.UEM.TOTL.ZS',    label: 'Desempleo',         color: '#d97a2f', format: formatHistoryPercent },
   };
   const HISTORY_START = 1994;
   const HISTORY_END   = 2023;
@@ -1011,7 +1015,6 @@
   function formatHistoryGdp(usd) {
     if (usd == null) return '—';
     if (usd >= 1e12) return `USD ${NF1.format(usd / 1e12)} billones`;
-    if (usd >= 1e9)  return `USD ${NF.format(Math.round(usd / 1e6))} millones`;
     return `USD ${NF.format(Math.round(usd / 1e6))} millones`;
   }
   function formatHistoryPop(n) {
@@ -1019,6 +1022,14 @@
     if (n >= 1e9) return `${NF1.format(n / 1e9)} mil millones`;
     if (n >= 1e6) return `${NF1.format(n / 1e6)} millones`;
     return NF.format(Math.round(n));
+  }
+  function formatHistoryPercent(v) {
+    if (v == null) return '—';
+    return `${NF1.format(v)}%`;
+  }
+  function formatHistoryYears(v) {
+    if (v == null) return '—';
+    return `${NF1.format(v)} años`;
   }
 
   async function fetchWBHistory(iso, indicatorCode) {
@@ -1265,9 +1276,11 @@
     }
   }
 
-  // Pulls GDP + population from the World Bank and renders both sparklines into
-  // the always-visible free section. Cancels stale loads via chartLoadToken so
-  // skipping to the next round doesn't paint the previous country's data.
+  // Pulls every indicator in WB_INDICATORS in parallel and renders one cell per
+  // indicator. A single indicator failing (e.g. unemployment unavailable for a
+  // small economy) just shows "Sin datos" in that cell — the rest still draw.
+  // Cancels stale loads via chartLoadToken so skipping to the next round
+  // doesn't paint the previous country's data.
   async function renderFreeHistory(country) {
     const token = chartLoadToken;
     const el = $('freeHistory');
@@ -1277,22 +1290,16 @@
       el.innerHTML = '<div class="chart-error">Sin código ISO para este país</div>';
       return;
     }
-    try {
-      const [gdp, pop] = await Promise.all([
-        fetchWBHistory(iso, WB_INDICATORS.gdp.code),
-        fetchWBHistory(iso, WB_INDICATORS.pop.code),
-      ]);
-      if (token !== chartLoadToken) return;
-      el.innerHTML = '';
-      const wrap = document.createElement('div');
-      wrap.className = 'history-charts';
-      wrap.appendChild(buildChartCell(gdp, WB_INDICATORS.gdp));
-      wrap.appendChild(buildChartCell(pop, WB_INDICATORS.pop));
-      el.appendChild(wrap);
-    } catch (e) {
-      if (token !== chartLoadToken) return;
-      el.innerHTML = '<div class="chart-error">No se pudieron cargar los datos</div>';
-    }
+    const indicators = Object.values(WB_INDICATORS);
+    const results = await Promise.all(
+      indicators.map(ind => fetchWBHistory(iso, ind.code).catch(() => []))
+    );
+    if (token !== chartLoadToken) return;
+    el.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'history-charts';
+    results.forEach((data, i) => wrap.appendChild(buildChartCell(data, indicators[i])));
+    el.appendChild(wrap);
   }
 
   function revealHint(id) {
