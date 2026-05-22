@@ -1134,8 +1134,6 @@
     <div class="sp-row"><span>Best depth</span><b id="spBest">0m</b></div>
   </div>
 
-  <div class="inv" id="inv"></div>
-
   <div class="popups" id="popups"></div>
 
   <div class="ach-toasts" id="achToasts"></div>
@@ -1497,11 +1495,19 @@
   // eventMin/eventMax define the random range (in blocks mined) between
   // random events. Easier difficulties get help more often; harder modes get
   // it sparingly. The first event of a run fires sooner — see tickEvents().
+  // lavaMax caps the linear acceleration so the game is theoretically
+  // sustainable forever in each mode: once the player has enough sustained
+  // dps to match the cap, they can hold position indefinitely. Without this
+  // cap, lava grew unbounded and every run ended eventually.
+  // accelGrowth (>1) makes the wait between speed bumps stretch over time:
+  // each bump takes growth× the time of the previous one. So early game keeps
+  // its rhythm, and the long-term ramp slows down (more breathing room before
+  // hitting lavaMax). growth = 1.0 means classic linear acceleration.
   const DIFFICULTIES = {
-    easy:      { name: 'Fácil',     lavaInit: 0.45, accelStep: 0.04, accelEvery: 45, coinMult: 1.4,  eventMin: 40,  eventMax: 60  },
-    normal:    { name: 'Normal',    lavaInit: 0.60, accelStep: 0.06, accelEvery: 40, coinMult: 1.20, eventMin: 90,  eventMax: 110 },
-    hard:      { name: 'Difícil',   lavaInit: 1.05, accelStep: 0.09, accelEvery: 35, coinMult: 0.65, eventMin: 140, eventMax: 180 },
-    nightmare: { name: 'Pesadilla', lavaInit: 1.40, accelStep: 0.12, accelEvery: 30, coinMult: 0.40, eventMin: 220, eventMax: 260 },
+    easy:      { name: 'Fácil',     lavaInit: 0.40, accelStep: 0.035, accelEvery: 50, accelGrowth: 1.12, lavaMax: 1.0,  coinMult: 1.40, eventMin: 70,  eventMax: 100 },
+    normal:    { name: 'Normal',    lavaInit: 0.55, accelStep: 0.055, accelEvery: 45, accelGrowth: 1.10, lavaMax: 1.6,  coinMult: 1.20, eventMin: 150, eventMax: 200 },
+    hard:      { name: 'Difícil',   lavaInit: 0.80, accelStep: 0.070, accelEvery: 40, accelGrowth: 1.08, lavaMax: 2.2,  coinMult: 0.85, eventMin: 220, eventMax: 280 },
+    nightmare: { name: 'Pesadilla', lavaInit: 1.10, accelStep: 0.090, accelEvery: 35, accelGrowth: 1.06, lavaMax: 3.0,  coinMult: 0.55, eventMin: 320, eventMax: 400 },
   };
   function currentDifficulty() {
     return DIFFICULTIES[state.difficulty] || DIFFICULTIES.normal;
@@ -1596,6 +1602,10 @@
   function gameOverEscape() {
     if (!state.escape.alive) return;
     state.escape.alive = false;
+    // Cancel any active or queued boost so the next attempt starts clean.
+    state.boostActive = false;
+    state.boostEndsAt = 0;
+    state.boostCooldownEndsAt = 0;
     if (state.depth > state.escape.bestDepth) {
       state.escape.bestDepth = state.depth;
     }
@@ -1612,7 +1622,25 @@
     if (state.escape.alive) {
       const elapsed = (now - state.escape.startT) / 1000;
       const diff = currentDifficulty();
-      state.escape.lavaSpeed = diff.lavaInit + Math.floor(elapsed / diff.accelEvery) * diff.accelStep;
+      // Compute how many speed bumps have happened so far. With accelGrowth=1
+      // it's just elapsed / accelEvery (linear). With growth > 1, each bump
+      // takes growth× the time of the previous one, so the steps spread out
+      // as the run goes on.
+      const growth = diff.accelGrowth || 1.0;
+      let steps;
+      if (growth === 1.0) {
+        steps = Math.floor(elapsed / diff.accelEvery);
+      } else {
+        // Geometric series: time to reach step N is accelEvery * (g^N - 1)/(g - 1).
+        // Solving for N given elapsed time:
+        //   N = log(1 + elapsed*(g-1)/accelEvery) / log(g)
+        const v = 1 + elapsed * (growth - 1) / diff.accelEvery;
+        steps = v > 1 ? Math.floor(Math.log(v) / Math.log(growth)) : 0;
+      }
+      const linear = diff.lavaInit + steps * diff.accelStep;
+      // Cap acceleration so a sufficiently upgraded player can hold position
+      // forever. Without the cap every difficulty was a death timer.
+      state.escape.lavaSpeed = Math.min(diff.lavaMax || Infinity, linear);
       state.escape.lavaDepth += state.escape.lavaSpeed * dt;
       if (state.escape.lavaDepth >= state.depth) {
         gameOverEscape();
@@ -2889,23 +2917,9 @@
     document.getElementById('upgValue').classList.toggle('cant', state.coins < valueCost());
     document.getElementById('upgSpeed').classList.toggle('cant', state.coins < speedCost());
 
-    // Inventory chips.
-    const inv = document.getElementById('inv');
-    inv.innerHTML = '';
-    const order = ['grass','dirt','stone','coal','copper','iron','gold','diamond','mythril',
-                   'ruby','emerald','sapphire'];
-    for (const mat of order) {
-      const count = state.inv[mat];
-      if (!count) continue;
-      const m = MATERIALS[mat];
-      const chip = document.createElement('div');
-      chip.className = 'inv-chip';
-      chip.innerHTML =
-        '<span class="dot" style="background:#' + m.color.toString(16).padStart(6, '0') + '"></span>' +
-        '<span>' + m.name + '</span>' +
-        '<b>' + formatNum(count) + '</b>';
-      inv.appendChild(chip);
-    }
+    // (Inventory chip panel removed — the per-material tally was noisy. The
+    // counts in state.inv are still tracked because achievements reference
+    // them.)
 
     // Stats peek panel.
     document.getElementById('spBlocks').textContent = formatNum(state.totalMined);
