@@ -563,6 +563,103 @@
     margin: 0 0 18px;
   }
   .gameover-card p b { color: var(--ink); }
+
+  /* ---------- history hint & charts ---------- */
+  .hint.history-hint {
+    grid-column: span 2;
+    padding: 14px 16px;
+    cursor: default;
+    background: var(--panel-soft);
+  }
+  .hint.history-hint .hint-label { margin-bottom: 8px; }
+  .history-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 540px) {
+    .history-charts { grid-template-columns: 1fr; }
+  }
+  .chart-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .chart-cell .chart-title {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .chart-svg {
+    width: 100%;
+    height: 56px;
+    display: block;
+    overflow: visible;
+  }
+  .chart-svg .line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .chart-svg .area { opacity: 0.18; }
+  .chart-svg .dot {
+    fill: var(--panel);
+    stroke-width: 1.5;
+  }
+  .chart-range {
+    font-size: 11px;
+    color: var(--ink);
+    display: flex;
+    justify-content: space-between;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .chart-range .muted { color: var(--muted); font-weight: 500; margin-right: 4px; }
+  .chart-loading,
+  .chart-error {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 14px 0;
+    text-align: center;
+  }
+  .chart-error { color: var(--red); }
+
+  /* Result card now stacks: main row + optional detail chart */
+  .result-card { flex-direction: column; }
+  .result-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+  .history-detail {
+    width: 100%;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .history-detail[hidden] { display: none; }
+  .history-detail .detail-title {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .history-detail .chart-svg { height: 80px; }
+  .history-detail .axis-x {
+    font-size: 10px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    justify-content: space-between;
+    margin-top: -2px;
+  }
 </style>
 </head>
 <body>
@@ -627,17 +724,20 @@
     <div class="options" id="optionsRow" style="display:none"></div>
 
     <div class="result-card" id="resultCard">
-      <div class="result-flag" id="resultFlag">🌍</div>
-      <div class="result-text">
-        <div class="head" id="resultHead">—</div>
-        <div class="name" id="resultName">—</div>
+      <div class="result-main">
+        <div class="result-flag" id="resultFlag">🌍</div>
+        <div class="result-text">
+          <div class="head" id="resultHead">—</div>
+          <div class="name" id="resultName">—</div>
+        </div>
+        <button class="next-btn" id="nextBtn">Siguiente →</button>
       </div>
-      <button class="next-btn" id="nextBtn">Siguiente →</button>
+      <div class="history-detail" id="historyDetail" hidden></div>
     </div>
   </main>
 
   <footer>
-    Empezás con <b>$100</b> · acertar paga <b>+$50</b> · errar cuesta <b>−$10</b> · ver el billete arranca en <b>−$10</b> y sube <b>+$5</b> por cada uso · si te quedás sin plata, <b>perdés</b>.<br/>
+    Empezás con <b>$100</b> · acertar paga <b>+$50</b> · errar cuesta <b>−$10</b> · billete <b>−$10</b> · trayectoria histórica <b>−$20</b> · ambas pistas suben <b>+$5</b> por cada uso · si te quedás sin plata, <b>perdés</b>.<br/>
     <kbd>Enter</kbd> enviar respuesta escrita · <kbd>1</kbd>–<kbd>4</kbd> elegir opción · <kbd>Espacio</kbd>/<kbd>Enter</kbd> siguiente ronda
   </footer>
 
@@ -791,18 +891,21 @@
   const NF1 = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
   function formatGdp(gdpBillion) {
-    // gdpBillion = miles de millones USD. >=1000 → mostrar en billones (1 billón = 1.000.000 millones es-AR).
+    // gdpBillion viene en miles de millones de USD (10^9). Para valores
+    // >= 10^12 los pasamos a billones (es-AR: 1 billón = 10^12); para el
+    // resto los mostramos en millones, que es la forma más legible en
+    // diarios y manuales (ej. "USD 640.000 millones").
     if (gdpBillion >= 1000) {
-      return `USD ${NF1.format(gdpBillion / 1000)} bill.`;
+      return `USD ${NF1.format(gdpBillion / 1000)} billones`;
     }
-    return `USD ${NF.format(gdpBillion)} mil mill.`;
+    return `USD ${NF.format(gdpBillion * 1000)} millones`;
   }
   function formatPerCapita(usd) {
     return `USD ${NF.format(usd)}`;
   }
   function formatPopulation(millions) {
-    if (millions < 10) return `${NF1.format(millions)} mill.`;
-    return `${NF.format(Math.round(millions))} mill.`;
+    if (millions < 10) return `${NF1.format(millions)} millones`;
+    return `${NF.format(Math.round(millions))} millones`;
   }
 
   // -------- hint configuration --------
@@ -817,14 +920,15 @@
   const WRONG_COST      = 10;   // pagás cuando errás la respuesta
   const CORRECT_REWARD  = 50;   // ganás cuando acertás
   const HINTS = [
-    { id: 'currency', label: 'Moneda', cost: HINT_COST, format: c => c.currency, kind: 'banknote' },
+    { id: 'currency', label: 'Moneda',     cost: HINT_COST, format: c => c.currency, kind: 'banknote' },
+    { id: 'history',  label: 'Trayectoria', cost: 20,        kind: 'history' },
   ];
 
-  // Costo dinámico: la pista de moneda sube de a poco a medida que la usás
-  // varias veces en la misma partida. Resetea al volver a empezar.
+  // Costo dinámico: cada pista sube de a poco según las veces que ya la usaste
+  // en la partida actual. Reset al volver a empezar.
   function hintCost(h) {
-    if (h.id === 'currency') return h.cost + STATE.currencyUses * HINT_COST_STEP;
-    return h.cost;
+    const uses = STATE.hintUses[h.id] || 0;
+    return h.cost + uses * HINT_COST_STEP;
   }
 
   // -------- currency → symbol + visual palette --------
@@ -882,6 +986,91 @@
     $('banknote').hidden = true;
   }
 
+  // -------- historical data (World Bank API) --------
+  // We pull GDP (current USD) and total population from the World Bank
+  // open API, cache the response in localStorage, and draw sparklines.
+  // The API supports CORS, no auth needed.
+  const ISO_CODES = {
+    'China': 'CN', 'Estados Unidos': 'US', 'Alemania': 'DE', 'Japón': 'JP',
+    'Arabia Saudita': 'SA', 'Brasil': 'BR', 'Argentina': 'AR', 'Chile': 'CL',
+    'Australia': 'AU', 'Canadá': 'CA', 'Suiza': 'CH', 'Países Bajos': 'NL',
+    'Corea del Sur': 'KR', 'Singapur': 'SG', 'India': 'IN', 'Francia': 'FR',
+    'Italia': 'IT', 'México': 'MX', 'Tailandia': 'TH', 'Sudáfrica': 'ZA',
+    'Nigeria': 'NG', 'Rusia': 'RU', 'Israel': 'IL', 'España': 'ES',
+    'Reino Unido': 'GB', 'Noruega': 'NO', 'Nueva Zelanda': 'NZ', 'Vietnam': 'VN',
+    'Indonesia': 'ID', 'Turquía': 'TR', 'Irlanda': 'IE', 'Emiratos Árabes Unidos': 'AE',
+  };
+  const WB_INDICATORS = {
+    gdp: { code: 'NY.GDP.MKTP.CD', label: 'PIB (USD)',   color: '#d4a017', format: formatHistoryGdp },
+    pop: { code: 'SP.POP.TOTL',    label: 'Población',   color: '#5fa033', format: formatHistoryPop },
+  };
+  const HISTORY_START = 1994;
+  const HISTORY_END   = 2023;
+
+  function formatHistoryGdp(usd) {
+    if (usd == null) return '—';
+    if (usd >= 1e12) return `USD ${NF1.format(usd / 1e12)} billones`;
+    if (usd >= 1e9)  return `USD ${NF.format(Math.round(usd / 1e6))} millones`;
+    return `USD ${NF.format(Math.round(usd / 1e6))} millones`;
+  }
+  function formatHistoryPop(n) {
+    if (n == null) return '—';
+    if (n >= 1e9) return `${NF1.format(n / 1e9)} mil millones`;
+    if (n >= 1e6) return `${NF1.format(n / 1e6)} millones`;
+    return NF.format(Math.round(n));
+  }
+
+  async function fetchWBHistory(iso, indicatorCode) {
+    const key = `wb-${iso}-${indicatorCode}-${HISTORY_START}-${HISTORY_END}`;
+    try {
+      const cached = localStorage.getItem(key);
+      if (cached) return JSON.parse(cached);
+    } catch (e) { /* localStorage may be disabled in private mode */ }
+    const url = `https://api.worldbank.org/v2/country/${iso}/indicator/${indicatorCode}?format=json&per_page=80&date=${HISTORY_START}:${HISTORY_END}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`WB API ${res.status}`);
+    const json = await res.json();
+    const data = (json[1] || [])
+      .filter(d => d.value != null)
+      .map(d => ({ year: parseInt(d.date, 10), value: d.value }))
+      .sort((a, b) => a.year - b.year);
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
+    return data;
+  }
+
+  // Renders a pure-SVG sparkline. `showDots` adds endpoint markers (for the
+  // larger chart in the reveal); the compact hint version skips them.
+  function renderSparkline(data, color, opts = {}) {
+    const width   = opts.width   ?? 220;
+    const height  = opts.height  ?? 56;
+    const showDots = opts.showDots ?? false;
+    if (!data || data.length < 2) return '<div class="chart-error">Sin datos</div>';
+    const xs = data.map(d => d.year);
+    const ys = data.map(d => d.value);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const xRange = (maxX - minX) || 1;
+    const yRange = (maxY - minY) || 1;
+    const pad = 5;
+    const sx = x => pad + ((x - minX) / xRange) * (width - 2 * pad);
+    const sy = y => height - pad - ((y - minY) / yRange) * (height - 2 * pad);
+    const pts = data.map(d => `${sx(d.year).toFixed(1)},${sy(d.value).toFixed(1)}`).join(' ');
+    const first = data[0], last = data[data.length - 1];
+    const areaPts = `${sx(first.year)},${height - pad} ${pts} ${sx(last.year)},${height - pad}`;
+    const dots = showDots
+      ? `<circle class="dot" cx="${sx(first.year)}" cy="${sy(first.value)}" r="3" stroke="${color}"/>
+         <circle class="dot" cx="${sx(last.year)}"  cy="${sy(last.value)}"  r="3" stroke="${color}"/>`
+      : '';
+    return `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
+      <polygon class="area" points="${areaPts}" fill="${color}"/>
+      <polyline class="line" points="${pts}" stroke="${color}"/>
+      ${dots}
+    </svg>`;
+  }
+
+  // Token to invalidate in-flight chart loads when the round changes.
+  let chartLoadToken = 0;
+
   // -------- game state --------
   const STATE = {
     money: START_MONEY,
@@ -894,7 +1083,7 @@
     correctOption: -1,
     recent: [],          // indices of recently shown to avoid quick repeats
     revealed: new Set(), // hints unlocked in the current round (visual)
-    currencyUses: 0,     // veces que se desbloqueó la pista de moneda en esta partida
+    hintUses: {},        // veces que cada pista fue desbloqueada en la partida (id → count)
   };
 
   const $ = id => document.getElementById(id);
@@ -946,6 +1135,7 @@
     STATE.currentIdx = pickCountry();
     STATE.recent.push(STATE.currentIdx);
     if (STATE.recent.length > 6) STATE.recent.shift();
+    chartLoadToken++; // invalidate any in-flight chart loads from the previous round
 
     const distractors = pickDistractors(STATE.currentIdx, 3);
     const options = shuffle([STATE.currentIdx, ...distractors]);
@@ -957,6 +1147,8 @@
     // Las 4 opciones se muestran de arranque para que el juego sea accesible.
     $('optionsRow').style.display = 'grid';
     hideBanknote();
+    $('historyDetail').hidden = true;
+    $('historyDetail').innerHTML = '';
     $('resultCard').classList.remove('show', 'correct', 'wrong');
     const input = $('guessInput');
     input.value = '';
@@ -989,37 +1181,132 @@
       const isRevealed = STATE.revealed.has(h.id);
       const card = document.createElement(isRevealed ? 'div' : 'button');
       card.className = 'hint';
+      if (h.kind === 'history') card.classList.add('history-hint');
 
       if (isRevealed) {
-        card.innerHTML = `<span class="hint-label">${h.label}</span>`;
-        const val = document.createElement('span');
-        val.className = 'hint-value';
-        if (h.kind === 'reveal-options') {
-          val.textContent = '✓ Opciones reveladas';
-          val.style.color = 'var(--green)';
-        } else if (h.kind === 'banknote') {
-          val.textContent = '✓ Revelada arriba ↑';
-          val.style.color = 'var(--green)';
+        if (h.kind === 'history') {
+          card.innerHTML = `
+            <span class="hint-label">📈 Trayectoria · ${HISTORY_START}–${HISTORY_END}</span>
+            <div class="chart-loading">Cargando datos del Banco Mundial…</div>
+          `;
+          populateHistorySparkline(card, c);
         } else {
-          val.textContent = h.format(c);
+          card.innerHTML = `<span class="hint-label">${h.label}</span>`;
+          const val = document.createElement('span');
+          val.className = 'hint-value';
+          if (h.kind === 'reveal-options') {
+            val.textContent = '✓ Opciones reveladas';
+            val.style.color = 'var(--green)';
+          } else if (h.kind === 'banknote') {
+            val.textContent = '✓ Revelada arriba ↑';
+            val.style.color = 'var(--green)';
+          } else {
+            val.textContent = h.format(c);
+          }
+          card.appendChild(val);
         }
-        card.appendChild(val);
       } else {
         card.classList.add('locked');
         card.type = 'button';
         const cost = hintCost(h);
         const broke = STATE.money < cost;
         card.disabled = STATE.answered || STATE.gameOver || broke;
+        const used = STATE.hintUses[h.id] || 0;
         const subtitle = broke
           ? 'Sin plata'
-          : `Desbloquear · <b>−$${cost}</b>${STATE.currencyUses > 0 && h.id === 'currency' ? ` <span style="color:var(--muted)">(sube $${HINT_COST_STEP} cada uso)</span>` : ''}`;
+          : `Desbloquear · <b>−$${cost}</b>${used > 0 ? ` <span style="color:var(--muted)">(sube $${HINT_COST_STEP} cada uso)</span>` : ''}`;
+        const icon = h.kind === 'history' ? '📈 ' : '';
         card.innerHTML = `
-          <span class="hint-lock"><span class="ico">🔒</span>${h.label}</span>
+          <span class="hint-lock"><span class="ico">🔒</span>${icon}${h.label}</span>
           <span class="hint-cost">${subtitle}</span>
         `;
         card.addEventListener('click', () => revealHint(h.id));
       }
       grid.appendChild(card);
+    }
+  }
+
+  function chartCellHTML(data, indicator) {
+    if (!data || !data.length) {
+      return `<div class="chart-cell"><span class="chart-title">${indicator.label}</span><div class="chart-error">Sin datos</div></div>`;
+    }
+    const first = data[0], last = data[data.length - 1];
+    return `
+      <div class="chart-cell">
+        <span class="chart-title">${indicator.label}</span>
+        ${renderSparkline(data, indicator.color)}
+        <div class="chart-range">
+          <span><span class="muted">${first.year}</span> ${indicator.format(first.value)}</span>
+          <span><span class="muted">${last.year}</span> ${indicator.format(last.value)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  async function populateHistorySparkline(card, country) {
+    const token = chartLoadToken;
+    const iso = ISO_CODES[country.name];
+    if (!iso) {
+      const loading = card.querySelector('.chart-loading');
+      if (loading) loading.outerHTML = '<div class="chart-error">Sin código ISO para este país</div>';
+      return;
+    }
+    try {
+      const [gdp, pop] = await Promise.all([
+        fetchWBHistory(iso, WB_INDICATORS.gdp.code),
+        fetchWBHistory(iso, WB_INDICATORS.pop.code),
+      ]);
+      if (token !== chartLoadToken) return; // round changed mid-fetch
+      card.innerHTML = `
+        <span class="hint-label">📈 Trayectoria · ${HISTORY_START}–${HISTORY_END}</span>
+        <div class="history-charts">
+          ${chartCellHTML(gdp, WB_INDICATORS.gdp)}
+          ${chartCellHTML(pop, WB_INDICATORS.pop)}
+        </div>
+      `;
+    } catch (e) {
+      if (token !== chartLoadToken) return;
+      const loading = card.querySelector('.chart-loading');
+      if (loading) loading.outerHTML = '<div class="chart-error">No se pudieron cargar los datos</div>';
+    }
+  }
+
+  // After answering, show the full historical chart for free as an educational
+  // reveal — same data as the paid hint but a touch larger and with year axis.
+  async function revealHistoryDetail(country) {
+    const token = chartLoadToken;
+    const detail = $('historyDetail');
+    detail.hidden = false;
+    detail.innerHTML = `
+      <span class="detail-title">📈 Trayectoria histórica · ${country.name}</span>
+      <div class="chart-loading">Cargando datos del Banco Mundial…</div>
+    `;
+    const iso = ISO_CODES[country.name];
+    if (!iso) {
+      detail.innerHTML = `<span class="detail-title">📈 Trayectoria histórica · ${country.name}</span><div class="chart-error">Sin código ISO</div>`;
+      return;
+    }
+    try {
+      const [gdp, pop] = await Promise.all([
+        fetchWBHistory(iso, WB_INDICATORS.gdp.code),
+        fetchWBHistory(iso, WB_INDICATORS.pop.code),
+      ]);
+      if (token !== chartLoadToken) return;
+      const years = gdp.length ? gdp : pop;
+      const firstYear = years[0]?.year ?? HISTORY_START;
+      const lastYear  = years[years.length - 1]?.year ?? HISTORY_END;
+      const midYear   = Math.round((firstYear + lastYear) / 2);
+      detail.innerHTML = `
+        <span class="detail-title">📈 Trayectoria histórica · ${country.name}</span>
+        <div class="history-charts">
+          ${chartCellHTML(gdp, WB_INDICATORS.gdp)}
+          ${chartCellHTML(pop, WB_INDICATORS.pop)}
+        </div>
+        <div class="axis-x"><span>${firstYear}</span><span>${midYear}</span><span>${lastYear}</span></div>
+      `;
+    } catch (e) {
+      if (token !== chartLoadToken) return;
+      detail.innerHTML = `<span class="detail-title">📈 Trayectoria histórica · ${country.name}</span><div class="chart-error">No se pudieron cargar los datos del Banco Mundial</div>`;
     }
   }
 
@@ -1032,7 +1319,7 @@
     if (STATE.money < cost) return; // can't afford — button is also disabled in UI
     STATE.revealed.add(id);
     STATE.money -= cost;
-    if (h.id === 'currency') STATE.currencyUses++;
+    STATE.hintUses[id] = (STATE.hintUses[id] || 0) + 1;
     bumpMoneyChip();
     if (h.kind === 'reveal-options') {
       $('optionsRow').style.display = 'grid';
@@ -1128,6 +1415,7 @@
     bumpMoneyChip();
     updateScore();
     showResult(correct, delta, countryIdx);
+    revealHistoryDetail(COUNTRIES[STATE.currentIdx]);
     if (STATE.money <= 0) triggerGameOver();
   }
 
@@ -1175,13 +1463,13 @@
   }
 
   function restartGame() {
-    STATE.money        = START_MONEY;
-    STATE.streak       = 0;
-    STATE.maxStreak    = 0;
-    STATE.gameOver     = false;
-    STATE.answered     = false;
-    STATE.recent       = [];
-    STATE.currencyUses = 0;
+    STATE.money     = START_MONEY;
+    STATE.streak    = 0;
+    STATE.maxStreak = 0;
+    STATE.gameOver  = false;
+    STATE.answered  = false;
+    STATE.recent    = [];
+    STATE.hintUses  = {};
     $('gameOverModal').classList.remove('show');
     updateScore();
     startRound();

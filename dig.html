@@ -1494,11 +1494,14 @@
   // Difficulty levels for Escape mode. Each tweaks lava speed, acceleration
   // and how many coins blocks award. Free mode is unaffected.
   // =====================================================================
+  // eventMin/eventMax define the random range (in blocks mined) between
+  // random events. Easier difficulties get help more often; harder modes get
+  // it sparingly. The first event of a run fires sooner — see tickEvents().
   const DIFFICULTIES = {
-    easy:      { name: 'Fácil',     lavaInit: 0.45, accelStep: 0.04, accelEvery: 45, coinMult: 1.4 },
-    normal:    { name: 'Normal',    lavaInit: 0.60, accelStep: 0.06, accelEvery: 40, coinMult: 1.0 },
-    hard:      { name: 'Difícil',   lavaInit: 1.05, accelStep: 0.09, accelEvery: 35, coinMult: 0.65 },
-    nightmare: { name: 'Pesadilla', lavaInit: 1.40, accelStep: 0.12, accelEvery: 30, coinMult: 0.40 },
+    easy:      { name: 'Fácil',     lavaInit: 0.45, accelStep: 0.04, accelEvery: 45, coinMult: 1.4,  eventMin: 40,  eventMax: 60  },
+    normal:    { name: 'Normal',    lavaInit: 0.60, accelStep: 0.06, accelEvery: 40, coinMult: 1.20, eventMin: 90,  eventMax: 110 },
+    hard:      { name: 'Difícil',   lavaInit: 1.05, accelStep: 0.09, accelEvery: 35, coinMult: 0.65, eventMin: 140, eventMax: 180 },
+    nightmare: { name: 'Pesadilla', lavaInit: 1.40, accelStep: 0.12, accelEvery: 30, coinMult: 0.40, eventMin: 220, eventMax: 260 },
   };
   function currentDifficulty() {
     return DIFFICULTIES[state.difficulty] || DIFFICULTIES.normal;
@@ -2735,11 +2738,14 @@
   // =====================================================================
   // Shop / upgrade pricing
   // =====================================================================
-  function powerCost() { return Math.floor(25 * Math.pow(1.55, state.shovel.power - 1)); }
-  function autoCost()  { return Math.floor(120 * Math.pow(1.85, state.shovel.auto)); }
-  function luckCost()  { return Math.floor(200 * Math.pow(2.10, state.shovel.luck)); }
-  function valueCost() { return Math.floor(500 * Math.pow(2.80, state.shovel.value)); }
-  function speedCost() { return Math.floor(200 * Math.pow(2.50, state.shovel.speed)); }
+  // Each upgrade costs base * factor^level. Higher base = pricier at start;
+  // higher factor = grows faster per level. Bumped both vs the previous curve
+  // because Power especially was trivial to mass-upgrade on Normal.
+  function powerCost() { return Math.floor(50  * Math.pow(1.55, state.shovel.power - 1)); }
+  function autoCost()  { return Math.floor(180 * Math.pow(2.30, state.shovel.auto));  }
+  function luckCost()  { return Math.floor(300 * Math.pow(2.45, state.shovel.luck));  }
+  function valueCost() { return Math.floor(700 * Math.pow(3.10, state.shovel.value)); }
+  function speedCost() { return Math.floor(280 * Math.pow(3.20, state.shovel.speed)); }
   // Hits per second when click is held. Base 10/s, +1.5/s per Speed level.
   function holdHitsPerSec() { return 10 + state.shovel.speed * 1.5; }
 
@@ -3024,17 +3030,20 @@
   // jitter), not on a wall-clock timer. This keeps reward pacing tied to
   // actual activity — afk players don't get effects, busy players get them
   // often. Also: no events while dead in escape mode.
-  const EVENT_BLOCKS_MIN = 30;
-  const EVENT_BLOCKS_MAX = 70;
   function rollNextEventThreshold() {
-    return state.totalMined + EVENT_BLOCKS_MIN +
-           Math.floor(Math.random() * (EVENT_BLOCKS_MAX - EVENT_BLOCKS_MIN));
+    const d = currentDifficulty();
+    const min = d.eventMin, max = d.eventMax;
+    return state.totalMined + min + Math.floor(Math.random() * (max - min));
   }
   function tickEvents(/* now */) {
     if (state.mode === 'escape' && !state.escape.alive) return;
     if (state.nextEventAt === 0) {
-      // First event after 15-30 blocks so the player sees one quickly.
-      state.nextEventAt = state.totalMined + 15 + Math.floor(Math.random() * 15);
+      // First event of the run fires sooner (roughly half the normal range)
+      // so the player meets the mechanic quickly regardless of difficulty.
+      const d = currentDifficulty();
+      const min = Math.max(4, Math.floor(d.eventMin / 2));
+      const max = Math.max(min + 1, Math.floor(d.eventMax / 2));
+      state.nextEventAt = state.totalMined + min + Math.floor(Math.random() * (max - min));
       return;
     }
     if (state.totalMined < state.nextEventAt) return;
